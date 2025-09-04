@@ -1,0 +1,109 @@
+# Citty CLI Ontology Templates
+
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix citty: <http://example.org/citty#> .
+@prefix cmd: <http://example.org/citty/command#> .
+@prefix arg: <http://example.org/citty/argument#> .
+@prefix type: <http://example.org/citty/type#> .
+
+# Ontology Classes
+citty:Command a owl:Class ;
+    rdfs:label "Command"@en ;
+    rdfs:comment "A command-line interface command"@en .
+
+citty:Argument a owl:Class ;
+    rdfs:label "Argument"@en ;
+    rdfs:comment "A command argument or option"@en .
+
+citty:ArgumentType a owl:Class ;
+    rdfs:label "Argument Type"@en ;
+    rdfs:comment "The type of an argument"@en .
+
+citty:CommandGroup a owl:Class ;
+    rdfs:label "Command Group"@en ;
+    rdfs:comment "A group of related commands"@en .
+
+# Ontology Properties
+citty:hasName a owl:DatatypeProperty ;
+    rdfs:label "has name"@en ;
+    rdfs:domain citty:Command ;
+    rdfs:range xsd:string .
+
+citty:hasDescription a owl:DatatypeProperty ;
+    rdfs:label "has description"@en ;
+    rdfs:domain citty:Command ;
+    rdfs:range xsd:string .
+
+citty:hasVersion a owl:DatatypeProperty ;
+    rdfs:label "has version"@en ;
+    rdfs:domain citty:Command ;
+    rdfs:range xsd:string .
+
+citty:isHidden a owl:DatatypeProperty ;
+    rdfs:label "is hidden"@en ;
+    rdfs:domain citty:Command ;
+    rdfs:range xsd:boolean .
+
+citty:hasSubCommand a owl:ObjectProperty ;
+    rdfs:label "has sub command"@en ;
+    rdfs:domain citty:Command ;
+    rdfs:range citty:Command .
+
+citty:hasArgument a owl:ObjectProperty ;
+    rdfs:label "has argument"@en ;
+    rdfs:domain citty:Command ;
+    rdfs:range citty:Argument .
+
+citty:hasType a owl:ObjectProperty ;
+    rdfs:label "has type"@en ;
+    rdfs:domain citty:Argument ;
+    rdfs:range citty:ArgumentType .
+
+citty:hasDefaultValue a owl:DatatypeProperty ;
+    rdfs:label "has default value"@en ;
+    rdfs:domain citty:Argument ;
+    rdfs:range xsd:string .
+
+citty:isRequired a owl:DatatypeProperty ;
+    rdfs:label "is required"@en ;
+    rdfs:domain citty:Argument ;
+    rdfs:range xsd:boolean .
+
+citty:hasAlias a owl:DatatypeProperty ;
+    rdfs:label "has alias"@en ;
+    rdfs:domain citty:Argument ;
+    rdfs:range xsd:string .
+
+citty:hasValueHint a owl:DatatypeProperty ;
+    rdfs:label "has value hint"@en ;
+    rdfs:domain citty:Argument ;
+    rdfs:range xsd:string .
+
+citty:hasOption a owl:DatatypeProperty ;
+    rdfs:label "has option"@en ;
+    rdfs:domain citty:Argument ;
+    rdfs:range xsd:string .
+
+# Argument Type Instances
+type:boolean a citty:ArgumentType ;
+    rdfs:label "Boolean"@en ;
+    rdfs:comment "Boolean argument type"@en .
+
+type:string a citty:ArgumentType ;
+    rdfs:label "String"@en ;
+    rdfs:comment "String argument type"@en .
+
+type:number a citty:ArgumentType ;
+    rdfs:label "Number"@en ;
+    rdfs:comment "Number argument type"@en .
+
+type:enum a citty:ArgumentType ;
+    rdfs:label "Enum"@en ;
+    rdfs:comment "Enumeration argument type"@en .
+
+type:positional a citty:ArgumentType ;
+    rdfs:label "Positional"@en ;
+    rdfs:comment "Positional argument type"@en .

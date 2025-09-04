@@ -1,0 +1,896 @@
+# DevOps Master CLI - Complete Ontology Representation
+# This ontology demonstrates the full complexity of a comprehensive DevOps CLI system
+
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix citty: <http://example.org/citty#> .
+@prefix cmd: <http://example.org/citty/command#> .
+@prefix arg: <http://example.org/citty/argument#> .
+@prefix type: <http://example.org/citty/type#> .
+
+# ===============================================
+# ONTOLOGY CLASS DEFINITIONS
+# ===============================================
+
+citty:Command a owl:Class ;
+    rdfs:label "Command"@en ;
+    rdfs:comment "A command-line interface command"@en .
+
+citty:Argument a owl:Class ;
+    rdfs:label "Argument"@en ;
+    rdfs:comment "A command argument or option"@en .
+
+citty:ArgumentType a owl:Class ;
+    rdfs:label "Argument Type"@en ;
+    rdfs:comment "The type of an argument"@en .
+
+citty:CommandGroup a owl:Class ;
+    rdfs:label "Command Group"@en ;
+    rdfs:comment "A group of related commands"@en .
+
+# ===============================================
+# ONTOLOGY PROPERTY DEFINITIONS
+# ===============================================
+
+citty:hasName a owl:DatatypeProperty ;
+    rdfs:label "has name"@en ;
+    rdfs:domain citty:Command ;
+    rdfs:range xsd:string .
+
+citty:hasDescription a owl:DatatypeProperty ;
+    rdfs:label "has description"@en ;
+    rdfs:domain citty:Command ;
+    rdfs:range xsd:string .
+
+citty:hasVersion a owl:DatatypeProperty ;
+    rdfs:label "has version"@en ;
+    rdfs:domain citty:Command ;
+    rdfs:range xsd:string .
+
+citty:isHidden a owl:DatatypeProperty ;
+    rdfs:label "is hidden"@en ;
+    rdfs:domain citty:Command ;
+    rdfs:range xsd:boolean .
+
+citty:hasSubCommand a owl:ObjectProperty ;
+    rdfs:label "has sub command"@en ;
+    rdfs:domain citty:Command ;
+    rdfs:range citty:Command .
+
+citty:hasArgument a owl:ObjectProperty ;
+    rdfs:label "has argument"@en ;
+    rdfs:domain citty:Command ;
+    rdfs:range citty:Argument .
+
+citty:hasType a owl:ObjectProperty ;
+    rdfs:label "has type"@en ;
+    rdfs:domain citty:Argument ;
+    rdfs:range citty:ArgumentType .
+
+citty:hasDefaultValue a owl:DatatypeProperty ;
+    rdfs:label "has default value"@en ;
+    rdfs:domain citty:Argument .
+
+citty:isRequired a owl:DatatypeProperty ;
+    rdfs:label "is required"@en ;
+    rdfs:domain citty:Argument ;
+    rdfs:range xsd:boolean .
+
+citty:hasAlias a owl:DatatypeProperty ;
+    rdfs:label "has alias"@en ;
+    rdfs:domain citty:Argument ;
+    rdfs:range xsd:string .
+
+citty:hasValueHint a owl:DatatypeProperty ;
+    rdfs:label "has value hint"@en ;
+    rdfs:domain citty:Argument ;
+    rdfs:range xsd:string .
+
+citty:hasOption a owl:DatatypeProperty ;
+    rdfs:label "has option"@en ;
+    rdfs:domain citty:Argument ;
+    rdfs:range xsd:string .
+
+# ===============================================
+# ARGUMENT TYPE INSTANCES
+# ===============================================
+
+type:boolean a citty:ArgumentType ;
+    rdfs:label "Boolean"@en ;
+    rdfs:comment "Boolean argument type"@en .
+
+type:string a citty:ArgumentType ;
+    rdfs:label "String"@en ;
+    rdfs:comment "String argument type"@en .
+
+type:number a citty:ArgumentType ;
+    rdfs:label "Number"@en ;
+    rdfs:comment "Number argument type"@en .
+
+type:enum a citty:ArgumentType ;
+    rdfs:label "Enum"@en ;
+    rdfs:comment "Enumeration argument type"@en .
+
+type:positional a citty:ArgumentType ;
+    rdfs:label "Positional"@en ;
+    rdfs:comment "Positional argument type"@en .
+
+# ===============================================
+# MAIN DEVOPS MASTER CLI COMMAND
+# ===============================================
+
+cmd:devops-master a citty:Command ;
+    citty:hasName "devops-master" ;
+    citty:hasDescription "Complete DevOps automation and management CLI" ;
+    citty:hasVersion "2.0.0" ;
+    citty:hasSubCommand cmd:docker ;
+    citty:hasSubCommand cmd:kubernetes ;
+    citty:hasSubCommand cmd:terraform ;
+    citty:hasSubCommand cmd:ansible ;
+    citty:hasSubCommand cmd:jenkins ;
+    citty:hasSubCommand cmd:aws ;
+    citty:hasSubCommand cmd:azure ;
+    citty:hasSubCommand cmd:gcp ;
+    citty:hasSubCommand cmd:monitoring ;
+    citty:hasSubCommand cmd:security ;
+    citty:hasSubCommand cmd:database ;
+    citty:hasSubCommand cmd:network ;
+    citty:hasSubCommand cmd:backup ;
+    citty:hasSubCommand cmd:deploy ;
+    citty:hasSubCommand cmd:ci-cd ;
+    citty:hasSubCommand cmd:vault ;
+    citty:hasSubCommand cmd:logging ;
+    citty:hasSubCommand cmd:metrics ;
+    citty:hasSubCommand cmd:alerts ;
+    citty:hasSubCommand cmd:config ;
+    citty:hasSubCommand cmd:status ;
+    citty:hasSubCommand cmd:health ;
+    citty:hasArgument arg:devops-master:verbose ;
+    citty:hasArgument arg:devops-master:dry-run ;
+    citty:hasArgument arg:devops-master:config ;
+    citty:hasArgument arg:devops-master:profile .
+
+# Global Arguments for Main Command
+arg:devops-master:verbose a citty:Argument ;
+    citty:hasName "verbose" ;
+    citty:hasType type:boolean ;
+    citty:hasDescription "Enable verbose output across all commands" ;
+    citty:hasDefaultValue false ;
+    citty:hasAlias "v" .
+
+arg:devops-master:dry-run a citty:Argument ;
+    citty:hasName "dry-run" ;
+    citty:hasType type:boolean ;
+    citty:hasDescription "Show what would be done without executing" ;
+    citty:hasDefaultValue false .
+
+arg:devops-master:config a citty:Argument ;
+    citty:hasName "config" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Path to configuration file" ;
+    citty:hasDefaultValue "~/.devops-master/config.yml" ;
+    citty:hasValueHint "FILE_PATH" .
+
+arg:devops-master:profile a citty:Argument ;
+    citty:hasName "profile" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Configuration profile to use" ;
+    citty:hasDefaultValue "default" ;
+    citty:hasAlias "p" ;
+    citty:hasValueHint "PROFILE_NAME" .
+
+# ===============================================
+# DOCKER COMMAND GROUP
+# ===============================================
+
+cmd:docker a citty:Command ;
+    citty:hasName "docker" ;
+    citty:hasDescription "Docker container management and orchestration" ;
+    citty:hasSubCommand cmd:docker:build ;
+    citty:hasSubCommand cmd:docker:run ;
+    citty:hasSubCommand cmd:docker:ps ;
+    citty:hasSubCommand cmd:docker:logs ;
+    citty:hasSubCommand cmd:docker:clean ;
+    citty:hasArgument arg:docker:host .
+
+arg:docker:host a citty:Argument ;
+    citty:hasName "host" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Docker daemon host" ;
+    citty:hasDefaultValue "unix:///var/run/docker.sock" ;
+    citty:hasAlias "H" ;
+    citty:hasValueHint "HOST_URL" .
+
+# Docker Build Subcommand
+cmd:docker:build a citty:Command ;
+    citty:hasName "build" ;
+    citty:hasDescription "Build Docker images with advanced options" ;
+    citty:hasArgument arg:docker:build:dockerfile ;
+    citty:hasArgument arg:docker:build:tag ;
+    citty:hasArgument arg:docker:build:build-args ;
+    citty:hasArgument arg:docker:build:no-cache ;
+    citty:hasArgument arg:docker:build:platform .
+
+arg:docker:build:dockerfile a citty:Argument ;
+    citty:hasName "dockerfile" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Path to Dockerfile" ;
+    citty:hasDefaultValue "Dockerfile" ;
+    citty:hasAlias "f" ;
+    citty:hasValueHint "DOCKERFILE_PATH" .
+
+arg:docker:build:tag a citty:Argument ;
+    citty:hasName "tag" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Image tag" ;
+    citty:isRequired true ;
+    citty:hasAlias "t" ;
+    citty:hasValueHint "IMAGE_TAG" .
+
+arg:docker:build:build-args a citty:Argument ;
+    citty:hasName "build-args" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Build arguments as JSON" ;
+    citty:hasValueHint "JSON_OBJECT" .
+
+arg:docker:build:no-cache a citty:Argument ;
+    citty:hasName "no-cache" ;
+    citty:hasType type:boolean ;
+    citty:hasDescription "Do not use cache when building image" ;
+    citty:hasDefaultValue false .
+
+arg:docker:build:platform a citty:Argument ;
+    citty:hasName "platform" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Target platform for build" ;
+    citty:hasValueHint "PLATFORM" .
+
+# Docker Run Subcommand
+cmd:docker:run a citty:Command ;
+    citty:hasName "run" ;
+    citty:hasDescription "Run containers with comprehensive configuration" ;
+    citty:hasArgument arg:docker:run:image ;
+    citty:hasArgument arg:docker:run:name ;
+    citty:hasArgument arg:docker:run:ports ;
+    citty:hasArgument arg:docker:run:volumes ;
+    citty:hasArgument arg:docker:run:env ;
+    citty:hasArgument arg:docker:run:detach .
+
+arg:docker:run:image a citty:Argument ;
+    citty:hasName "image" ;
+    citty:hasType type:positional ;
+    citty:hasDescription "Docker image to run" ;
+    citty:isRequired true ;
+    citty:hasValueHint "IMAGE_NAME" .
+
+arg:docker:run:name a citty:Argument ;
+    citty:hasName "name" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Container name" ;
+    citty:hasValueHint "CONTAINER_NAME" .
+
+arg:docker:run:ports a citty:Argument ;
+    citty:hasName "ports" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Port mappings (comma-separated)" ;
+    citty:hasAlias "p" ;
+    citty:hasValueHint "HOST:CONTAINER,..." .
+
+arg:docker:run:volumes a citty:Argument ;
+    citty:hasName "volumes" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Volume mappings (comma-separated)" ;
+    citty:hasAlias "v" ;
+    citty:hasValueHint "HOST:CONTAINER,..." .
+
+arg:docker:run:env a citty:Argument ;
+    citty:hasName "env" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Environment variables as JSON" ;
+    citty:hasAlias "e" ;
+    citty:hasValueHint "JSON_OBJECT" .
+
+arg:docker:run:detach a citty:Argument ;
+    citty:hasName "detach" ;
+    citty:hasType type:boolean ;
+    citty:hasDescription "Run container in background" ;
+    citty:hasDefaultValue false ;
+    citty:hasAlias "d" .
+
+# ===============================================
+# KUBERNETES COMMAND GROUP
+# ===============================================
+
+cmd:kubernetes a citty:Command ;
+    citty:hasName "kubernetes" ;
+    citty:hasDescription "Kubernetes cluster management and deployment" ;
+    citty:hasSubCommand cmd:kubernetes:apply ;
+    citty:hasSubCommand cmd:kubernetes:get ;
+    citty:hasSubCommand cmd:kubernetes:delete ;
+    citty:hasSubCommand cmd:kubernetes:scale ;
+    citty:hasSubCommand cmd:kubernetes:rollout ;
+    citty:hasArgument arg:kubernetes:kubeconfig ;
+    citty:hasArgument arg:kubernetes:namespace .
+
+arg:kubernetes:kubeconfig a citty:Argument ;
+    citty:hasName "kubeconfig" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Path to kubeconfig file" ;
+    citty:hasDefaultValue "~/.kube/config" ;
+    citty:hasValueHint "KUBECONFIG_PATH" .
+
+arg:kubernetes:namespace a citty:Argument ;
+    citty:hasName "namespace" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Kubernetes namespace" ;
+    citty:hasDefaultValue "default" ;
+    citty:hasAlias "n" ;
+    citty:hasValueHint "NAMESPACE" .
+
+# Kubernetes Apply Subcommand
+cmd:kubernetes:apply a citty:Command ;
+    citty:hasName "apply" ;
+    citty:hasDescription "Apply Kubernetes manifests" ;
+    citty:hasArgument arg:kubernetes:apply:file ;
+    citty:hasArgument arg:kubernetes:apply:recursive ;
+    citty:hasArgument arg:kubernetes:apply:force .
+
+arg:kubernetes:apply:file a citty:Argument ;
+    citty:hasName "file" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Manifest file or directory" ;
+    citty:isRequired true ;
+    citty:hasAlias "f" ;
+    citty:hasValueHint "MANIFEST_PATH" .
+
+arg:kubernetes:apply:recursive a citty:Argument ;
+    citty:hasName "recursive" ;
+    citty:hasType type:boolean ;
+    citty:hasDescription "Process directories recursively" ;
+    citty:hasDefaultValue false ;
+    citty:hasAlias "R" .
+
+arg:kubernetes:apply:force a citty:Argument ;
+    citty:hasName "force" ;
+    citty:hasType type:boolean ;
+    citty:hasDescription "Force apply even if conflicts exist" ;
+    citty:hasDefaultValue false .
+
+# ===============================================
+# TERRAFORM COMMAND GROUP
+# ===============================================
+
+cmd:terraform a citty:Command ;
+    citty:hasName "terraform" ;
+    citty:hasDescription "Infrastructure as Code management with Terraform" ;
+    citty:hasSubCommand cmd:terraform:plan ;
+    citty:hasSubCommand cmd:terraform:apply ;
+    citty:hasSubCommand cmd:terraform:destroy ;
+    citty:hasSubCommand cmd:terraform:import ;
+    citty:hasArgument arg:terraform:workspace ;
+    citty:hasArgument arg:terraform:var-file .
+
+arg:terraform:workspace a citty:Argument ;
+    citty:hasName "workspace" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Terraform workspace" ;
+    citty:hasDefaultValue "default" ;
+    citty:hasAlias "w" ;
+    citty:hasValueHint "WORKSPACE_NAME" .
+
+arg:terraform:var-file a citty:Argument ;
+    citty:hasName "var-file" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Variables file path" ;
+    citty:hasValueHint "VARS_FILE" .
+
+# Terraform Plan Subcommand
+cmd:terraform:plan a citty:Command ;
+    citty:hasName "plan" ;
+    citty:hasDescription "Generate and show execution plan" ;
+    citty:hasArgument arg:terraform:plan:out ;
+    citty:hasArgument arg:terraform:plan:destroy ;
+    citty:hasArgument arg:terraform:plan:detailed-exitcode .
+
+arg:terraform:plan:out a citty:Argument ;
+    citty:hasName "out" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Save plan to file" ;
+    citty:hasValueHint "PLAN_FILE" .
+
+arg:terraform:plan:destroy a citty:Argument ;
+    citty:hasName "destroy" ;
+    citty:hasType type:boolean ;
+    citty:hasDescription "Create a destroy plan" ;
+    citty:hasDefaultValue false .
+
+arg:terraform:plan:detailed-exitcode a citty:Argument ;
+    citty:hasName "detailed-exitcode" ;
+    citty:hasType type:boolean ;
+    citty:hasDescription "Return detailed exit codes" ;
+    citty:hasDefaultValue false .
+
+# ===============================================
+# AWS COMMAND GROUP
+# ===============================================
+
+cmd:aws a citty:Command ;
+    citty:hasName "aws" ;
+    citty:hasDescription "Amazon Web Services management and automation" ;
+    citty:hasSubCommand cmd:aws:ec2 ;
+    citty:hasSubCommand cmd:aws:s3 ;
+    citty:hasSubCommand cmd:aws:lambda ;
+    citty:hasSubCommand cmd:aws:rds ;
+    citty:hasArgument arg:aws:region ;
+    citty:hasArgument arg:aws:profile .
+
+arg:aws:region a citty:Argument ;
+    citty:hasName "region" ;
+    citty:hasType type:string ;
+    citty:hasDescription "AWS region" ;
+    citty:hasDefaultValue "us-east-1" ;
+    citty:hasAlias "r" ;
+    citty:hasValueHint "AWS_REGION" .
+
+arg:aws:profile a citty:Argument ;
+    citty:hasName "profile" ;
+    citty:hasType type:string ;
+    citty:hasDescription "AWS profile" ;
+    citty:hasDefaultValue "default" ;
+    citty:hasValueHint "AWS_PROFILE" .
+
+# AWS EC2 Subcommand
+cmd:aws:ec2 a citty:Command ;
+    citty:hasName "ec2" ;
+    citty:hasDescription "EC2 instance management" ;
+    citty:hasArgument arg:aws:ec2:instance-type ;
+    citty:hasArgument arg:aws:ec2:ami-id ;
+    citty:hasArgument arg:aws:ec2:key-name ;
+    citty:hasArgument arg:aws:ec2:security-groups .
+
+arg:aws:ec2:instance-type a citty:Argument ;
+    citty:hasName "instance-type" ;
+    citty:hasType type:enum ;
+    citty:hasDescription "EC2 instance type" ;
+    citty:hasDefaultValue "t3.micro" ;
+    citty:hasOption "t3.micro" ;
+    citty:hasOption "t3.small" ;
+    citty:hasOption "t3.medium" ;
+    citty:hasOption "m5.large" ;
+    citty:hasOption "c5.xlarge" .
+
+arg:aws:ec2:ami-id a citty:Argument ;
+    citty:hasName "ami-id" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Amazon Machine Image ID" ;
+    citty:isRequired true ;
+    citty:hasValueHint "AMI_ID" .
+
+arg:aws:ec2:key-name a citty:Argument ;
+    citty:hasName "key-name" ;
+    citty:hasType type:string ;
+    citty:hasDescription "EC2 Key Pair name" ;
+    citty:hasValueHint "KEY_PAIR_NAME" .
+
+arg:aws:ec2:security-groups a citty:Argument ;
+    citty:hasName "security-groups" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Security group IDs (comma-separated)" ;
+    citty:hasValueHint "SG_ID,SG_ID,..." .
+
+# ===============================================
+# MONITORING COMMAND GROUP
+# ===============================================
+
+cmd:monitoring a citty:Command ;
+    citty:hasName "monitoring" ;
+    citty:hasDescription "System monitoring and observability" ;
+    citty:hasSubCommand cmd:monitoring:metrics ;
+    citty:hasSubCommand cmd:monitoring:logs ;
+    citty:hasSubCommand cmd:monitoring:alerts ;
+    citty:hasSubCommand cmd:monitoring:dashboards ;
+    citty:hasArgument arg:monitoring:interval ;
+    citty:hasArgument arg:monitoring:retention .
+
+arg:monitoring:interval a citty:Argument ;
+    citty:hasName "interval" ;
+    citty:hasType type:number ;
+    citty:hasDescription "Monitoring interval in seconds" ;
+    citty:hasDefaultValue 60 ;
+    citty:hasAlias "i" ;
+    citty:hasValueHint "SECONDS" .
+
+arg:monitoring:retention a citty:Argument ;
+    citty:hasName "retention" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Data retention period" ;
+    citty:hasDefaultValue "30d" ;
+    citty:hasValueHint "DURATION" .
+
+# Monitoring Metrics Subcommand
+cmd:monitoring:metrics a citty:Command ;
+    citty:hasName "metrics" ;
+    citty:hasDescription "Collect and analyze system metrics" ;
+    citty:hasArgument arg:monitoring:metrics:type ;
+    citty:hasArgument arg:monitoring:metrics:format ;
+    citty:hasArgument arg:monitoring:metrics:export .
+
+arg:monitoring:metrics:type a citty:Argument ;
+    citty:hasName "type" ;
+    citty:hasType type:enum ;
+    citty:hasDescription "Type of metrics to collect" ;
+    citty:hasDefaultValue "system" ;
+    citty:hasOption "system" ;
+    citty:hasOption "application" ;
+    citty:hasOption "network" ;
+    citty:hasOption "database" ;
+    citty:hasOption "custom" .
+
+arg:monitoring:metrics:format a citty:Argument ;
+    citty:hasName "format" ;
+    citty:hasType type:enum ;
+    citty:hasDescription "Output format for metrics" ;
+    citty:hasDefaultValue "prometheus" ;
+    citty:hasOption "prometheus" ;
+    citty:hasOption "json" ;
+    citty:hasOption "csv" ;
+    citty:hasOption "influxdb" .
+
+arg:monitoring:metrics:export a citty:Argument ;
+    citty:hasName "export" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Export metrics to file" ;
+    citty:hasValueHint "OUTPUT_FILE" .
+
+# ===============================================
+# SECURITY COMMAND GROUP
+# ===============================================
+
+cmd:security a citty:Command ;
+    citty:hasName "security" ;
+    citty:hasDescription "Security scanning and vulnerability management" ;
+    citty:hasSubCommand cmd:security:scan ;
+    citty:hasSubCommand cmd:security:audit ;
+    citty:hasSubCommand cmd:security:compliance ;
+    citty:hasArgument arg:security:severity ;
+    citty:hasArgument arg:security:exclude .
+
+arg:security:severity a citty:Argument ;
+    citty:hasName "severity" ;
+    citty:hasType type:enum ;
+    citty:hasDescription "Minimum severity level" ;
+    citty:hasDefaultValue "medium" ;
+    citty:hasOption "low" ;
+    citty:hasOption "medium" ;
+    citty:hasOption "high" ;
+    citty:hasOption "critical" .
+
+arg:security:exclude a citty:Argument ;
+    citty:hasName "exclude" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Exclude patterns (comma-separated)" ;
+    citty:hasValueHint "PATTERN,PATTERN,..." .
+
+# Security Scan Subcommand
+cmd:security:scan a citty:Command ;
+    citty:hasName "scan" ;
+    citty:hasDescription "Perform security vulnerability scans" ;
+    citty:hasArgument arg:security:scan:target ;
+    citty:hasArgument arg:security:scan:type ;
+    citty:hasArgument arg:security:scan:report .
+
+arg:security:scan:target a citty:Argument ;
+    citty:hasName "target" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Scan target (file, directory, or URL)" ;
+    citty:isRequired true ;
+    citty:hasValueHint "TARGET_PATH_OR_URL" .
+
+arg:security:scan:type a citty:Argument ;
+    citty:hasName "type" ;
+    citty:hasType type:enum ;
+    citty:hasDescription "Type of security scan" ;
+    citty:hasDefaultValue "all" ;
+    citty:hasOption "all" ;
+    citty:hasOption "code" ;
+    citty:hasOption "dependencies" ;
+    citty:hasOption "containers" ;
+    citty:hasOption "infrastructure" .
+
+arg:security:scan:report a citty:Argument ;
+    citty:hasName "report" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Generate report file" ;
+    citty:hasValueHint "REPORT_FILE" .
+
+# ===============================================
+# CI/CD COMMAND GROUP
+# ===============================================
+
+cmd:ci-cd a citty:Command ;
+    citty:hasName "ci-cd" ;
+    citty:hasDescription "Continuous Integration and Deployment management" ;
+    citty:hasSubCommand cmd:ci-cd:pipeline ;
+    citty:hasSubCommand cmd:ci-cd:deploy ;
+    citty:hasSubCommand cmd:ci-cd:rollback ;
+    citty:hasArgument arg:ci-cd:environment ;
+    citty:hasArgument arg:ci-cd:branch .
+
+arg:ci-cd:environment a citty:Argument ;
+    citty:hasName "environment" ;
+    citty:hasType type:enum ;
+    citty:hasDescription "Target environment" ;
+    citty:hasDefaultValue "staging" ;
+    citty:hasOption "development" ;
+    citty:hasOption "staging" ;
+    citty:hasOption "production" ;
+    citty:hasAlias "env" .
+
+arg:ci-cd:branch a citty:Argument ;
+    citty:hasName "branch" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Git branch to deploy" ;
+    citty:hasDefaultValue "main" ;
+    citty:hasAlias "b" ;
+    citty:hasValueHint "BRANCH_NAME" .
+
+# CI/CD Pipeline Subcommand
+cmd:ci-cd:pipeline a citty:Command ;
+    citty:hasName "pipeline" ;
+    citty:hasDescription "Manage CI/CD pipelines" ;
+    citty:hasArgument arg:ci-cd:pipeline:action ;
+    citty:hasArgument arg:ci-cd:pipeline:config ;
+    citty:hasArgument arg:ci-cd:pipeline:parallel .
+
+arg:ci-cd:pipeline:action a citty:Argument ;
+    citty:hasName "action" ;
+    citty:hasType type:enum ;
+    citty:hasDescription "Pipeline action to perform" ;
+    citty:hasDefaultValue "run" ;
+    citty:hasOption "run" ;
+    citty:hasOption "validate" ;
+    citty:hasOption "create" ;
+    citty:hasOption "update" ;
+    citty:hasOption "delete" .
+
+arg:ci-cd:pipeline:config a citty:Argument ;
+    citty:hasName "config" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Pipeline configuration file" ;
+    citty:hasDefaultValue ".gitlab-ci.yml" ;
+    citty:hasValueHint "CONFIG_FILE" .
+
+arg:ci-cd:pipeline:parallel a citty:Argument ;
+    citty:hasName "parallel" ;
+    citty:hasType type:number ;
+    citty:hasDescription "Number of parallel jobs" ;
+    citty:hasDefaultValue 4 ;
+    citty:hasValueHint "JOB_COUNT" .
+
+# ===============================================
+# DATABASE COMMAND GROUP  
+# ===============================================
+
+cmd:database a citty:Command ;
+    citty:hasName "database" ;
+    citty:hasDescription "Database management and operations" ;
+    citty:hasSubCommand cmd:database:backup ;
+    citty:hasSubCommand cmd:database:restore ;
+    citty:hasSubCommand cmd:database:migrate ;
+    citty:hasArgument arg:database:host ;
+    citty:hasArgument arg:database:port ;
+    citty:hasArgument arg:database:username .
+
+arg:database:host a citty:Argument ;
+    citty:hasName "host" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Database host" ;
+    citty:hasDefaultValue "localhost" ;
+    citty:hasAlias "h" ;
+    citty:hasValueHint "HOSTNAME" .
+
+arg:database:port a citty:Argument ;
+    citty:hasName "port" ;
+    citty:hasType type:number ;
+    citty:hasDescription "Database port" ;
+    citty:hasDefaultValue 5432 ;
+    citty:hasValueHint "PORT_NUMBER" .
+
+arg:database:username a citty:Argument ;
+    citty:hasName "username" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Database username" ;
+    citty:isRequired true ;
+    citty:hasAlias "u" ;
+    citty:hasValueHint "USERNAME" .
+
+# Database Backup Subcommand
+cmd:database:backup a citty:Command ;
+    citty:hasName "backup" ;
+    citty:hasDescription "Create database backups" ;
+    citty:hasArgument arg:database:backup:database ;
+    citty:hasArgument arg:database:backup:output ;
+    citty:hasArgument arg:database:backup:compress .
+
+arg:database:backup:database a citty:Argument ;
+    citty:hasName "database" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Database name to backup" ;
+    citty:isRequired true ;
+    citty:hasAlias "d" ;
+    citty:hasValueHint "DATABASE_NAME" .
+
+arg:database:backup:output a citty:Argument ;
+    citty:hasName "output" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Backup output file" ;
+    citty:hasAlias "o" ;
+    citty:hasValueHint "BACKUP_FILE" .
+
+arg:database:backup:compress a citty:Argument ;
+    citty:hasName "compress" ;
+    citty:hasType type:boolean ;
+    citty:hasDescription "Compress backup file" ;
+    citty:hasDefaultValue true ;
+    citty:hasAlias "c" .
+
+# ===============================================
+# LOGGING COMMAND GROUP
+# ===============================================
+
+cmd:logging a citty:Command ;
+    citty:hasName "logging" ;
+    citty:hasDescription "Log management and analysis" ;
+    citty:hasSubCommand cmd:logging:collect ;
+    citty:hasSubCommand cmd:logging:analyze ;
+    citty:hasSubCommand cmd:logging:rotate ;
+    citty:hasArgument arg:logging:level ;
+    citty:hasArgument arg:logging:format .
+
+arg:logging:level a citty:Argument ;
+    citty:hasName "level" ;
+    citty:hasType type:enum ;
+    citty:hasDescription "Log level filter" ;
+    citty:hasDefaultValue "info" ;
+    citty:hasOption "debug" ;
+    citty:hasOption "info" ;
+    citty:hasOption "warn" ;
+    citty:hasOption "error" ;
+    citty:hasOption "fatal" .
+
+arg:logging:format a citty:Argument ;
+    citty:hasName "format" ;
+    citty:hasType type:enum ;
+    citty:hasDescription "Log output format" ;
+    citty:hasDefaultValue "json" ;
+    citty:hasOption "json" ;
+    citty:hasOption "text" ;
+    citty:hasOption "structured" .
+
+# Logging Analyze Subcommand
+cmd:logging:analyze a citty:Command ;
+    citty:hasName "analyze" ;
+    citty:hasDescription "Analyze log files for patterns and issues" ;
+    citty:hasArgument arg:logging:analyze:file ;
+    citty:hasArgument arg:logging:analyze:pattern ;
+    citty:hasArgument arg:logging:analyze:timeframe .
+
+arg:logging:analyze:file a citty:Argument ;
+    citty:hasName "file" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Log file to analyze" ;
+    citty:isRequired true ;
+    citty:hasAlias "f" ;
+    citty:hasValueHint "LOG_FILE" .
+
+arg:logging:analyze:pattern a citty:Argument ;
+    citty:hasName "pattern" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Search pattern (regex)" ;
+    citty:hasValueHint "REGEX_PATTERN" .
+
+arg:logging:analyze:timeframe a citty:Argument ;
+    citty:hasName "timeframe" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Time window for analysis" ;
+    citty:hasDefaultValue "24h" ;
+    citty:hasValueHint "DURATION" .
+
+# ===============================================
+# STATUS AND HEALTH COMMANDS
+# ===============================================
+
+cmd:status a citty:Command ;
+    citty:hasName "status" ;
+    citty:hasDescription "Check overall system status" ;
+    citty:hasArgument arg:status:format ;
+    citty:hasArgument arg:status:services .
+
+arg:status:format a citty:Argument ;
+    citty:hasName "format" ;
+    citty:hasType type:enum ;
+    citty:hasDescription "Status output format" ;
+    citty:hasDefaultValue "table" ;
+    citty:hasOption "table" ;
+    citty:hasOption "json" ;
+    citty:hasOption "yaml" .
+
+arg:status:services a citty:Argument ;
+    citty:hasName "services" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Specific services to check (comma-separated)" ;
+    citty:hasValueHint "SERVICE,SERVICE,..." .
+
+cmd:health a citty:Command ;
+    citty:hasName "health" ;
+    citty:hasDescription "Perform comprehensive health checks" ;
+    citty:hasArgument arg:health:checks ;
+    citty:hasArgument arg:health:timeout .
+
+arg:health:checks a citty:Argument ;
+    citty:hasName "checks" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Health checks to perform (comma-separated)" ;
+    citty:hasDefaultValue "all" ;
+    citty:hasValueHint "CHECK,CHECK,..." .
+
+arg:health:timeout a citty:Argument ;
+    citty:hasName "timeout" ;
+    citty:hasType type:number ;
+    citty:hasDescription "Health check timeout in seconds" ;
+    citty:hasDefaultValue 30 ;
+    citty:hasValueHint "SECONDS" .
+
+# ===============================================
+# CONFIG MANAGEMENT COMMAND
+# ===============================================
+
+cmd:config a citty:Command ;
+    citty:hasName "config" ;
+    citty:hasDescription "Configuration management" ;
+    citty:hasSubCommand cmd:config:get ;
+    citty:hasSubCommand cmd:config:set ;
+    citty:hasSubCommand cmd:config:validate ;
+    citty:hasArgument arg:config:global .
+
+arg:config:global a citty:Argument ;
+    citty:hasName "global" ;
+    citty:hasType type:boolean ;
+    citty:hasDescription "Use global configuration" ;
+    citty:hasDefaultValue false ;
+    citty:hasAlias "g" .
+
+# Config Get Subcommand
+cmd:config:get a citty:Command ;
+    citty:hasName "get" ;
+    citty:hasDescription "Get configuration values" ;
+    citty:hasArgument arg:config:get:key .
+
+arg:config:get:key a citty:Argument ;
+    citty:hasName "key" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Configuration key to retrieve" ;
+    citty:hasValueHint "CONFIG_KEY" .
+
+# Config Set Subcommand  
+cmd:config:set a citty:Command ;
+    citty:hasName "set" ;
+    citty:hasDescription "Set configuration values" ;
+    citty:hasArgument arg:config:set:key ;
+    citty:hasArgument arg:config:set:value .
+
+arg:config:set:key a citty:Argument ;
+    citty:hasName "key" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Configuration key to set" ;
+    citty:isRequired true ;
+    citty:hasValueHint "CONFIG_KEY" .
+
+arg:config:set:value a citty:Argument ;
+    citty:hasName "value" ;
+    citty:hasType type:string ;
+    citty:hasDescription "Configuration value to set" ;
+    citty:isRequired true ;
+    citty:hasValueHint "CONFIG_VALUE" .

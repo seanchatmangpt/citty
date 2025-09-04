@@ -1,0 +1,32 @@
+import { defineCommand, runMain } from "citty";
+
+const main = defineCommand({
+  meta: {
+    name: "{{ command.name }}",
+    {%- if command.description %}
+    description: "{{ command.description }}",
+    {%- endif %}
+    {%- if command.version %}
+    version: "{{ command.version }}",
+    {%- endif %}
+  },
+  {%- if command.setup %}
+  setup() {
+    console.log("Setup");
+  },
+  {%- endif %}
+  {%- if command.cleanup %}
+  cleanup() {
+    console.log("Cleanup");
+  },
+  {%- endif %}
+  {%- if command.subCommands and command.subCommands.length > 0 %}
+  subCommands: {
+    {%- for subCommand in command.subCommands %}
+    {{ subCommand.name }}: () => import("./commands/{{ subCommand.name }}").then((r) => r.default),
+    {%- endfor %}
+  },
+  {%- endif %}
+});
+
+runMain(main);

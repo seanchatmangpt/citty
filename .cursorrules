@@ -1,0 +1,22 @@
+# Cursor Rules for Citty Project
+
+## Package Management
+- **NEVER** directly interact with `package.json` unless specifically instructed to do so
+- **ALWAYS** use `pnpm` for package management operations (install, add, remove, etc.)
+- Do not suggest or use npm, yarn, or other package managers
+
+## Code Quality
+- Create code at the level of a FAANG solution architect AGI
+- Follow TypeScript best practices
+- Maintain clean, readable, and maintainable code
+- Use proper error handling and logging
+
+## Project Structure
+- Respect the existing project structure and conventions
+- Follow the established patterns in the codebase
+- Maintain consistency with existing code style and architecture
+
+## Development Workflow
+- Use the existing build and test configurations
+- Follow the established development workflow
+- Respect the existing tooling setup (ESLint, Prettier, etc.)

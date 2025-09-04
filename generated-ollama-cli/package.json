@@ -1,0 +1,29 @@
+{
+  "name": "kubectl-manage",
+  "version": "1.0.0",
+  "description": "A CLI tool for managing Kubernetes deployments and resources.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "kubectl-manage": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "test": "vitest",
+    "metrics": "curl http://localhost:9464/metrics"
+  },
+  "dependencies": {
+    "citty": "^0.1.6",
+    "@opentelemetry/api": "^1.7.0",
+    "@opentelemetry/sdk-node": "^0.46.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.40.0",
+    "@opentelemetry/exporter-prometheus": "^0.46.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "tsx": "^4.0.0",
+    "vitest": "^1.0.0",
+    "@types/node": "^20.0.0"
+  }
+}

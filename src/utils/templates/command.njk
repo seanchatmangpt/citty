@@ -1,0 +1,66 @@
+import { defineCommand } from "citty";
+
+export default defineCommand({
+  meta: {
+    name: "{{ command.name }}",
+    {%- if command.description %}
+    description: "{{ command.description }}",
+    {%- endif %}
+    {%- if command.version %}
+    version: "{{ command.version }}",
+    {%- endif %}
+    {%- if command.hidden %}
+    hidden: true,
+    {%- endif %}
+  },
+  {%- if command.args and command.args.length > 0 %}
+  args: {
+    {%- for arg in command.args %}
+    {{ arg.name }}: {
+      type: "{{ arg.type }}",
+      {%- if arg.description %}
+      description: "{{ arg.description }}",
+      {%- endif %}
+      {%- if arg.default !== undefined %}
+      default: {%- if arg.type == "string" %}"{{ arg.default }}"{%- else %}{{ arg.default }}{%- endif %},
+      {%- endif %}
+      {%- if arg.required %}
+      required: true,
+      {%- endif %}
+      {%- if arg.alias %}
+      alias: {%- if arg.alias.length == 1 %}"{{ arg.alias[0] }}"{%- else %}[{%- for alias in arg.alias %}"{{ alias }}"{%- if not loop.last %}, {%- endif %}{%- endfor %}]{%- endif %},
+      {%- endif %}
+      {%- if arg.valueHint %}
+      valueHint: "{{ arg.valueHint }}",
+      {%- endif %}
+      {%- if arg.options and arg.options.length > 0 %}
+      options: [{%- for option in arg.options %}"{{ option }}"{%- if not loop.last %}, {%- endif %}{%- endfor %}],
+      {%- endif %}
+    },
+    {%- endfor %}
+  },
+  {%- endif %}
+  {%- if command.subCommands and command.subCommands.length > 0 %}
+  subCommands: {
+    {%- for subCommand in command.subCommands %}
+    {{ subCommand.name }}: () => import("./{{ subCommand.name }}").then((r) => r.default),
+    {%- endfor %}
+  },
+  {%- endif %}
+  {%- if command.setup %}
+  setup() {
+    // TODO: Implement setup logic
+  },
+  {%- endif %}
+  {%- if command.cleanup %}
+  cleanup() {
+    // TODO: Implement cleanup logic
+  },
+  {%- endif %}
+  {%- if command.run %}
+  run({ args }) {
+    // TODO: Implement run logic
+    console.log("Running {{ command.name }} with args:", args);
+  },
+  {%- endif %}
+});
