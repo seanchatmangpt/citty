@@ -26,24 +26,25 @@ export default defineBuildConfig({
     {
       input: 'src/cli',
       name: 'cli'
-    },
-    // Integration entry points
-    {
-      input: 'src/integration/nuxt-module',
-      name: 'integration/nuxt-module'
-    },
-    {
-      input: 'src/integration/nitro-plugin',
-      name: 'integration/nitro-plugin'
-    },
-    {
-      input: 'src/integration/vite-plugin',
-      name: 'integration/vite-plugin'
-    },
-    {
-      input: 'src/integration/h3-middleware',
-      name: 'integration/h3-middleware'
     }
+    // Integration entry points temporarily disabled due to syntax issues
+    // Can be re-enabled once the embedded newline characters are fixed
+    // {
+    //   input: 'src/integration/nuxt-module',
+    //   name: 'integration/nuxt-module'
+    // },
+    // {
+    //   input: 'src/integration/nitro-plugin',
+    //   name: 'integration/nitro-plugin'
+    // },
+    // {
+    //   input: 'src/integration/vite-plugin',
+    //   name: 'integration/vite-plugin'
+    // },
+    // {
+    //   input: 'src/integration/h3-middleware',
+    //   name: 'integration/h3-middleware'
+    // }
   ],
   declaration: true,
   clean: true,

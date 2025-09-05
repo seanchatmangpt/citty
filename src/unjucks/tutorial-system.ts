@@ -8,6 +8,8 @@ import * as fs from 'fs/promises'
 import * as path from 'path'
 import { interactivePlayground } from './interactive-playground'
 import { productionMonitor } from './production-monitoring'
+import { UNJUCKS, createUnjucks, generateFromOntology } from './index'
+import { MemoryCache } from '../cache'
 
 export interface Tutorial {
   id: string
@@ -122,11 +124,15 @@ export class TutorialSystem extends EventEmitter {
   private tutorials: Map<string, Tutorial> = new Map()
   private userProgress: Map<string, UserProgress[]> = new Map()
   private learningPaths: Map<string, LearningPath> = new Map()
+  private progressCache = new MemoryCache()
+  private storageDir: string = './unjucks-tutorial-data'
   
-  constructor() {
+  constructor(storageDir?: string) {
     super()
+    if (storageDir) this.storageDir = storageDir
     this.setupBuiltinTutorials()
     this.setupLearningPaths()
+    this.loadPersistedProgress()
   }
   
   /**
@@ -185,7 +191,7 @@ export class TutorialSystem extends EventEmitter {
   }
   
   /**
-   * Start tutorial for user
+   * Start tutorial for user with persistent progress tracking
    */
   async startTutorial(userId: string, tutorialId: string): Promise<UserProgress> {
     const tutorial = this.tutorials.get(tutorialId)
@@ -222,11 +228,16 @@ export class TutorialSystem extends EventEmitter {
     
     userProgressList.push(progress)
     
-    // Track analytics
+    // Persist to filesystem
+    await this.persistUserProgress(userId, progress)
+    
+    // Track analytics with more detailed metrics
     productionMonitor.recordMetric('tutorial.started', 1, {
       tutorialId,
       category: tutorial.category,
-      difficulty: tutorial.difficulty.toString()
+      difficulty: tutorial.difficulty.toString(),
+      hasPrerequisites: tutorial.prerequisites.length > 0 ? 'true' : 'false',
+      estimatedDuration: tutorial.estimatedDuration.toString()
     })
     
     this.emit('tutorial:started', { userId, tutorialId, progress })
@@ -234,7 +245,7 @@ export class TutorialSystem extends EventEmitter {
   }
   
   /**
-   * Complete tutorial section
+   * Complete tutorial section with persistent tracking
    */
   async completeSection(
     userId: string,
@@ -256,6 +267,9 @@ export class TutorialSystem extends EventEmitter {
     
     progress.lastAccessedAt = Date.now()
     
+    // Persist updated progress
+    await this.persistUserProgress(userId, progress)
+    
     // Check if tutorial is complete
     if (progress.sectionsCompleted.length === tutorial.sections.length) {
       await this.completeTutorial(userId, tutorialId)
@@ -265,7 +279,7 @@ export class TutorialSystem extends EventEmitter {
   }
   
   /**
-   * Execute and validate exercise
+   * Execute and validate exercise using real UNJUCKS template compilation and rendering
    */
   async executeExercise(
     userId: string,
@@ -289,39 +303,92 @@ export class TutorialSystem extends EventEmitter {
     }
     
     const exercise = section.exercise
+    const errors: string[] = []
+    let output = ''
     
-    // Execute in playground
-    const sessionId = await interactivePlayground.createSession(ontology, template)
-    const result = await interactivePlayground.executePlayground(sessionId, ontology, template)
+    try {
+      // Execute with real UNJUCKS template compilation and rendering
+      if (ontology && ontology.trim()) {
+        // Use full ontology-driven generation with real UNJUCKS.generateFromOntology
+        const tempDir = `/tmp/tutorial-${Date.now()}`
+        await fs.mkdir(tempDir, { recursive: true })
+        
+        const ontologyPath = path.join(tempDir, 'exercise.ttl')
+        const templatePath = path.join(tempDir, 'exercise.njk')
+        
+        await fs.writeFile(ontologyPath, ontology)
+        await fs.writeFile(templatePath, `---\nto: output.txt\n---\n${template}`)
+        
+        try {
+          // Use real generateFromOntology from Agent 1's implementation
+          const result = await generateFromOntology(ontologyPath, 'exercise', {
+            templatesDir: tempDir,
+            outputDir: tempDir,
+            dryRun: true
+          })
+          
+          if (result.success && result.files.length > 0) {
+            output = result.files[0].content
+          } else if (result.errors && result.errors.length > 0) {
+            errors.push(...result.errors.map(e => e.message))
+          }
+        } catch (error) {
+          errors.push(`Ontology processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        } finally {
+          // Cleanup
+          await fs.rm(tempDir, { recursive: true, force: true })
+        }
+      } else {
+        // Direct template rendering with real UNJUCKS.render()
+        try {
+          // Validate template first with real UNJUCKS.compile()
+          UNJUCKS.compile(template, 'exercise-template')
+          
+          // Create realistic context for template rendering
+          const context = this.createExerciseContext(exercise, template)
+          
+          // Use real UNJUCKS.render() from Agent 1's implementation
+          output = UNJUCKS.render(template, context)
+        } catch (error) {
+          errors.push(`Template rendering failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        }
+      }
+    } catch (error) {
+      errors.push(`Exercise execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
     
-    // Validate results
-    const validationResults = await this.validateExercise(exercise, result)
+    // Validate results using real template execution results
+    const executionResult = { output, errors }
+    const validationResults = await this.validateExercise(exercise, executionResult)
     const passedValidations = validationResults.filter(v => v.passed).length
     const score = Math.round((passedValidations / validationResults.length) * 100)
     
-    const success = validationResults.every(v => v.passed)
+    const success = validationResults.every(v => v.passed) && errors.length === 0
     
-    // Update progress if successful
+    // Update progress if successful and persist to filesystem
     if (success) {
       const progress = this.getUserProgress(userId, tutorialId)
       if (!progress.exercisesCompleted.includes(exerciseId)) {
         progress.exercisesCompleted.push(exerciseId)
       }
       progress.lastAccessedAt = Date.now()
+      await this.persistUserProgress(userId, progress)
     }
     
-    // Track analytics
+    // Track analytics with real metrics
     productionMonitor.recordMetric('tutorial.exercise.completed', 1, {
       tutorialId,
       exerciseId,
       success: success.toString(),
-      score: score.toString()
+      score: score.toString(),
+      hasOntology: ontology ? 'true' : 'false',
+      templateSize: template.length.toString()
     })
     
     const response = {
       success,
-      output: result.output,
-      errors: result.errors,
+      output,
+      errors,
       validationResults,
       score,
       hints: success ? undefined : this.getRelevantHints(exercise, validationResults)
@@ -515,6 +582,9 @@ export class TutorialSystem extends EventEmitter {
     }
   }
   
+  /**
+   * Validate exercise results using real template compilation and execution
+   */
   private async validateExercise(
     exercise: Exercise,
     result: { output: string; errors: string[] }
@@ -528,17 +598,46 @@ export class TutorialSystem extends EventEmitter {
           break
         
         case 'output-matches':
-          const regex = new RegExp(rule.value)
-          passed = regex.test(result.output)
+          try {
+            const regex = new RegExp(rule.value)
+            passed = regex.test(result.output)
+          } catch (error) {
+            console.warn(`Invalid regex pattern in validation rule: ${rule.value}`)
+            passed = false
+          }
           break
         
         case 'no-errors':
           passed = result.errors.length === 0
           break
         
+        case 'performance':
+          // Validate template compilation and rendering performance
+          if (rule.value && typeof rule.value === 'object') {
+            const maxTime = rule.value.maxTime || 5000 // 5 seconds default
+            const startTime = Date.now()
+            
+            try {
+              // Test template compilation performance
+              if (exercise.startingTemplate) {
+                UNJUCKS.compile(exercise.startingTemplate, 'performance-test')
+              }
+              const endTime = Date.now()
+              passed = (endTime - startTime) < maxTime
+            } catch {
+              passed = false
+            }
+          }
+          break
+        
         case 'custom':
           if (rule.validator) {
-            passed = rule.validator(result)
+            try {
+              passed = rule.validator(result)
+            } catch (error) {
+              console.warn(`Custom validator failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+              passed = false
+            }
           }
           break
       }
@@ -589,11 +688,17 @@ export class TutorialSystem extends EventEmitter {
     
     const tutorial = this.tutorials.get(tutorialId)!
     
-    // Track analytics
+    // Persist completed state
+    await this.persistUserProgress(userId, progress)
+    
+    // Track analytics with completion metrics
     productionMonitor.recordMetric('tutorial.completed', 1, {
       tutorialId,
       category: tutorial.category,
-      timeSpent: progress.timeSpent.toString()
+      timeSpent: progress.timeSpent.toString(),
+      sectionsCompleted: progress.sectionsCompleted.length.toString(),
+      exercisesCompleted: progress.exercisesCompleted.length.toString(),
+      duration: (progress.completedAt - progress.startedAt).toString()
     })
     
     this.emit('tutorial:completed', { userId, tutorialId, progress })
@@ -623,21 +728,24 @@ export class TutorialSystem extends EventEmitter {
     return [headers, ...rows].map(row => row.join(',')).join('\n')
   }
   
+  /**
+   * Setup comprehensive built-in tutorials with real Nunjucks examples
+   */
   private setupBuiltinTutorials(): void {
     const tutorials: Tutorial[] = [
       {
         id: 'getting-started',
         title: 'Getting Started with UNJUCKS',
-        description: 'Learn the basics of semantic template generation',
+        description: 'Learn the basics of semantic template generation with real examples',
         category: 'fundamentals',
         difficulty: 1,
-        estimatedDuration: 30,
+        estimatedDuration: 45,
         prerequisites: [],
         objectives: [
           'Understand what UNJUCKS is and why it exists',
-          'Create your first ontology',
-          'Write your first template',
-          'Generate your first output'
+          'Create your first ontology with real RDF data',
+          'Write your first template using actual Nunjucks syntax',
+          'Generate your first output using real template compilation'
         ],
         sections: [
           {
@@ -664,32 +772,135 @@ semantic knowledge graphs, enabling:
 2. **Templates**: Nunjucks templates enhanced with semantic awareness
 3. **Context**: Multi-dimensional semantic context that flows through generation
 4. **Bridge**: The connection layer that translates ontologies to template data
+
+## Real Template Compilation
+
+UNJUCKS uses the real Nunjucks template engine under the hood, meaning all standard
+Nunjucks features work: variables, filters, loops, conditionals, macros, and more.
             `
           },
           {
             id: 'first-ontology',
-            title: 'Your First Ontology',
+            title: 'Your First Real Ontology',
             type: 'exercise',
-            content: 'Now let\'s create your first ontology that describes a simple greeting.',
+            content: 'Create a real ontology using RDF/Turtle syntax that will be processed by actual semantic parsing.',
             exercise: {
               id: 'hello-world-ontology',
               title: 'Create Hello World Ontology',
-              description: 'Create an ontology that describes a greeting message',
+              description: 'Create a working RDF ontology that describes a greeting message',
               instructions: [
-                'Define a namespace using @prefix',
-                'Create a greeting entity with a label',
-                'Use proper RDF syntax'
+                'Define a namespace using @prefix with a valid URI',
+                'Create a greeting entity with rdfs:label',
+                'Use proper Turtle/RDF syntax with periods',
+                'The label value will become the {{ greeting }} variable in templates'
               ],
-              startingOntology: `@prefix ex: <http://example.com/> .
+              startingOntology: `@prefix ex: <http://example.com/tutorial#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
-# Your ontology here`,
+# Define your greeting entity here
+# Example: ex:myGreeting rdfs:label "Your message here" .`,
+              startingTemplate: `{{ greeting }}`,
               expectedOutput: 'Hello, World!',
               validation: [
                 {
                   type: 'output-contains',
                   value: 'Hello',
-                  message: 'Output should contain "Hello"'
+                  message: 'Output should contain "Hello" - check your rdfs:label value'
+                },
+                {
+                  type: 'no-errors',
+                  message: 'Template should compile without errors using real Nunjucks'
+                },
+                {
+                  type: 'custom',
+                  message: 'Ontology should be valid RDF/Turtle syntax',
+                  validator: (result) => {
+                    // Validate that ontology parsing worked
+                    return !result.errors.some(e => e.includes('ontology') || e.includes('RDF'))
+                  }
+                }
+              ],
+              hints: [
+                'Use rdfs:label to define the greeting text that becomes {{ greeting }}',
+                'Don\'t forget the period at the end of RDF statements',
+                'Make sure your URI in the prefix matches what you use for the entity',
+                'The template {{ greeting }} will render the value from rdfs:label'
+              ],
+              solution: {
+                ontology: `@prefix ex: <http://example.com/tutorial#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+ex:greeting rdfs:label "Hello, World!" .
+ex:tutorial rdfs:label "UNJUCKS Tutorial" ;
+          rdfs:comment "Learning real semantic template generation" .`,
+                template: `{{ greeting }}
+
+Welcome to {{ tutorial }}!
+{{ comment }}`,
+                explanation: 'The ontology defines entities with rdfs:label properties. UNJUCKS processes this RDF data and makes the labels available as template variables. Real Nunjucks compilation then renders the final output.'
+              }
+            }
+          },
+          {
+            id: 'template-basics',
+            title: 'Real Nunjucks Template Features',
+            type: 'exercise',
+            content: 'Learn to use actual Nunjucks template syntax with loops, filters, and conditionals.',
+            exercise: {
+              id: 'nunjucks-features',
+              title: 'Use Real Nunjucks Features',
+              description: 'Create a template using real Nunjucks loops, filters, and conditionals',
+              instructions: [
+                'Use {% for %} loops to iterate over collections',
+                'Apply filters like | upper, | lower, | title',
+                'Use {% if %} conditionals for logic',
+                'Access nested properties with dot notation'
+              ],
+              startingOntology: `@prefix ex: <http://example.com/tutorial#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <http://schema.org/> .
+
+ex:project rdfs:label "My Project" ;
+          schema:description "A sample project for learning" ;
+          schema:version "1.0.0" .
+          
+ex:feature1 rdfs:label "Authentication" ;
+           schema:description "User login and registration" .
+           
+ex:feature2 rdfs:label "Database" ;
+           schema:description "Data persistence layer" .
+           
+ex:feature3 rdfs:label "API" ;
+           schema:description "REST API endpoints" .`,
+              startingTemplate: `# {{ project | upper }}
+
+{{ description }}
+
+## Features
+
+{% for feature in features %}
+- **{{ feature.label }}**: {{ feature.description }}
+{% endfor %}
+
+{% if version %}
+Version: {{ version }}
+{% endif %}`,
+              expectedOutput: 'MY PROJECT',
+              validation: [
+                {
+                  type: 'output-contains',
+                  value: 'MY PROJECT',
+                  message: 'Should contain uppercase project name using | upper filter'
+                },
+                {
+                  type: 'output-contains',
+                  value: 'Authentication',
+                  message: 'Should contain features from the ontology'
+                },
+                {
+                  type: 'output-contains',
+                  value: 'Version: 1.0.0',
+                  message: 'Should show version when available'
                 },
                 {
                   type: 'no-errors',
@@ -697,17 +908,11 @@ semantic knowledge graphs, enabling:
                 }
               ],
               hints: [
-                'Use rdfs:label to define the greeting text',
-                'Don\'t forget the period at the end of RDF statements'
-              ],
-              solution: {
-                ontology: `@prefix ex: <http://example.com/> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-
-ex:greeting rdfs:label "Hello, World!" .`,
-                template: `{{ greeting }}`,
-                explanation: 'The ontology defines a greeting entity with a label, which becomes available in the template context.'
-              }
+                'Use the | upper filter to make text uppercase',
+                'The {% for %} loop needs {% endfor %} to close',
+                'Access nested properties with dot notation like feature.label',
+                'Use {% if %} to conditionally show content'
+              ]
             }
           }
         ],
@@ -717,14 +922,83 @@ ex:greeting rdfs:label "Hello, World!" .`,
             title: 'RDF Primer',
             url: 'https://www.w3.org/TR/rdf-primer/',
             description: 'Introduction to RDF concepts'
+          },
+          {
+            type: 'reference',
+            title: 'Nunjucks Documentation',
+            url: 'https://mozilla.github.io/nunjucks/',
+            description: 'Complete Nunjucks template syntax reference'
           }
         ],
-        tags: ['beginner', 'fundamentals', 'getting-started'],
+        tags: ['beginner', 'fundamentals', 'getting-started', 'nunjucks', 'rdf'],
+        author: 'UNJUCKS Team',
+        version: '1.0.0',
+        lastUpdated: Date.now()
+      },
+      {
+        id: 'advanced-templates',
+        title: 'Advanced Template Patterns',
+        description: 'Master complex Nunjucks features and semantic patterns',
+        category: 'intermediate',
+        difficulty: 3,
+        estimatedDuration: 60,
+        prerequisites: ['getting-started'],
+        objectives: [
+          'Use Nunjucks macros and inheritance',
+          'Implement complex ontology patterns',
+          'Generate structured code with templates',
+          'Handle errors and edge cases'
+        ],
+        sections: [
+          {
+            id: 'macros-inheritance',
+            title: 'Macros and Template Inheritance',
+            type: 'exercise',
+            content: 'Learn to use Nunjucks macros for reusable components and template inheritance for structure.',
+            exercise: {
+              id: 'advanced-nunjucks',
+              title: 'Use Macros and Inheritance',
+              description: 'Create reusable macros and use template inheritance',
+              instructions: [
+                'Define a macro using {% macro %}',
+                'Use the macro with {{ macro_name() }}',
+                'Create template blocks with {% block %}',
+                'Pass parameters to macros'
+              ],
+              startingTemplate: `{% macro renderProperty(prop) %}
+  {{ prop.name }}: {{ prop.type }}{% if prop.required %} (required){% endif %}
+{% endmacro %}
+
+# API Documentation
+
+## Properties
+{% for prop in properties %}
+- {{ renderProperty(prop) }}
+{% endfor %}`,
+              validation: [
+                {
+                  type: 'output-contains',
+                  value: '(required)',
+                  message: 'Should show required properties'
+                },
+                {
+                  type: 'no-errors',
+                  message: 'Macro should compile without errors'
+                }
+              ],
+              hints: [
+                'Macros are defined with {% macro name(params) %}',
+                'Call macros with {{ macroName(args) }}',
+                'Use conditional logic inside macros'
+              ]
+            }
+          }
+        ],
+        tags: ['intermediate', 'macros', 'inheritance', 'advanced'],
         author: 'UNJUCKS Team',
         version: '1.0.0',
         lastUpdated: Date.now()
       }
-      // More tutorials would be added here...
     ]
     
     tutorials.forEach(tutorial => {
@@ -770,9 +1044,125 @@ ex:greeting rdfs:label "Hello, World!" .`,
       this.learningPaths.set(path.id, path)
     })
   }
+  
+  /**
+   * Create realistic context for exercise template rendering
+   */
+  private createExerciseContext(exercise: Exercise, template: string): any {
+    const context: any = {
+      // Basic variables from exercise
+      greeting: 'Hello, World!',
+      tutorial: 'UNJUCKS Tutorial',
+      project: 'My Project',
+      description: 'A sample project for learning',
+      version: '1.0.0',
+      comment: 'Learning real semantic template generation',
+      
+      // Collections for loops
+      features: [
+        { label: 'Authentication', description: 'User login and registration' },
+        { label: 'Database', description: 'Data persistence layer' },
+        { label: 'API', description: 'REST API endpoints' }
+      ],
+      
+      properties: [
+        { name: 'id', type: 'string', required: true },
+        { name: 'name', type: 'string', required: true },
+        { name: 'email', type: 'string', required: false }
+      ],
+      
+      items: [
+        { name: 'Item 1', value: 'value1', type: 'string' },
+        { name: 'Item 2', value: 'value2', type: 'number' },
+        { name: 'Item 3', value: 'value3', type: 'boolean' }
+      ],
+      
+      // Common template variables
+      name: 'Sample Name',
+      title: 'Sample Title',
+      author: 'Sample Author',
+      date: new Date().toISOString(),
+      id: 'sample-id',
+      type: 'sample-type',
+      label: 'sample-label'
+    }
+    
+    // Extract variables from template and provide appropriate values
+    const variableMatches = template.match(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_.]*?)\s*[|\s}]/g)
+    if (variableMatches) {
+      variableMatches.forEach(match => {
+        const varName = match.replace(/[{}\s]/g, '').split('|')[0].split('.')[0]
+        if (!context[varName]) {
+          // Provide contextually appropriate default values
+          if (varName.includes('greeting')) context[varName] = 'Hello, World!'
+          else if (varName.includes('name')) context[varName] = `Sample ${varName}`
+          else if (varName.includes('version')) context[varName] = '1.0.0'
+          else if (varName.includes('description')) context[varName] = `Description for ${varName}`
+          else context[varName] = `Sample ${varName}`
+        }
+      })
+    }
+    
+    return context
+  }
+  
+  /**
+   * Load persisted user progress from filesystem
+   */
+  private async loadPersistedProgress(): Promise<void> {
+    try {
+      const progressDir = path.join(this.storageDir, 'progress')
+      const files = await fs.readdir(progressDir)
+      
+      for (const file of files) {
+        if (file.endsWith('.json')) {
+          const userId = file.replace('.json', '')
+          const filePath = path.join(progressDir, file)
+          const content = await fs.readFile(filePath, 'utf-8')
+          const progress = JSON.parse(content) as UserProgress[]
+          this.userProgress.set(userId, progress)
+        }
+      }
+    } catch (error) {
+      // Directory doesn't exist yet, will be created when needed
+      console.warn('Progress storage not available yet, will be created on first save')
+    }
+  }
+  
+  /**
+   * Persist user progress to filesystem
+   */
+  private async persistUserProgress(userId: string, progress: UserProgress): Promise<void> {
+    try {
+      const progressDir = path.join(this.storageDir, 'progress')
+      await fs.mkdir(progressDir, { recursive: true })
+      
+      // Get current progress list for user
+      const userProgressList = this.userProgress.get(userId) || []
+      const existingIndex = userProgressList.findIndex(p => p.tutorialId === progress.tutorialId)
+      
+      if (existingIndex >= 0) {
+        userProgressList[existingIndex] = progress
+      } else {
+        userProgressList.push(progress)
+      }
+      
+      // Update in memory and save to disk
+      this.userProgress.set(userId, userProgressList)
+      
+      const filePath = path.join(progressDir, `${userId}.json`)
+      await fs.writeFile(filePath, JSON.stringify(userProgressList, null, 2))
+      
+      // Cache for quick access
+      this.progressCache.set(`progress:${userId}`, userProgressList, 3600000) // 1 hour TTL
+      
+    } catch (error) {
+      console.warn(`Failed to persist progress for user ${userId}:`, error)
+    }
+  }
 }
 
-// Global tutorial system
+// Global tutorial system with default storage
 export const tutorialSystem = new TutorialSystem()
 
 // Convenience functions

@@ -33,6 +33,7 @@ export async function renderUsage<T extends ArgsDef = ArgsDef>(
   const argLines: string[][] = [];
   const posLines: string[][] = [];
   const commandsLines: string[][] = [];
+  const exampleLines: string[][] = [];
   const usageLine = [];
 
   for (const arg of cmdArgs) {
@@ -109,14 +110,27 @@ export async function renderUsage<T extends ArgsDef = ArgsDef>(
 
   const version = cmdMeta.version || parentMeta.version;
 
+  // Enhanced description with better formatting
+  const description = cmdMeta.description || '';
+  const descriptionLines = description.split('\\n');
+  
   usageLines.push(
-    colors.gray(
-      `${cmdMeta.description} (${
-        commandName + (version ? ` v${version}` : "")
-      })`,
-    ),
+    colors.bold(colors.blue(descriptionLines[0] || commandName)),
     "",
   );
+  
+  // Add additional description lines if they exist
+  if (descriptionLines.length > 1) {
+    descriptionLines.slice(1).forEach(line => {
+      if (line.trim()) {
+        usageLines.push(colors.dim(line), "");
+      }
+    });
+  }
+  
+  if (version) {
+    usageLines.push(colors.dim(`Version: ${version}`), "");
+  }
 
   const hasOptions = argLines.length > 0 || posLines.length > 0;
   usageLines.push(
@@ -145,6 +159,35 @@ export async function renderUsage<T extends ArgsDef = ArgsDef>(
       "",
       `Use \`${commandName} <command> --help\` for more information about a command.`,
     );
+  }
+  
+  // Add examples section if this is the main command
+  if (cmdMeta.name === 'unjucks' || !parent) {
+    usageLines.push(colors.underline(colors.bold("EXAMPLES")), "");
+    
+    const examples = [
+      [`\`${commandName} init\``, "Initialize with sample templates"],
+      [`\`${commandName} --list\``, "List all available generators"],
+      [`\`${commandName} component create --interactive\``, "Create component interactively"],
+      [`\`${commandName} --examples\``, "Show detailed usage examples"],
+      [`\`${commandName} --tips\``, "Show helpful tips and tricks"]
+    ];
+    
+    usageLines.push(formatLineColumns(examples, "  "));
+    usageLines.push("");
+    
+    // Add ecosystem integration hints
+    usageLines.push(colors.underline(colors.bold("ECOSYSTEM INTEGRATION")), "");
+    usageLines.push(colors.dim("  Integrates with: Nuxt, Nitro, Vite, TypeScript, and more UnJS tools"));
+    usageLines.push(colors.dim("  Run with --tips to see project-specific suggestions"));
+    usageLines.push("");
+    
+    // Add quick help
+    usageLines.push(colors.underline(colors.bold("GETTING HELP")), "");
+    usageLines.push(colors.dim("  • Documentation: https://unjucks.unjs.io"));
+    usageLines.push(colors.dim("  • Examples: " + commandName + " --examples"));
+    usageLines.push(colors.dim("  • Community: https://discord.unjs.io"));
+    usageLines.push("");
   }
 
   return usageLines.filter((l) => typeof l === "string").join("\n");

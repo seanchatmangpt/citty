@@ -6,52 +6,65 @@ import { describe, it, expect, beforeEach, beforeAll } from 'vitest'
 import { Store, DataFactory } from 'n3'
 import { SPARQLEngine, sparqlQuery, validateSparqlQuery, explainSparqlQuery } from '../src/sparql-engine'
 import { loadGraph } from '../src/core'
+import { useOntology } from '../src/context'
 
 const { namedNode, literal, quad } = DataFactory
 
-// Test data setup
-const testStore = new Store()
-
 beforeAll(async () => {
-  // Initialize the ontology context with empty store
-  await loadGraph('', { format: 'turtle' })
+  // Initialize the ontology context with test data
+  const testData = `
+    @prefix ex: <http://example.org/> .
+    
+    ex:person/alice ex:name "Alice" ;
+                    ex:age 30 .
+    
+    ex:person/bob ex:name "Bob" ;
+                  ex:age 25 .
+    
+    ex:person/charlie ex:name "Charlie" ;
+                      ex:age 35 .
+  `
+  
+  await loadGraph(testData, { format: 'turtle' })
 })
 
 beforeEach(() => {
-  testStore.removeQuads(testStore.getQuads(null, null, null, null))
+  // Reset to initial test data
+  const { store } = useOntology()
+  store.removeQuads(store.getQuads(null, null, null, null))
   
   // Add test triples
-  testStore.addQuad(quad(
+  store.addQuad(quad(
     namedNode('http://example.org/person/alice'),
     namedNode('http://example.org/name'),
     literal('Alice')
   ))
   
-  testStore.addQuad(quad(
+  store.addQuad(quad(
     namedNode('http://example.org/person/alice'),
     namedNode('http://example.org/age'),
     literal('30', namedNode('http://www.w3.org/2001/XMLSchema#integer'))
   ))
   
-  testStore.addQuad(quad(
+  store.addQuad(quad(
     namedNode('http://example.org/person/bob'),
     namedNode('http://example.org/name'),
     literal('Bob')
   ))
   
-  testStore.addQuad(quad(
+  store.addQuad(quad(
     namedNode('http://example.org/person/bob'),
     namedNode('http://example.org/age'),
     literal('25', namedNode('http://www.w3.org/2001/XMLSchema#integer'))
   ))
   
-  testStore.addQuad(quad(
+  store.addQuad(quad(
     namedNode('http://example.org/person/charlie'),
     namedNode('http://example.org/name'),
     literal('Charlie')
   ))
   
-  testStore.addQuad(quad(
+  store.addQuad(quad(
     namedNode('http://example.org/person/charlie'),
     namedNode('http://example.org/age'),
     literal('35', namedNode('http://www.w3.org/2001/XMLSchema#integer'))
@@ -172,7 +185,8 @@ describe('SPARQL Engine - Advanced Features', () => {
 
   it('should handle OPTIONAL queries', async () => {
     // Add person without age
-    testStore.addQuad(quad(
+    const { store } = useOntology()
+    store.addQuad(quad(
       namedNode('http://example.org/person/dave'),
       namedNode('http://example.org/name'),
       literal('Dave')
@@ -214,19 +228,20 @@ describe('SPARQL Engine - Advanced Features', () => {
 
   it('should handle GROUP BY', async () => {
     // Add more test data for grouping
-    testStore.addQuad(quad(
+    const { store } = useOntology()
+    store.addQuad(quad(
       namedNode('http://example.org/person/alice'),
       namedNode('http://example.org/department'),
       literal('Engineering')
     ))
     
-    testStore.addQuad(quad(
+    store.addQuad(quad(
       namedNode('http://example.org/person/bob'),
       namedNode('http://example.org/department'),
       literal('Engineering')
     ))
     
-    testStore.addQuad(quad(
+    store.addQuad(quad(
       namedNode('http://example.org/person/charlie'),
       namedNode('http://example.org/department'),
       literal('Sales')
@@ -364,13 +379,14 @@ describe('SPARQL Engine - Performance Features', () => {
 describe('SPARQL Engine - SPARQL 1.1 Compliance', () => {
   it('should handle property paths', async () => {
     // Add hierarchical data
-    testStore.addQuad(quad(
+    const { store } = useOntology()
+    store.addQuad(quad(
       namedNode('http://example.org/person/alice'),
       namedNode('http://example.org/knows'),
       namedNode('http://example.org/person/bob')
     ))
     
-    testStore.addQuad(quad(
+    store.addQuad(quad(
       namedNode('http://example.org/person/bob'),
       namedNode('http://example.org/knows'),
       namedNode('http://example.org/person/charlie')

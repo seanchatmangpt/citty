@@ -665,7 +665,7 @@ export class TemplateValidator {
     
     lines.forEach((line, index) => {
       // Extract variables from {{ variable }}
-      const varMatches = line.matchAll(/\{\{\s*([\w_.]+).*?\}\}/g);
+      const varMatches = Array.from(line.matchAll(/\{\{\s*([\w_.]+).*?\}\}/g));
       for (const match of varMatches) {
         variables.push({
           name: match[1],
@@ -676,7 +676,7 @@ export class TemplateValidator {
       }
       
       // Extract variables from {% set variable = ... %}
-      const setMatches = line.matchAll(/\{%\s*set\s+(\w+)\s*=.*?%\}/g);
+      const setMatches = Array.from(line.matchAll(/\{%\s*set\s+(\w+)\s*=.*?%\}/g));
       for (const match of setMatches) {
         variables.push({
           name: match[1],
@@ -882,7 +882,7 @@ export const validateCommand = defineCommand({
       
       // Filter results if security-only mode
       if (args['security-only']) {
-        summary = this.filterSecurityResults(summary);
+        summary = filterSecurityResults(summary);
       }
       
       if (args.format === 'json') {
@@ -913,9 +913,10 @@ export const validateCommand = defineCommand({
       consola.error('Validation failed:', error.message);
       process.exit(1);
     }
-  },
-  
-  async generateComprehensiveReport(summary: ValidationSummary, args: any) {
+  }
+});
+
+async function generateComprehensiveReport(summary: ValidationSummary, args: any) {
     const securityIssues = [];
     const performanceIssues = [];
     const syntaxIssues = [];
@@ -965,9 +966,9 @@ export const validateCommand = defineCommand({
       console.log('  • Enable template sandboxing in production');
       console.log('  • Validate all template includes and extends');
     }
-  },
-  
-  filterSecurityResults(summary: ValidationSummary): ValidationSummary {
+  }
+
+function filterSecurityResults(summary: ValidationSummary): ValidationSummary {
     const filteredResults = summary.results.map(fileResult => ({
       ...fileResult,
       results: fileResult.results.filter(result => 
@@ -989,7 +990,6 @@ export const validateCommand = defineCommand({
       infos: filteredResults.reduce((sum, fr) => sum + fr.results.filter(r => r.severity === 'info').length, 0)
     };
   }
-});
 
 /**
  * Print validation summary in pretty format

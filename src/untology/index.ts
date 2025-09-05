@@ -67,24 +67,24 @@ const ontologyContext = createContext<OntologyContext>('untology:context');
 /**
  * Custom error classes for better error handling
  */
-export class OntologyError extends Error {
+export class UntologyOntologyError extends Error {
   constructor(message: string, public code: string, public context?: any) {
     super(message);
-    this.name = 'OntologyError';
+    this.name = 'UntologyOntologyError';
   }
 }
 
-export class ValidationError extends OntologyError {
+export class UntologyValidationError extends UntologyOntologyError {
   constructor(message: string, context?: any) {
     super(message, 'VALIDATION_ERROR', context);
-    this.name = 'ValidationError';
+    this.name = 'UntologyValidationError';
   }
 }
 
-export class QueryError extends OntologyError {
+export class UntologyQueryError extends UntologyOntologyError {
   constructor(message: string, context?: any) {
     super(message, 'QUERY_ERROR', context);
-    this.name = 'QueryError';
+    this.name = 'UntologyQueryError';
   }
 }
 
@@ -1361,59 +1361,9 @@ export type {
 
 // Error classes for proper error handling
 export {
-  OntologyError,
-  ValidationError,
-  QueryError
-};
-
-// ESSENTIAL OPERATIONS (80% of use cases)
-// These are the functions most users will interact with
-
-// 1. Core initialization and configuration
-export {
-  createOntology,
-};
-
-// 2. Graph loading and management
-export {
-  loadGraph,
-  clearGraph
-};
-
-// 3. Querying and data retrieval
-export {
-  findEntities,
-  findRelations,
-  getValue
-};
-
-// 4. Natural language interface (most user-friendly)
-export {
-  askGraph
-};
-
-// 5. Data manipulation
-export {
-  addTriple,
-  exportGraph
-};
-
-// 6. Context and templating (for integration with unjucks)
-export {
-  toContext
-};
-
-// 7. Utilities and vocabulary management
-export {
-  defineVocabulary,
-  mergeGraphs,
-  getMetrics
-};
-
-// ADVANCED FEATURES (20% of use cases)
-// For power users who need advanced functionality
-export {
-  querySparql
+  UntologyOntologyError,
+  UntologyValidationError,
+  UntologyQueryError
 };
 
 // =============================================================================

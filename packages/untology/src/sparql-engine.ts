@@ -4,7 +4,7 @@
  */
 
 import { Store, DataFactory, Quad } from 'n3'
-import { useOntology } from './context'
+import { useOntology, hasOntology, createFreshContext, setOntologyContext } from './context'
 import { MemoryCache } from '../../../src/cache'
 import { SPARQLParser, type SPARQLParseResult, type Query } from './sparql-parser'
 import { AlgebraCompiler, type AlgebraOperator, ExpressionEvaluator } from './sparql-algebra'
@@ -52,6 +52,12 @@ export class SPARQLEngine {
       maxSize: 10000,
       defaultTtl: 10 * 60 * 1000 // 10 minutes
     })
+    
+    // Initialize context if not available
+    if (!hasOntology()) {
+      const context = createFreshContext()
+      setOntologyContext(context)
+    }
     
     const { store } = useOntology()
     this.optimizer = new SPARQLOptimizer(store)
@@ -470,5 +476,7 @@ export async function sparqlDescribe(query: string): Promise<Quad[]> {
 
 // Export parseQuery function
 export function parseQuery(query: string): any {
-  return sparqlEngine.parseQuery(query)
+  const parser = new SPARQLParser()
+  const result = parser.parse(query)
+  return result.query
 }

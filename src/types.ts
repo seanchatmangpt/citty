@@ -93,7 +93,7 @@ export class TemplateNotFoundError extends UnjucksError {
   }
 }
 
-export class OntologyError extends UnjucksError {
+export class CittyOntologyError extends UnjucksError {
   constructor(message: string, source?: string) {
     super(message, 'ONTOLOGY_ERROR', { source });
   }

@@ -135,12 +135,19 @@ export class BasicGraphPatternOperator implements AlgebraOperator {
 
 export class FilterOperator implements AlgebraOperator {
   type = 'Filter'
+  public child: AlgebraOperator
+  public expression: Expression
+  public evaluator: ExpressionEvaluator
 
   constructor(
-    private expression: Expression,
-    private child: AlgebraOperator,
-    private evaluator: ExpressionEvaluator
-  ) {}
+    expression: Expression,
+    child: AlgebraOperator,
+    evaluator: ExpressionEvaluator
+  ) {
+    this.expression = expression
+    this.child = child
+    this.evaluator = evaluator
+  }
 
   evaluate(store: Store, solutions?: Solution[]): Solution[] {
     const childResults = this.child.evaluate(store, solutions)
@@ -161,11 +168,16 @@ export class FilterOperator implements AlgebraOperator {
 
 export class JoinOperator implements AlgebraOperator {
   type = 'Join'
+  public left: AlgebraOperator
+  public right: AlgebraOperator
 
   constructor(
-    private left: AlgebraOperator,
-    private right: AlgebraOperator
-  ) {}
+    left: AlgebraOperator,
+    right: AlgebraOperator
+  ) {
+    this.left = left
+    this.right = right
+  }
 
   evaluate(store: Store, solutions?: Solution[]): Solution[] {
     const leftResults = this.left.evaluate(store, solutions)
@@ -213,11 +225,16 @@ export class JoinOperator implements AlgebraOperator {
 
 export class UnionOperator implements AlgebraOperator {
   type = 'Union'
+  public left: AlgebraOperator
+  public right: AlgebraOperator
 
   constructor(
-    private left: AlgebraOperator,
-    private right: AlgebraOperator
-  ) {}
+    left: AlgebraOperator,
+    right: AlgebraOperator
+  ) {
+    this.left = left
+    this.right = right
+  }
 
   evaluate(store: Store, solutions?: Solution[]): Solution[] {
     const leftResults = this.left.evaluate(store, solutions)
@@ -251,11 +268,16 @@ export class UnionOperator implements AlgebraOperator {
 
 export class OptionalOperator implements AlgebraOperator {
   type = 'Optional'
+  public left: AlgebraOperator
+  public right: AlgebraOperator
 
   constructor(
-    private left: AlgebraOperator,
-    private right: AlgebraOperator
-  ) {}
+    left: AlgebraOperator,
+    right: AlgebraOperator
+  ) {
+    this.left = left
+    this.right = right
+  }
 
   evaluate(store: Store, solutions?: Solution[]): Solution[] {
     const leftResults = this.left.evaluate(store, solutions)
@@ -288,11 +310,16 @@ export class OptionalOperator implements AlgebraOperator {
 
 export class MinusOperator implements AlgebraOperator {
   type = 'Minus'
+  public left: AlgebraOperator
+  public right: AlgebraOperator
 
   constructor(
-    private left: AlgebraOperator,
-    private right: AlgebraOperator
-  ) {}
+    left: AlgebraOperator,
+    right: AlgebraOperator
+  ) {
+    this.left = left
+    this.right = right
+  }
 
   evaluate(store: Store, solutions?: Solution[]): Solution[] {
     const leftResults = this.left.evaluate(store, solutions)
@@ -339,11 +366,16 @@ export class MinusOperator implements AlgebraOperator {
 
 export class ProjectOperator implements AlgebraOperator {
   type = 'Project'
+  public variables: string[]
+  public child: AlgebraOperator
 
   constructor(
-    private variables: string[],
-    private child: AlgebraOperator
-  ) {}
+    variables: string[],
+    child: AlgebraOperator
+  ) {
+    this.variables = variables
+    this.child = child
+  }
 
   evaluate(store: Store, solutions?: Solution[]): Solution[] {
     const childResults = this.child.evaluate(store, solutions)
@@ -372,12 +404,19 @@ export class ProjectOperator implements AlgebraOperator {
 
 export class OrderByOperator implements AlgebraOperator {
   type = 'OrderBy'
+  public orderConditions: { expression: Expression; descending: boolean }[]
+  public child: AlgebraOperator
+  public evaluator: ExpressionEvaluator
 
   constructor(
-    private orderConditions: { expression: Expression; descending: boolean }[],
-    private child: AlgebraOperator,
-    private evaluator: ExpressionEvaluator
-  ) {}
+    orderConditions: { expression: Expression; descending: boolean }[],
+    child: AlgebraOperator,
+    evaluator: ExpressionEvaluator
+  ) {
+    this.orderConditions = orderConditions
+    this.child = child
+    this.evaluator = evaluator
+  }
 
   evaluate(store: Store, solutions?: Solution[]): Solution[] {
     const childResults = this.child.evaluate(store, solutions)
@@ -412,12 +451,19 @@ export class OrderByOperator implements AlgebraOperator {
 
 export class LimitOffsetOperator implements AlgebraOperator {
   type = 'LimitOffset'
+  public limit?: number
+  public offset?: number
+  public child?: AlgebraOperator
 
   constructor(
-    private limit?: number,
-    private offset?: number,
-    private child?: AlgebraOperator
-  ) {}
+    limit?: number,
+    offset?: number,
+    child?: AlgebraOperator
+  ) {
+    this.limit = limit
+    this.offset = offset
+    this.child = child
+  }
 
   evaluate(store: Store, solutions?: Solution[]): Solution[] {
     const childResults = this.child?.evaluate(store, solutions) || solutions || []
@@ -443,8 +489,11 @@ export class LimitOffsetOperator implements AlgebraOperator {
 
 export class DistinctOperator implements AlgebraOperator {
   type = 'Distinct'
+  public child: AlgebraOperator
 
-  constructor(private child: AlgebraOperator) {}
+  constructor(child: AlgebraOperator) {
+    this.child = child
+  }
 
   evaluate(store: Store, solutions?: Solution[]): Solution[] {
     const childResults = this.child.evaluate(store, solutions)
@@ -476,13 +525,22 @@ export class DistinctOperator implements AlgebraOperator {
 
 export class AggregateOperator implements AlgebraOperator {
   type = 'Aggregate'
+  public aggregations: { function: string; variable: string; expression: Expression; distinct?: boolean }[]
+  public groupBy: Expression[]
+  public child: AlgebraOperator
+  public evaluator: ExpressionEvaluator
 
   constructor(
-    private aggregations: { function: string; variable: string; expression: Expression; distinct?: boolean }[],
-    private groupBy: Expression[],
-    private child: AlgebraOperator,
-    private evaluator: ExpressionEvaluator
-  ) {}
+    aggregations: { function: string; variable: string; expression: Expression; distinct?: boolean }[],
+    groupBy: Expression[],
+    child: AlgebraOperator,
+    evaluator: ExpressionEvaluator
+  ) {
+    this.aggregations = aggregations
+    this.groupBy = groupBy
+    this.child = child
+    this.evaluator = evaluator
+  }
 
   evaluate(store: Store, solutions?: Solution[]): Solution[] {
     const childResults = this.child.evaluate(store, solutions)

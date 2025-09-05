@@ -415,3 +415,4 @@ ${programName} --completion=powershell > ${programName}-completion.ps1
     return instructions[shell];
   }
 }
+export { CompletionGenerator };

@@ -1,0 +1,87 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "{{ info.title }}",
+    "version": "{{ info.version }}",
+    "description": "{{ info.description }}",
+    "contact": {
+      "name": "API Support",
+      "email": "support@example.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "API Base URL"
+    }
+  ],
+  "paths": {
+    {% for entityName, entity in ontology.entities %}
+    {% if entity.endpoints %}
+    {% for endpoint, config in entity.endpoints %}
+    {% set method = endpoint.split(' ')[0].toLowerCase() %}
+    {% set path = endpoint.split(' ')[1] %}
+    "{{ path }}": {
+      "{{ method }}": {
+        "summary": "{{ config.description }}",
+        "tags": ["{{ entityName }}"],
+        {% if config.parameters %}
+        "parameters": [
+          {% for paramName, param in config.parameters %}
+          {
+            "name": "{{ paramName }}",
+            "in": "query",
+            "required": {{ param.required | default(false) | json }},
+            "schema": {
+              "type": "{{ param.type }}",
+              {% if param.enum %}"enum": {{ param.enum | json }},{% endif %}
+              {% if param.default %}"default": {{ param.default | json }},{% endif %}
+              {% if param.min %}"minimum": {{ param.min }},{% endif %}
+              {% if param.max %}"maximum": {{ param.max }}{% endif %}
+            }
+          }{% if not loop.last %},{% endif %}
+          {% endfor %}
+        ],
+        {% endif %}
+        {% if config.body %}
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {{ config.body | json }}
+            }
+          }
+        },
+        {% endif %}
+        "responses": {
+          {% for status, response in config.responses %}
+          "{{ status }}": {
+            "description": "{% if status >= 200 and status < 300 %}Success{% elif status >= 400 %}Error{% endif %}",
+            "content": {
+              "application/json": {
+                "schema": {{ response | json }}
+              }
+            }
+          }{% if not loop.last %},{% endif %}
+          {% endfor %}
+        }
+      }{% if not loop.last %},{% endif %}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+    {% endif %}
+    {% endfor %}
+  },
+  "components": {
+    "schemas": {
+      {% for entityName, entity in ontology.entities %}
+      "{{ entityName }}": {
+        "type": "object",
+        "properties": {{ entity.properties | json }},
+        {% if entity.required %}
+        "required": {{ entity.required | json }}
+        {% endif %}
+      }{% if not loop.last %},{% endif %}
+      {% endfor %}
+    }
+  }
+}

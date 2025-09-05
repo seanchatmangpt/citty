@@ -6,7 +6,7 @@
 import { EventEmitter } from 'events'
 import * as fs from 'fs/promises'
 import * as path from 'path'
-import { generateFromOntology, createUnjucks } from './index'
+import { generateFromOntology, createUnjucks, UNJUCKS, type UnjucksContext } from './index'
 import { productionMonitor } from './production-monitoring'
 
 export interface PlaygroundExample {
@@ -45,12 +45,15 @@ export interface PlaygroundConfig {
   enableSharing: boolean
   enableAnalytics: boolean
   securityMode: 'strict' | 'moderate' | 'permissive'
+  persistentStorage?: boolean
+  storageDir?: string
 }
 
 export class InteractivePlayground extends EventEmitter {
   private examples: Map<string, PlaygroundExample> = new Map()
   private sessions: Map<string, PlaygroundSession> = new Map()
   private config: PlaygroundConfig
+  private unjucksContext?: UnjucksContext
   
   constructor(config: Partial<PlaygroundConfig> = {}) {
     super()
@@ -61,11 +64,17 @@ export class InteractivePlayground extends EventEmitter {
       enableSharing: true,
       enableAnalytics: true,
       securityMode: 'moderate',
+      persistentStorage: false,
+      storageDir: '/tmp/playground-storage',
       ...config
     }
     
     this.setupBuiltinExamples()
     this.startSessionCleanup()
+    // Initialize Unjucks asynchronously (don't wait)
+    this.initializeUnjucks().catch(error => 
+      console.warn('Failed to initialize Unjucks:', error)
+    )
   }
   
   /**
@@ -100,6 +109,9 @@ export class InteractivePlayground extends EventEmitter {
     
     this.sessions.set(sessionId, session)
     
+    // Save to persistent storage if enabled
+    await this.saveSession(session)
+    
     // Track analytics
     if (this.config.enableAnalytics) {
       productionMonitor.recordMetric('playground.session.created', 1, {
@@ -124,7 +136,7 @@ export class InteractivePlayground extends EventEmitter {
     warnings: string[]
     performance: PlaygroundSession['performance']
   }> {
-    const session = this.sessions.get(sessionId)
+    const session = await this.getSession(sessionId)
     if (!session) {
       throw new Error(`Session not found: ${sessionId}`)
     }
@@ -141,16 +153,10 @@ export class InteractivePlayground extends EventEmitter {
       // Security validation
       this.validateInput(session.ontology, session.template)
       
-      // Create temporary context for execution
-      const unjucksContext = await createUnjucks({
-        templatesDir: '/tmp/playground',
-        cache: false
-      })
-      
       const compileStart = Date.now()
       
-      // Generate output
-      const result = await this.executeInSandbox(session.ontology, session.template)
+      // Execute with real Nunjucks
+      const result = await this.executeTemplate(session.ontology, session.template)
       
       const compileEnd = Date.now()
       const renderEnd = Date.now()
@@ -165,6 +171,9 @@ export class InteractivePlayground extends EventEmitter {
         renderTime: renderEnd - compileEnd,
         memoryUsage: endMemory - startMemory
       }
+      
+      // Save updated session
+      await this.saveSession(session)
       
       // Track analytics
       if (this.config.enableAnalytics) {
@@ -201,6 +210,9 @@ export class InteractivePlayground extends EventEmitter {
           errorType: error.constructor.name
         })
       }
+      
+      // Save error state
+      await this.saveSession(session)
       
       this.emit('session:error', { sessionId, error })
       
@@ -271,7 +283,7 @@ export class InteractivePlayground extends EventEmitter {
    * Load example into session
    */
   async loadExample(sessionId: string, exampleId: string): Promise<void> {
-    const session = this.sessions.get(sessionId)
+    const session = await this.getSession(sessionId)
     const example = this.examples.get(exampleId)
     
     if (!session) throw new Error(`Session not found: ${sessionId}`)
@@ -280,6 +292,9 @@ export class InteractivePlayground extends EventEmitter {
     session.ontology = example.ontology
     session.template = example.template
     session.lastModified = Date.now()
+    
+    // Save updated session
+    await this.saveSession(session)
     
     // Track analytics
     if (this.config.enableAnalytics) {
@@ -305,7 +320,7 @@ export class InteractivePlayground extends EventEmitter {
       throw new Error('Sharing is disabled')
     }
     
-    const session = this.sessions.get(sessionId)
+    const session = await this.getSession(sessionId)
     if (!session) {
       throw new Error(`Session not found: ${sessionId}`)
     }
@@ -338,8 +353,8 @@ export class InteractivePlayground extends EventEmitter {
   /**
    * Export playground session
    */
-  exportSession(sessionId: string, format: 'json' | 'markdown' | 'html' = 'json'): string {
-    const session = this.sessions.get(sessionId)
+  async exportSession(sessionId: string, format: 'json' | 'markdown' | 'html' = 'json'): Promise<string> {
+    const session = await this.getSession(sessionId)
     if (!session) {
       throw new Error(`Session not found: ${sessionId}`)
     }
@@ -395,17 +410,21 @@ export class InteractivePlayground extends EventEmitter {
         description: 'Basic template with simple ontology',
         category: 'basic',
         difficulty: 1,
-        ontology: `
-@prefix ex: <http://example.com/> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-
-ex:greeting rdfs:label "Hello, World!" .
-        `,
+        ontology: PlaygroundHelpers.createSampleOntology(),
         template: `---
 to: hello.txt
 ---
-{{ greeting }}`,
-        expectedOutput: 'Hello, World!',
+{{ greeting }}
+
+# Welcome to {{ name }}!
+
+This playground demonstrates:
+{% for feature in features %}
+- {{ feature | title }}
+{% endfor %}
+
+Generated at: {{ now }}`,
+        expectedOutput: 'Hello, Playground!\n\n# Welcome to Playground User!\n...',
         tags: ['beginner', 'hello-world', 'basic'],
         createdAt: Date.now(),
         updatedAt: Date.now()
@@ -599,7 +618,10 @@ export default router`,
     }
   }
   
-  private async executeInSandbox(ontology: string, template: string): Promise<{
+  /**
+   * Execute template with real Nunjucks rendering
+   */
+  private async executeTemplate(ontology: string, template: string): Promise<{
     output: string
     errors: string[]
     warnings: string[]
@@ -609,7 +631,34 @@ export default router`,
     let output = ''
     
     try {
-      // Create temporary files for execution
+      // Initialize Unjucks context
+      const unjucksContext = await createUnjucks({
+        templatesDir: '/tmp/playground-' + Date.now(),
+        cache: false,
+        dryRun: false
+      })
+      
+      // If ontology is provided, use full ontology-driven generation
+      if (ontology && ontology.trim()) {
+        output = await this.executeWithOntology(ontology, template)
+      } else {
+        // Direct template rendering with mock data
+        output = await this.executeDirectTemplate(template)
+      }
+      
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : 'Template execution failed')
+    }
+    
+    return { output, errors, warnings }
+  }
+  
+  /**
+   * Execute template with ontology context using real UNJUCKS.render()
+   */
+  private async executeWithOntology(ontology: string, template: string): Promise<string> {
+    try {
+      // Create temporary files for ontology processing
       const tempDir = '/tmp/playground-' + Date.now()
       await fs.mkdir(tempDir, { recursive: true })
       
@@ -619,31 +668,143 @@ export default router`,
       await fs.writeFile(ontologyPath, ontology)
       await fs.writeFile(templatePath, `---\nto: output.txt\n---\n${template}`)
       
-      // Execute with timeout and resource limits
+      // Execute with timeout
       const result = await Promise.race([
         generateFromOntology(ontologyPath, 'template', { 
           templatesDir: tempDir,
-          outputDir: tempDir
+          outputDir: tempDir,
+          dryRun: true
         }),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Execution timeout')), 10000)
+        new Promise<any>((_, reject) => 
+          setTimeout(() => reject(new Error('Execution timeout (10s)')), 10000)
         )
-      ]) as any
-      
-      if (result.success && result.files.length > 0) {
-        output = result.files[0].content
-      } else if (result.errors) {
-        errors.push(...result.errors.map((e: Error) => e.message))
-      }
+      ])
       
       // Cleanup
       await fs.rm(tempDir, { recursive: true, force: true })
       
+      if (result.success && result.files.length > 0) {
+        return result.files[0].content
+      } else if (result.errors && result.errors.length > 0) {
+        throw new Error(result.errors[0].message)
+      } else {
+        throw new Error('No output generated from ontology')
+      }
     } catch (error) {
-      errors.push(error instanceof Error ? error.message : 'Execution failed')
+      throw new Error(`Ontology processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+  
+  /**
+   * Execute template directly with sample context using real UNJUCKS.render()
+   */
+  private async executeDirectTemplate(template: string): Promise<string> {
+    try {
+      // Validate template syntax first
+      const isValid = await this.validateTemplate(template)
+      if (!isValid.valid) {
+        throw new Error(`Template validation failed: ${isValid.errors.join(', ')}`)
+      }
+      
+      // Create sample context based on template variables
+      const sampleContext = this.createSampleContext(template)
+      
+      // Use real UNJUCKS.render() for template execution
+      const rendered = UNJUCKS.render(template, sampleContext)
+      
+      return rendered
+    } catch (error) {
+      throw new Error(`Direct template rendering failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+  
+  /**
+   * Validate template using real Nunjucks compilation
+   */
+  private async validateTemplate(template: string): Promise<{ valid: boolean; errors: string[] }> {
+    const errors: string[] = []
+    
+    try {
+      // Use real UNJUCKS.compile() to validate template syntax
+      UNJUCKS.compile(template, 'playground-template')
+      
+      // Additional validation checks
+      if (!template || template.trim().length === 0) {
+        errors.push('Template is empty')
+      }
+      
+      // Check for basic template structure
+      if (template.includes('{{') && !template.includes('}}')) {
+        errors.push('Unclosed template expression')
+      }
+      
+      if (template.includes('{%') && !template.includes('%}')) {
+        errors.push('Unclosed template statement')
+      }
+      
+      return { valid: errors.length === 0, errors }
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : 'Template compilation failed')
+      return { valid: false, errors }
+    }
+  }
+  
+  /**
+   * Create sample context for template rendering
+   */
+  private createSampleContext(template: string): any {
+    const context: any = {
+      // Basic variables
+      name: 'Sample Name',
+      title: 'Sample Title',
+      description: 'This is a sample description',
+      version: '1.0.0',
+      author: 'Sample Author',
+      date: new Date().toISOString(),
+      
+      // Common entities
+      greeting: 'Hello, World!',
+      label: 'sample-label',
+      id: 'sample-id',
+      type: 'sample-type',
+      
+      // Collections
+      items: [
+        { name: 'Item 1', value: 'value1' },
+        { name: 'Item 2', value: 'value2' },
+        { name: 'Item 3', value: 'value3' }
+      ],
+      
+      // Common ontology patterns
+      hasArgument: [
+        { name: 'arg1', type: 'string', required: true, description: 'First argument' },
+        { name: 'arg2', type: 'number', required: false, description: 'Second argument' }
+      ],
+      
+      hasOperation: [
+        { method: 'GET', description: 'Get operation' },
+        { method: 'POST', description: 'Create operation' }
+      ],
+      
+      hasProperty: [
+        { name: 'id', type: 'string', required: true },
+        { name: 'name', type: 'string', required: true },
+        { name: 'email', type: 'string', required: true }
+      ]
     }
     
-    return { output, errors, warnings }
+    // Extract variable names from template and provide defaults
+    const variableMatches = template.match(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_.]*?)\s*[|}]/g)
+    if (variableMatches) {
+      variableMatches.forEach(match => {
+        const varName = match.replace(/[{|}\s]/g, '').split('|')[0].split('.')[0]
+        if (!context[varName]) {
+          context[varName] = `Sample ${varName}`
+        }
+      })
+    }
+    
+    return context
   }
   
   private cleanupOldestSessions(count: number): void {
@@ -771,6 +932,140 @@ ${session.warnings.length > 0 ? `## Warnings\n${session.warnings.map(w => `- ${w
   private generateShareId(): string {
     return 'share_' + Date.now().toString(36) + Math.random().toString(36).slice(2)
   }
+  
+  /**
+   * Initialize Unjucks context for playground
+   */
+  private async initializeUnjucks(): Promise<void> {
+    try {
+      this.unjucksContext = await createUnjucks({
+        templatesDir: this.config.storageDir + '/templates',
+        outputDir: this.config.storageDir + '/output',
+        cache: true,
+        parallel: false // Disable for playground to avoid complexity
+      })
+    } catch (error) {
+      console.warn('Failed to initialize Unjucks context for playground:', error)
+    }
+  }
+  
+  /**
+   * Save session to persistent storage if enabled
+   */
+  private async saveSession(session: PlaygroundSession): Promise<void> {
+    if (!this.config.persistentStorage) return
+    
+    try {
+      const storageDir = this.config.storageDir!
+      const sessionDir = path.join(storageDir, 'sessions')
+      await fs.mkdir(sessionDir, { recursive: true })
+      
+      const sessionFile = path.join(sessionDir, `${session.id}.json`)
+      await fs.writeFile(sessionFile, JSON.stringify(session, null, 2))
+    } catch (error) {
+      console.warn(`Failed to save session ${session.id}:`, error)
+    }
+  }
+  
+  /**
+   * Load session from persistent storage if available
+   */
+  private async loadSession(sessionId: string): Promise<PlaygroundSession | null> {
+    if (!this.config.persistentStorage) return null
+    
+    try {
+      const sessionFile = path.join(this.config.storageDir!, 'sessions', `${sessionId}.json`)
+      const content = await fs.readFile(sessionFile, 'utf-8')
+      return JSON.parse(content) as PlaygroundSession
+    } catch {
+      return null
+    }
+  }
+  
+  /**
+   * Get session with fallback to persistent storage
+   */
+  async getSession(sessionId: string): Promise<PlaygroundSession | null> {
+    let session = this.sessions.get(sessionId)
+    
+    if (!session && this.config.persistentStorage) {
+      session = await this.loadSession(sessionId)
+      if (session) {
+        this.sessions.set(sessionId, session)
+      }
+    }
+    
+    return session || null
+  }
+}
+
+/**
+ * Playground helpers for common operations
+ */
+export class PlaygroundHelpers {
+  static async validateTemplateSync(template: string): Promise<{ valid: boolean; errors: string[] }> {
+    const errors: string[] = []
+    
+    try {
+      // Use real UNJUCKS.compile() to validate
+      UNJUCKS.compile(template, 'validation-template')
+      
+      if (!template || template.trim().length === 0) {
+        errors.push('Template is empty')
+      }
+      
+      return { valid: errors.length === 0, errors }
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : 'Template compilation failed')
+      return { valid: false, errors }
+    }
+  }
+  
+  static async executeTemplateSync(template: string, context: any = {}): Promise<string> {
+    try {
+      return UNJUCKS.render(template, context)
+    } catch (error) {
+      throw new Error(`Template execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+  
+  static createSampleOntology(): string {
+    return `@prefix ex: <http://example.com/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <http://schema.org/> .
+
+ex:greeting rdfs:label "Hello, Playground!" ;
+  schema:description "A simple greeting example" .
+  
+ex:user a ex:Person ;
+  schema:name "Playground User" ;
+  schema:email "user@playground.example" .
+  
+ex:project a ex:Project ;
+  schema:name "Sample Project" ;
+  schema:description "A sample project for demonstration" ;
+  schema:version "1.0.0" .`
+  }
+  
+  static createSampleContext(): any {
+    return {
+      greeting: 'Hello, Playground!',
+      name: 'Playground User',
+      email: 'user@playground.example',
+      project: {
+        name: 'Sample Project',
+        description: 'A sample project for demonstration',
+        version: '1.0.0'
+      },
+      items: [
+        { name: 'Item 1', type: 'string' },
+        { name: 'Item 2', type: 'number' },
+        { name: 'Item 3', type: 'boolean' }
+      ],
+      now: new Date().toISOString(),
+      features: ['templating', 'ontology', 'playground']
+    }
+  }
 }
 
 // Global playground instance
@@ -795,4 +1090,25 @@ export function getPlaygroundExamples(filters?: any) {
 
 export async function sharePlaygroundSession(sessionId: string, options?: any) {
   return interactivePlayground.shareSession(sessionId, options)
+}
+
+export async function getPlaygroundSession(sessionId: string) {
+  return interactivePlayground.getSession(sessionId)
+}
+
+export async function loadPlaygroundExample(sessionId: string, exampleId: string) {
+  return interactivePlayground.loadExample(sessionId, exampleId)
+}
+
+export async function exportPlaygroundSession(sessionId: string, format?: 'json' | 'markdown' | 'html') {
+  return interactivePlayground.exportSession(sessionId, format)
+}
+
+// Direct template validation and execution functions
+export async function validatePlaygroundTemplate(template: string) {
+  return PlaygroundHelpers.validateTemplateSync(template)
+}
+
+export async function executePlaygroundTemplate(template: string, context?: any) {
+  return PlaygroundHelpers.executeTemplateSync(template, context)
 }

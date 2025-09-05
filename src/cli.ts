@@ -11,12 +11,14 @@ import { renderTemplate } from './renderer.js';
 import { loadOntologyContext, createSampleOntology } from './ontology.js';
 import type { CliOptions, TemplateContext } from './types.js';
 import { UnjucksError, TemplateNotFoundError, OntologyError, ContextError } from './types.js';
-import { EnhancedErrorHandler } from './utils/error-handler.js';
-import { ProgressIndicator } from './utils/progress-indicator.js';
-import { CommandSuggester } from './utils/command-suggester.js';
-import { CompletionGenerator } from './utils/completion-generator.js';
-import { EcosystemIntegration } from './utils/ecosystem-integration.js';
-import { HelpSystem } from './utils/help-system.js';
+import { 
+  EnhancedErrorHandler, 
+  ProgressIndicator, 
+  CommandSuggester, 
+  CompletionGenerator, 
+  EcosystemIntegration, 
+  HelpSystem 
+} from './utils/index.js';
 
 /**
  * Enhanced main CLI command with production-quality help and error handling

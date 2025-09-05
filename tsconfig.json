@@ -36,18 +36,20 @@
     "baseUrl": ".",
     "paths": {
       "~/*": ["src/*"],
-      "#*": ["src/*"]
+      "#*": ["src/*"],
+      "@unjs/unjucks": ["src/index.ts"],
+      "@unjs/unjucks/*": ["src/*"]
     }
   },
   "include": [
     "src/**/*",
+    "test/**/*",
+    "tests/**/*",
     "*.config.*"
   ],
   "exclude": [
     "node_modules",
     "dist",
-    "coverage",
-    "**/*.test.*",
-    "**/*.spec.*"
+    "coverage"
   ]
 }

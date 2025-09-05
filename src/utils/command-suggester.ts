@@ -119,3 +119,4 @@ export class CommandSuggester {
     return [...new Set(allSuggestions)].slice(0, 5);
   }
 }
+export { CommandSuggester };

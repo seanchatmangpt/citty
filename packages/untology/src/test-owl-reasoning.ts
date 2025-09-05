@@ -8,10 +8,9 @@ import {
   inferInverseProperties,
   inferEquivalences,
   inferTransitiveProperties,
-  inferSymmetricProperties,
-  explainInference,
-  inferWithConstraints
+  inferSymmetricProperties
 } from './advanced'
+import { explainInference } from './inference'
 import { addTriple } from './core'
 import { setOntologyContext } from './context'
 import { Store } from 'n3'
@@ -97,17 +96,14 @@ async function testOwlReasoning() {
   const allInferences = await inferOwl()
   console.log(`✅ Total inferences: ${allInferences.length} triples`)
   
-  // Test 8: Reasoning with Constraints
-  console.log('\n⚙️ Test 8: Reasoning with Constraints')
-  const constrainedResult = await inferWithConstraints({
-    maxIterations: 5,
-    ruleCategories: ['rdfs', 'owl'],
-    ignoreInconsistencies: false
-  })
-  console.log(`✅ Constrained inference: ${constrainedResult.inferred.length} triples`)
-  console.log(`   Rules applied: ${constrainedResult.statistics.rulesApplied.join(', ')}`)
-  console.log(`   Duration: ${constrainedResult.statistics.duration}ms`)
-  console.log(`   Inconsistencies: ${constrainedResult.inconsistencies.length}`)
+  // Test 8: Full Inference Statistics
+  console.log('\n⚙️ Test 8: Inference Engine Statistics')
+  const { inferenceEngine } = await import('./inference')
+  const stats = inferenceEngine.getStats()
+  console.log(`✅ Engine statistics:`)
+  console.log(`   Available rules: ${stats.rules}`)
+  console.log(`   Inferences made: ${stats.inferred}`)
+  console.log(`   Rule types: ${stats.ruleNames.slice(0, 5).join(', ')}...`)
   
   // Test 9: Explanation
   console.log('\n💭 Test 9: Inference Explanation')

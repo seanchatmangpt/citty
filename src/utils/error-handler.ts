@@ -216,3 +216,4 @@ export class EnhancedErrorHandler {
     return missing;
   }
 }
+export { EnhancedErrorHandler };

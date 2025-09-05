@@ -59,13 +59,13 @@ export interface UnjucksViteOptions {
   
   /**
    * Template patterns to include
-   * @default ['**/*.{njk,nunjucks,j2}']
+   * @default ['**\/*.{njk,nunjucks,j2}']
    */
   include?: string[]
   
   /**
    * Template patterns to exclude
-   * @default ['node_modules/**', '.*/**']
+   * @default ['node_modules/**', '.*\/**']
    */
   exclude?: string[]
   

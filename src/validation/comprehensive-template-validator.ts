@@ -231,7 +231,7 @@ export class TemplateSyntaxValidator {
     
     lines.forEach((line, index) => {
       // Extract variables from {{ variable }}
-      const varMatches = line.matchAll(/\{\{\s*([\w_.]+).*?\}\}/g);
+      const varMatches = Array.from(line.matchAll(/\{\{\s*([\w_.]+).*?\}\}/g));
       for (const match of varMatches) {
         variables.push({
           name: match[1],
@@ -242,7 +242,7 @@ export class TemplateSyntaxValidator {
       }
       
       // Extract variables from {% set variable = ... %}
-      const setMatches = line.matchAll(/\{%\s*set\s+(\w+)\s*=.*?%\}/g);
+      const setMatches = Array.from(line.matchAll(/\{%\s*set\s+(\w+)\s*=.*?%\}/g));
       for (const match of setMatches) {
         variables.push({
           name: match[1],
@@ -252,7 +252,7 @@ export class TemplateSyntaxValidator {
       }
       
       // Extract loop variables
-      const forMatches = line.matchAll(/\{%\s*for\s+(\w+)\s+in.*?%\}/g);
+      const forMatches = Array.from(line.matchAll(/\{%\s*for\s+(\w+)\s+in.*?%\}/g));
       for (const match of forMatches) {
         variables.push({
           name: match[1],
@@ -374,7 +374,7 @@ export class TemplateSecurityValidator {
     
     lines.forEach((line, index) => {
       dangerousPatterns.forEach(({ pattern, message }) => {
-        const matches = line.matchAll(pattern);
+        const matches = Array.from(line.matchAll(pattern));
         for (const match of matches) {
           results.push({
             ruleId: 'template-injection',
@@ -419,7 +419,7 @@ export class TemplateSecurityValidator {
       ];
       
       htmlPatterns.forEach(({ pattern, message, severity }) => {
-        const matches = line.matchAll(pattern);
+        const matches = Array.from(line.matchAll(pattern));
         for (const match of matches) {
           results.push({
             ruleId: 'template-xss-pattern',
@@ -465,7 +465,7 @@ export class TemplateSecurityValidator {
     ];
     
     contexts.forEach(ctx => {
-      const matches = line.matchAll(ctx.pattern);
+      const matches = Array.from(line.matchAll(ctx.pattern));
       for (const match of matches) {
         const variable = match[1];
         if (!variable.includes('|e') && !variable.includes('|escape') && !variable.includes('|safe')) {

@@ -269,3 +269,4 @@ export class ProgressIndicator {
     }
   }
 }
+export { ProgressIndicator };
