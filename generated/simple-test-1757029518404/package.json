@@ -1,0 +1,30 @@
+{
+  "name": "cli-generated-cli",
+  "version": "1.0.0",
+  "description": "CLI generated with Ollama and Citty Pro",
+  "author": "Citty Pro",
+  "type": "module",
+  "bin": {
+    "cli-generated-cli": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "node --loader ts-node/esm src/cli.ts",
+    "start": "node dist/cli.js",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage"
+  },
+  "dependencies": {
+    "citty": "^0.1.6",
+    "consola": "^3.4.0",
+    "@opentelemetry/api": "^1.8.0",
+    "@opentelemetry/sdk-node": "^0.49.1",
+    "@opentelemetry/auto-instrumentations-node": "^0.41.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.4.0",
+    "@vitest/coverage-v8": "^1.4.0"
+  }
+}

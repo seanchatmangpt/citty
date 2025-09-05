@@ -21,15 +21,20 @@
   ],
   "scripts": {
     "build": "unbuild",
-    "dev": "vitest dev",
+    "dev": "jiti src/cli.ts",
     "lint": "eslint --cache . && prettier -c src test",
     "lint:fix": "eslint --cache . --fix && prettier -c src test -w",
     "prepack": "pnpm run build",
-    "demo": "jiti ./src/commands/generate-pro.ts --help",
+    "demo": "jiti ./src/cli.ts --help",
     "release": "pnpm test && changelogen --release --push && npm publish",
     "test": "pnpm lint && vitest run --coverage",
-    "generate:ai": "jiti ./src/commands/generate-pro.ts",
-    "otel:setup": "node ./dist/otel/instrumentation.js"
+    "generate:ai": "jiti ./src/commands/generate.ts",
+    "otel:setup": "node ./dist/otel/instrumentation.js",
+    "playground:test": "jiti playground/test-cli-generation.ts",
+    "playground:docker": "jiti playground/test-cli-generation.ts --scenario docker",
+    "playground:api": "jiti playground/test-cli-generation.ts --scenario api",
+    "playground:files": "jiti playground/test-cli-generation.ts --scenario files",
+    "citty-pro": "jiti src/cli.ts"
   },
   "dependencies": {
     "@opentelemetry/api": "^1.8.0",
@@ -50,6 +55,7 @@
     "js-yaml": "^4.1.0",
     "n3": "^1.26.0",
     "nunjucks": "^3.2.4",
+    "ollama-ai-provider": "^1.2.0",
     "ollama-ai-provider-v2": "^1.2.4",
     "ora": "^8.1.0",
     "semver": "^7.6.3",

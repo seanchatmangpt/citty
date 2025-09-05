@@ -1,0 +1,312 @@
+# Citty Pro Semantic Conventions for CLI Generation
+# Based on OpenTelemetry semantic conventions format
+# Defines standard patterns for CLI tool generation
+
+_registry:
+  namespace: citty.cli
+  version: "2026.1.1"
+
+groups:
+  # File management CLI group
+  - id: file.management
+    type: span
+    brief: "File management operations"
+    note: "Standard file operations like copy, move, delete, etc."
+    prefix: file
+    stability: stable
+    attributes:
+      - id: file.path
+        type: string
+        brief: "Path to the file or directory"
+        examples: ["./src/index.ts", "/usr/local/bin", "*.js"]
+        requirement_level: required
+        
+      - id: file.operation
+        type: string
+        brief: "Type of file operation"
+        examples: ["copy", "move", "delete", "create"]
+        requirement_level: required
+        
+      - id: file.recursive
+        type: boolean
+        brief: "Whether operation should be recursive"
+        examples: [true, false]
+        requirement_level: recommended
+        
+      - id: file.force
+        type: boolean
+        brief: "Force operation without confirmation"
+        examples: [true, false]
+        requirement_level: opt_in
+        
+      - id: file.backup
+        type: boolean
+        brief: "Create backup before operation"
+        examples: [true, false]
+        requirement_level: recommended
+
+  # Docker management CLI group  
+  - id: docker.management
+    type: span
+    brief: "Docker container and image management"
+    note: "Standard Docker operations for containers, images, networks"
+    prefix: docker
+    stability: stable
+    attributes:
+      - id: docker.container.id
+        type: string
+        brief: "Container ID or name"
+        examples: ["nginx", "my-app", "abc123"]
+        requirement_level: required
+        
+      - id: docker.image.name
+        type: string
+        brief: "Docker image name"
+        examples: ["nginx:latest", "node:18", "myapp:v1.0"]
+        requirement_level: conditionally_required
+        
+      - id: docker.port.mapping
+        type: string
+        brief: "Port mapping configuration"
+        examples: ["8080:80", "3000:3000"]
+        requirement_level: opt_in
+        
+      - id: docker.volume.mount
+        type: string
+        brief: "Volume mount specification"
+        examples: ["./data:/app/data", "/tmp:/tmp"]
+        requirement_level: opt_in
+        
+      - id: docker.environment
+        type: string[]
+        brief: "Environment variables"
+        examples: [["NODE_ENV=production", "PORT=3000"]]
+        requirement_level: opt_in
+
+  # Kubernetes CLI group
+  - id: k8s.management
+    type: span
+    brief: "Kubernetes resource management"
+    note: "Standard kubectl-style operations"
+    prefix: k8s
+    stability: stable
+    attributes:
+      - id: k8s.resource.type
+        type: string
+        brief: "Kubernetes resource type"
+        examples: ["pod", "service", "deployment", "configmap"]
+        requirement_level: required
+        
+      - id: k8s.resource.name
+        type: string
+        brief: "Resource name"
+        examples: ["nginx-deployment", "my-service"]
+        requirement_level: required
+        
+      - id: k8s.namespace
+        type: string
+        brief: "Kubernetes namespace"
+        examples: ["default", "kube-system", "production"]
+        requirement_level: recommended
+        
+      - id: k8s.context
+        type: string
+        brief: "kubectl context"
+        examples: ["minikube", "production-cluster"]
+        requirement_level: opt_in
+        
+      - id: k8s.selector
+        type: string
+        brief: "Resource selector"
+        examples: ["app=nginx", "version=v1.0"]
+        requirement_level: opt_in
+
+  # API management CLI group
+  - id: api.management
+    type: span
+    brief: "REST API management operations"
+    note: "Standard API testing and management operations"
+    prefix: api
+    stability: experimental
+    attributes:
+      - id: api.endpoint
+        type: string
+        brief: "API endpoint URL"
+        examples: ["https://api.example.com/users", "/api/v1/posts"]
+        requirement_level: required
+        
+      - id: api.method
+        type: string
+        brief: "HTTP method"
+        examples: ["GET", "POST", "PUT", "DELETE"]
+        requirement_level: required
+        
+      - id: api.headers
+        type: string[]
+        brief: "HTTP headers"
+        examples: [["Authorization: Bearer token", "Content-Type: application/json"]]
+        requirement_level: opt_in
+        
+      - id: api.body
+        type: string
+        brief: "Request body"
+        examples: ['{"name": "John", "age": 30}']
+        requirement_level: conditionally_required
+        
+      - id: api.timeout
+        type: int
+        brief: "Request timeout in seconds"
+        examples: [30, 60, 120]
+        requirement_level: recommended
+
+  # Database CLI group
+  - id: db.management
+    type: span
+    brief: "Database management operations"
+    note: "Standard database operations for multiple DB types"
+    prefix: db
+    stability: stable
+    attributes:
+      - id: db.connection.string
+        type: string
+        brief: "Database connection string"
+        examples: ["postgresql://user:pass@localhost:5432/mydb", "mongodb://localhost:27017/mydb"]
+        requirement_level: required
+        
+      - id: db.query
+        type: string
+        brief: "Database query"
+        examples: ["SELECT * FROM users", "db.users.find()"]
+        requirement_level: conditionally_required
+        
+      - id: db.table
+        type: string
+        brief: "Table or collection name"
+        examples: ["users", "orders", "products"]
+        requirement_level: conditionally_required
+        
+      - id: db.migration.file
+        type: string
+        brief: "Migration file path"
+        examples: ["./migrations/001_create_users.sql", "./migrations/add_indexes.js"]
+        requirement_level: opt_in
+        
+      - id: db.backup.path
+        type: string
+        brief: "Backup file path"
+        examples: ["./backups/db_20260115.sql", "s3://backups/mongo_dump.gz"]
+        requirement_level: opt_in
+
+  # Git operations CLI group
+  - id: git.operations
+    type: span
+    brief: "Git version control operations"
+    note: "Enhanced git operations with automation"
+    prefix: git
+    stability: stable
+    attributes:
+      - id: git.repository.url
+        type: string
+        brief: "Git repository URL"
+        examples: ["https://github.com/user/repo.git", "git@github.com:user/repo.git"]
+        requirement_level: conditionally_required
+        
+      - id: git.branch
+        type: string
+        brief: "Git branch name"
+        examples: ["main", "develop", "feature/new-cli"]
+        requirement_level: recommended
+        
+      - id: git.commit.message
+        type: string
+        brief: "Commit message"
+        examples: ["feat: add new CLI command", "fix: resolve parsing issue"]
+        requirement_level: conditionally_required
+        
+      - id: git.remote
+        type: string
+        brief: "Git remote name"
+        examples: ["origin", "upstream"]
+        requirement_level: recommended
+        
+      - id: git.tag
+        type: string
+        brief: "Git tag"
+        examples: ["v1.0.0", "release-2026.1.1"]
+        requirement_level: opt_in
+
+  # Cloud deployment CLI group
+  - id: cloud.deployment
+    type: span
+    brief: "Cloud deployment and management"
+    note: "Multi-cloud deployment operations"
+    prefix: cloud
+    stability: experimental
+    attributes:
+      - id: cloud.provider
+        type: string
+        brief: "Cloud provider"
+        examples: ["aws", "gcp", "azure", "vercel", "netlify"]
+        requirement_level: required
+        
+      - id: cloud.region
+        type: string
+        brief: "Cloud region"
+        examples: ["us-east-1", "eu-west-1", "asia-pacific-1"]
+        requirement_level: recommended
+        
+      - id: cloud.service
+        type: string
+        brief: "Cloud service type"
+        examples: ["lambda", "cloud-functions", "app-service"]
+        requirement_level: required
+        
+      - id: cloud.environment
+        type: string
+        brief: "Deployment environment"
+        examples: ["development", "staging", "production"]
+        requirement_level: required
+        
+      - id: cloud.config.file
+        type: string
+        brief: "Configuration file path"
+        examples: ["./serverless.yml", "./app.yaml", "./deployment.json"]
+        requirement_level: opt_in
+
+  # Package management CLI group
+  - id: package.management
+    type: span
+    brief: "Package manager operations"
+    note: "Universal package management across npm, pnpm, yarn, etc."
+    prefix: pkg
+    stability: stable
+    attributes:
+      - id: pkg.manager
+        type: string
+        brief: "Package manager type"
+        examples: ["npm", "pnpm", "yarn", "bun"]
+        requirement_level: required
+        
+      - id: pkg.name
+        type: string
+        brief: "Package name"
+        examples: ["lodash", "@types/node", "citty-pro"]
+        requirement_level: conditionally_required
+        
+      - id: pkg.version
+        type: string
+        brief: "Package version"
+        examples: ["^1.0.0", "~2.1.0", "latest"]
+        requirement_level: opt_in
+        
+      - id: pkg.dev.dependency
+        type: boolean
+        brief: "Install as development dependency"
+        examples: [true, false]
+        requirement_level: opt_in
+        
+      - id: pkg.global
+        type: boolean
+        brief: "Install globally"
+        examples: [true, false]
+        requirement_level: opt_in
