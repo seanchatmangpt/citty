@@ -1,0 +1,49 @@
+{
+  "name": "@cns-marketplace/integration-tests",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Comprehensive testing suite for CNS-ByteStar-Marketplace integration",
+  "scripts": {
+    "test": "vitest",
+    "test:integration": "vitest --config vitest.integration.config.ts",
+    "test:functional": "vitest --config vitest.functional.config.ts",
+    "test:performance": "vitest --config vitest.performance.config.ts",
+    "test:security": "vitest --config vitest.security.config.ts",
+    "test:all": "npm run test:integration && npm run test:functional && npm run test:performance && npm run test:security",
+    "test:ci": "vitest --run --coverage",
+    "test:watch": "vitest --watch",
+    "test:report": "vitest --reporter=html --reporter=json",
+    "test:load": "echo 'Load tests would run here'",
+    "test:stress": "echo 'Stress tests would run here'",
+    "test:security-scan": "node security/security-scanner.js",
+    "test:compliance": "node security/compliance-checker.js"
+  },
+  "dependencies": {
+    "@vitest/ui": "^1.0.0",
+    "vitest": "^1.0.0",
+    "@vitest/coverage-v8": "^1.0.0",
+    "playwright": "^1.40.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "dotenv": "^16.0.0",
+    "axios": "^1.6.0",
+    "ws": "^8.14.0",
+    "jsonwebtoken": "^9.0.2",
+    "crypto": "^1.0.1",
+    "benchmark": "^2.1.4",
+    "puppeteer": "^21.0.0",
+    "supertest": "^6.3.3",
+    "chai": "^4.3.10",
+    "sinon": "^17.0.1",
+    "mock-fs": "^5.2.0",
+    "nock": "^13.4.0"
+  },
+  "devDependencies": {
+    "@types/benchmark": "^2.1.5",
+    "@types/ws": "^8.5.9",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/chai": "^4.3.11",
+    "@types/sinon": "^17.0.2",
+    "@types/supertest": "^2.0.16"
+  }
+}

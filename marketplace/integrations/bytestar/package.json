@@ -1,0 +1,95 @@
+{
+  "name": "@citty-marketplace/bytestar-integration",
+  "version": "1.0.0",
+  "description": "ByteStar Integration Suite - Quantum-resistant, AI-powered marketplace technology",
+  "keywords": [
+    "quantum-cryptography",
+    "post-quantum",
+    "crystals-kyber",
+    "crystals-dilithium",
+    "ai-engine",
+    "enterprise-security",
+    "high-performance",
+    "simd",
+    "marketplace",
+    "bytestar"
+  ],
+  "author": "Citty Marketplace Team",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "require": "./index.cjs"
+    },
+    "./pqc": {
+      "types": "./pqc/index.d.ts",
+      "import": "./pqc/index.js"
+    },
+    "./ai-engine": {
+      "types": "./ai-engine/index.d.ts",
+      "import": "./ai-engine/index.js"
+    },
+    "./security": {
+      "types": "./security/index.d.ts",
+      "import": "./security/index.js"
+    },
+    "./performance": {
+      "types": "./performance/index.d.ts",
+      "import": "./performance/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc && rollup -c",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "benchmark": "node examples/quantum-marketplace-demo.js",
+    "demo": "ts-node examples/quantum-marketplace-demo.ts",
+    "lint": "eslint . --ext .ts",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "node:crypto": "latest",
+    "node:worker_threads": "latest",
+    "node:os": "latest",
+    "node:perf_hooks": "latest",
+    "node:events": "latest",
+    "node:util": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0",
+    "eslint": "^8.0.0",
+    "rollup": "^4.0.0",
+    "ts-node": "^10.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "os": [
+    "linux",
+    "darwin",
+    "win32"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/unjs/citty",
+    "directory": "marketplace/integrations/bytestar"
+  },
+  "bugs": {
+    "url": "https://github.com/unjs/citty/issues"
+  },
+  "homepage": "https://github.com/unjs/citty#readme",
+  "publishConfig": {
+    "access": "public"
+  }
+}

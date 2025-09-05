@@ -1,0 +1,449 @@
+name: CNS-ByteStar-Marketplace Integration Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+env:
+  NODE_VERSION: '20'
+  CNS_TEST_URL: http://localhost:8001
+  BYTESTAR_TEST_URL: http://localhost:8002
+  MARKETPLACE_TEST_URL: http://localhost:3001
+
+jobs:
+  setup-infrastructure:
+    runs-on: ubuntu-latest
+    outputs:
+      infrastructure-ready: ${{ steps.infrastructure.outputs.ready }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+        working-directory: ./marketplace/integrations/tests
+
+      - name: Setup test infrastructure
+        id: infrastructure
+        run: |
+          # Start test databases and services
+          docker-compose -f docker-compose.test.yml up -d
+          
+          # Wait for services to be healthy
+          timeout 300s bash -c 'until curl -f http://localhost:8001/health; do sleep 5; done'
+          timeout 300s bash -c 'until curl -f http://localhost:8002/health; do sleep 5; done'
+          timeout 300s bash -c 'until curl -f http://localhost:3001/health; do sleep 5; done'
+          
+          echo "ready=true" >> $GITHUB_OUTPUT
+
+      - name: Cache infrastructure
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.docker
+            ./test-data
+          key: ${{ runner.os }}-infrastructure-${{ hashFiles('**/docker-compose.test.yml') }}
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    needs: setup-infrastructure
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+        working-directory: ./marketplace/integrations/tests
+
+      - name: Run unit tests
+        run: pnpm test:unit
+        working-directory: ./marketplace/integrations/tests
+        env:
+          CI: true
+          
+      - name: Upload unit test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-results
+          path: |
+            ./marketplace/integrations/tests/reports/unit-*.xml
+            ./marketplace/integrations/tests/coverage/
+
+  functional-tests:
+    runs-on: ubuntu-latest
+    needs: setup-infrastructure
+    strategy:
+      matrix:
+        test-suite: 
+          - cns-semantic-processing
+          - bytestar-ai-ml
+          - marketplace-transactions
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+        working-directory: ./marketplace/integrations/tests
+
+      - name: Start test infrastructure
+        run: |
+          docker-compose -f docker-compose.test.yml up -d
+          timeout 300s bash -c 'until curl -f http://localhost:8001/health && curl -f http://localhost:8002/health && curl -f http://localhost:3001/health; do sleep 5; done'
+
+      - name: Run functional tests - ${{ matrix.test-suite }}
+        run: pnpm test:functional:${{ matrix.test-suite }}
+        working-directory: ./marketplace/integrations/tests
+        env:
+          CI: true
+          TEST_TIMEOUT: 120000
+
+      - name: Upload functional test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: functional-test-results-${{ matrix.test-suite }}
+          path: ./marketplace/integrations/tests/reports/functional-${{ matrix.test-suite }}-*.xml
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: setup-infrastructure
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+        working-directory: ./marketplace/integrations/tests
+
+      - name: Start full test infrastructure
+        run: |
+          docker-compose -f docker-compose.test.yml up -d
+          timeout 300s bash -c 'until curl -f http://localhost:8001/health && curl -f http://localhost:8002/health && curl -f http://localhost:3001/health; do sleep 5; done'
+
+      - name: Run integration tests
+        run: pnpm test:integration
+        working-directory: ./marketplace/integrations/tests
+        env:
+          CI: true
+          TEST_TIMEOUT: 300000
+          
+      - name: Upload integration test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-test-results
+          path: ./marketplace/integrations/tests/reports/integration-*.xml
+
+  performance-tests:
+    runs-on: ubuntu-latest
+    needs: setup-infrastructure
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+        working-directory: ./marketplace/integrations/tests
+
+      - name: Start performance test infrastructure
+        run: |
+          docker-compose -f docker-compose.test.yml up -d --scale cns=3 --scale bytestar=2
+          timeout 300s bash -c 'until curl -f http://localhost:8001/health && curl -f http://localhost:8002/health && curl -f http://localhost:3001/health; do sleep 5; done'
+
+      - name: Run performance tests
+        run: pnpm test:performance
+        working-directory: ./marketplace/integrations/tests
+        env:
+          CI: true
+          TEST_TIMEOUT: 600000
+          PERFORMANCE_TEST: true
+
+      - name: Generate performance report
+        run: pnpm test:performance:report
+        working-directory: ./marketplace/integrations/tests
+
+      - name: Upload performance test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: performance-test-results
+          path: |
+            ./marketplace/integrations/tests/reports/performance-*.xml
+            ./marketplace/integrations/tests/reports/performance-report.html
+
+  security-tests:
+    runs-on: ubuntu-latest
+    needs: setup-infrastructure
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+        working-directory: ./marketplace/integrations/tests
+
+      - name: Start secure test infrastructure
+        run: |
+          docker-compose -f docker-compose.test.yml up -d
+          timeout 300s bash -c 'until curl -f http://localhost:8001/health && curl -f http://localhost:8002/health && curl -f http://localhost:3001/health; do sleep 5; done'
+
+      - name: Run security tests
+        run: pnpm test:security
+        working-directory: ./marketplace/integrations/tests
+        env:
+          CI: true
+          TEST_TIMEOUT: 300000
+          SECURITY_TEST: true
+
+      - name: Run compliance validation
+        run: pnpm test:compliance
+        working-directory: ./marketplace/integrations/tests
+        env:
+          CI: true
+          COMPLIANCE_TEST: true
+
+      - name: Upload security test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-test-results
+          path: |
+            ./marketplace/integrations/tests/reports/security-*.xml
+            ./marketplace/integrations/tests/reports/compliance-report.json
+
+  load-tests:
+    runs-on: ubuntu-latest
+    needs: setup-infrastructure
+    if: github.event_name == 'schedule' || contains(github.event.head_commit.message, '[run-load-tests]')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Install dependencies
+        run: pnpm install
+        working-directory: ./marketplace/integrations/tests
+
+      - name: Start load test infrastructure
+        run: |
+          docker-compose -f docker-compose.test.yml up -d --scale cns=5 --scale bytestar=3
+          timeout 300s bash -c 'until curl -f http://localhost:8001/health && curl -f http://localhost:8002/health && curl -f http://localhost:3001/health; do sleep 5; done'
+
+      - name: Run load tests
+        run: pnpm test:load
+        working-directory: ./marketplace/integrations/tests
+        env:
+          CI: true
+          LOAD_TEST: true
+
+      - name: Run stress tests
+        run: pnpm test:stress
+        working-directory: ./marketplace/integrations/tests
+        env:
+          CI: true
+          STRESS_TEST: true
+
+      - name: Upload load test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: load-test-results
+          path: |
+            ./marketplace/integrations/tests/reports/load-test-*.json
+            ./marketplace/integrations/tests/reports/stress-test-*.json
+
+  generate-reports:
+    runs-on: ubuntu-latest
+    needs: [unit-tests, functional-tests, integration-tests, performance-tests, security-tests]
+    if: always()
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+        working-directory: ./marketplace/integrations/tests
+
+      - name: Download all test artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./test-artifacts
+
+      - name: Generate comprehensive report
+        run: pnpm test:report:generate
+        working-directory: ./marketplace/integrations/tests
+        env:
+          ARTIFACTS_PATH: ../../test-artifacts
+
+      - name: Upload comprehensive report
+        uses: actions/upload-artifact@v4
+        with:
+          name: comprehensive-test-report
+          path: |
+            ./marketplace/integrations/tests/reports/test-report.html
+            ./marketplace/integrations/tests/reports/test-report.json
+            ./marketplace/integrations/tests/reports/coverage-report.html
+
+      - name: Deploy report to GitHub Pages
+        if: github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./marketplace/integrations/tests/reports
+          destination_dir: test-reports/${{ github.sha }}
+
+      - name: Comment on PR with test results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = './marketplace/integrations/tests/reports/test-report.json';
+            
+            if (fs.existsSync(path)) {
+              const report = JSON.parse(fs.readFileSync(path, 'utf8'));
+              const { summary } = report;
+              
+              const body = `
+            ## 🧪 Test Results
+            
+            | Metric | Value |
+            |--------|-------|
+            | Total Tests | ${summary.totalTests} |
+            | ✅ Passed | ${summary.totalPassed} (${((summary.totalPassed / summary.totalTests) * 100).toFixed(1)}%) |
+            | ❌ Failed | ${summary.totalFailed} (${((summary.totalFailed / summary.totalTests) * 100).toFixed(1)}%) |
+            | ⏭️ Skipped | ${summary.totalSkipped} |
+            | ⏱️ Duration | ${(summary.totalDuration / 1000).toFixed(2)}s |
+            
+            ${summary.totalFailed > 0 ? '❌ Some tests failed. Please review the detailed report.' : '✅ All tests passed!'}
+            
+            [View detailed report](https://your-domain.github.io/test-reports/${{ github.sha }}/test-report.html)
+              `;
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
+            }
+
+  notify-results:
+    runs-on: ubuntu-latest
+    needs: [generate-reports]
+    if: always()
+    
+    steps:
+      - name: Notify Slack on failure
+        if: failure()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_CHANNEL: 'integration-tests'
+          SLACK_COLOR: 'danger'
+          SLACK_MESSAGE: |
+            🚨 CNS-ByteStar-Marketplace Integration Tests Failed!
+            
+            Branch: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+            Author: ${{ github.actor }}
+            
+            Please check the GitHub Actions logs for details.
+
+      - name: Notify Slack on success
+        if: success()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_CHANNEL: 'integration-tests'
+          SLACK_COLOR: 'good'
+          SLACK_MESSAGE: |
+            ✅ CNS-ByteStar-Marketplace Integration Tests Passed!
+            
+            Branch: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+            Author: ${{ github.actor }}
+
+  cleanup:
+    runs-on: ubuntu-latest
+    needs: [generate-reports]
+    if: always()
+    
+    steps:
+      - name: Cleanup test infrastructure
+        run: |
+          docker-compose -f docker-compose.test.yml down -v
+          docker system prune -f
