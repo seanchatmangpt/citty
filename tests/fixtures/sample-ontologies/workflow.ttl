@@ -1,0 +1,412 @@
+# Sample Workflow Ontology for Testing
+# Defines complex workflows with dependencies and conditional execution
+
+@prefix wf: <http://example.org/workflow#> .
+@prefix cmd: <http://example.org/commands#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+# Workflow class definitions
+wf:Workflow a owl:Class ;
+    rdfs:label "Workflow" ;
+    rdfs:comment "A sequence of steps to accomplish a task" .
+
+wf:WorkflowStep a owl:Class ;
+    rdfs:label "Workflow Step" ;
+    rdfs:comment "A single step in a workflow" .
+
+wf:Condition a owl:Class ;
+    rdfs:label "Condition" ;
+    rdfs:comment "A condition that must be met for step execution" .
+
+wf:Trigger a owl:Class ;
+    rdfs:label "Trigger" ;
+    rdfs:comment "An event that can trigger workflow execution" .
+
+# Property definitions
+wf:hasStep a owl:ObjectProperty ;
+    rdfs:domain wf:Workflow ;
+    rdfs:range wf:WorkflowStep ;
+    rdfs:label "has step" .
+
+wf:dependsOn a owl:ObjectProperty ;
+    rdfs:domain wf:WorkflowStep ;
+    rdfs:range wf:WorkflowStep ;
+    rdfs:label "depends on" .
+
+wf:hasCondition a owl:ObjectProperty ;
+    rdfs:domain wf:WorkflowStep ;
+    rdfs:range wf:Condition ;
+    rdfs:label "has condition" .
+
+wf:hasTrigger a owl:ObjectProperty ;
+    rdfs:domain wf:Workflow ;
+    rdfs:range wf:Trigger ;
+    rdfs:label "has trigger" .
+
+wf:executesCommand a owl:ObjectProperty ;
+    rdfs:domain wf:WorkflowStep ;
+    rdfs:range cmd:Command ;
+    rdfs:label "executes command" .
+
+wf:order a owl:DatatypeProperty ;
+    rdfs:domain wf:WorkflowStep ;
+    rdfs:range xsd:integer ;
+    rdfs:label "execution order" .
+
+wf:timeout a owl:DatatypeProperty ;
+    rdfs:domain wf:WorkflowStep ;
+    rdfs:range xsd:integer ;
+    rdfs:label "timeout in seconds" .
+
+wf:retryCount a owl:DatatypeProperty ;
+    rdfs:domain wf:WorkflowStep ;
+    rdfs:range xsd:integer ;
+    rdfs:label "retry count" .
+
+wf:parallel a owl:DatatypeProperty ;
+    rdfs:domain wf:WorkflowStep ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "can run in parallel" .
+
+wf:optional a owl:DatatypeProperty ;
+    rdfs:domain wf:WorkflowStep ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "is optional" .
+
+wf:onFailure a owl:DatatypeProperty ;
+    rdfs:domain wf:WorkflowStep ;
+    rdfs:range xsd:string ;
+    rdfs:label "failure behavior" .
+
+wf:conditionType a owl:DatatypeProperty ;
+    rdfs:domain wf:Condition ;
+    rdfs:range xsd:string ;
+    rdfs:label "condition type" .
+
+wf:conditionValue a owl:DatatypeProperty ;
+    rdfs:domain wf:Condition ;
+    rdfs:label "condition value" .
+
+wf:triggerEvent a owl:DatatypeProperty ;
+    rdfs:domain wf:Trigger ;
+    rdfs:range xsd:string ;
+    rdfs:label "trigger event" .
+
+# Development Workflow - CI/CD Pipeline
+wf:CICDWorkflow a wf:Workflow ;
+    rdfs:label "CI/CD Pipeline" ;
+    cmd:description "Continuous Integration and Deployment workflow" ;
+    wf:hasTrigger wf:GitPushTrigger, wf:PullRequestTrigger ;
+    wf:hasStep wf:CheckoutStep, wf:InstallStep, wf:LintStep, wf:TestStep, wf:BuildStep, wf:DeployStep .
+
+# Workflow steps
+wf:CheckoutStep a wf:WorkflowStep ;
+    rdfs:label "Checkout Code" ;
+    cmd:description "Checkout source code from repository" ;
+    wf:order 1 ;
+    wf:timeout 300 ;
+    wf:retryCount 3 ;
+    wf:parallel false ;
+    wf:optional false ;
+    wf:onFailure "abort" ;
+    wf:executesCommand cmd:CheckoutCommand .
+
+wf:InstallStep a wf:WorkflowStep ;
+    rdfs:label "Install Dependencies" ;
+    cmd:description "Install project dependencies" ;
+    wf:order 2 ;
+    wf:timeout 600 ;
+    wf:retryCount 2 ;
+    wf:parallel false ;
+    wf:optional false ;
+    wf:onFailure "abort" ;
+    wf:dependsOn wf:CheckoutStep ;
+    wf:executesCommand cmd:InstallCommand .
+
+wf:LintStep a wf:WorkflowStep ;
+    rdfs:label "Code Linting" ;
+    cmd:description "Run code linting checks" ;
+    wf:order 3 ;
+    wf:timeout 300 ;
+    wf:retryCount 1 ;
+    wf:parallel true ;
+    wf:optional false ;
+    wf:onFailure "continue" ;
+    wf:dependsOn wf:InstallStep ;
+    wf:executesCommand cmd:LintCommand .
+
+wf:TestStep a wf:WorkflowStep ;
+    rdfs:label "Run Tests" ;
+    cmd:description "Execute test suite with coverage" ;
+    wf:order 3 ;
+    wf:timeout 900 ;
+    wf:retryCount 1 ;
+    wf:parallel true ;
+    wf:optional false ;
+    wf:onFailure "abort" ;
+    wf:dependsOn wf:InstallStep ;
+    wf:executesCommand cmd:TestCommand ;
+    wf:hasCondition wf:HasTestsCondition .
+
+wf:BuildStep a wf:WorkflowStep ;
+    rdfs:label "Build Application" ;
+    cmd:description "Build application for production" ;
+    wf:order 4 ;
+    wf:timeout 1200 ;
+    wf:retryCount 2 ;
+    wf:parallel false ;
+    wf:optional false ;
+    wf:onFailure "abort" ;
+    wf:dependsOn wf:LintStep, wf:TestStep ;
+    wf:executesCommand cmd:BuildCommand .
+
+wf:DeployStep a wf:WorkflowStep ;
+    rdfs:label "Deploy Application" ;
+    cmd:description "Deploy to production environment" ;
+    wf:order 5 ;
+    wf:timeout 1800 ;
+    wf:retryCount 1 ;
+    wf:parallel false ;
+    wf:optional true ;
+    wf:onFailure "notify" ;
+    wf:dependsOn wf:BuildStep ;
+    wf:executesCommand cmd:DeployCommand ;
+    wf:hasCondition wf:MainBranchCondition, wf:ProductionReadyCondition .
+
+# Database Migration Workflow
+wf:DatabaseMigrationWorkflow a wf:Workflow ;
+    rdfs:label "Database Migration Workflow" ;
+    cmd:description "Safely migrate database schema" ;
+    wf:hasTrigger wf:ManualTrigger ;
+    wf:hasStep wf:BackupStep, wf:ValidateStep, wf:MigrateStep, wf:VerifyStep, wf:CleanupStep .
+
+wf:BackupStep a wf:WorkflowStep ;
+    rdfs:label "Backup Database" ;
+    cmd:description "Create database backup before migration" ;
+    wf:order 1 ;
+    wf:timeout 3600 ;
+    wf:retryCount 2 ;
+    wf:parallel false ;
+    wf:optional false ;
+    wf:onFailure "abort" ;
+    wf:executesCommand cmd:BackupCommand .
+
+wf:ValidateStep a wf:WorkflowStep ;
+    rdfs:label "Validate Migrations" ;
+    cmd:description "Validate migration scripts" ;
+    wf:order 2 ;
+    wf:timeout 300 ;
+    wf:retryCount 1 ;
+    wf:parallel false ;
+    wf:optional false ;
+    wf:onFailure "abort" ;
+    wf:dependsOn wf:BackupStep ;
+    wf:executesCommand cmd:ValidateMigrationCommand .
+
+wf:MigrateStep a wf:WorkflowStep ;
+    rdfs:label "Run Migration" ;
+    cmd:description "Execute database migration" ;
+    wf:order 3 ;
+    wf:timeout 7200 ;
+    wf:retryCount 0 ;
+    wf:parallel false ;
+    wf:optional false ;
+    wf:onFailure "rollback" ;
+    wf:dependsOn wf:ValidateStep ;
+    wf:executesCommand cmd:MigrateDatabaseCommand .
+
+wf:VerifyStep a wf:WorkflowStep ;
+    rdfs:label "Verify Migration" ;
+    cmd:description "Verify migration completed successfully" ;
+    wf:order 4 ;
+    wf:timeout 600 ;
+    wf:retryCount 2 ;
+    wf:parallel false ;
+    wf:optional false ;
+    wf:onFailure "rollback" ;
+    wf:dependsOn wf:MigrateStep ;
+    wf:executesCommand cmd:VerifyCommand .
+
+wf:CleanupStep a wf:WorkflowStep ;
+    rdfs:label "Cleanup" ;
+    cmd:description "Clean up temporary files and old backups" ;
+    wf:order 5 ;
+    wf:timeout 300 ;
+    wf:retryCount 1 ;
+    wf:parallel false ;
+    wf:optional true ;
+    wf:onFailure "ignore" ;
+    wf:dependsOn wf:VerifyStep ;
+    wf:executesCommand cmd:CleanupCommand .
+
+# Release Workflow
+wf:ReleaseWorkflow a wf:Workflow ;
+    rdfs:label "Release Workflow" ;
+    cmd:description "Automated release process" ;
+    wf:hasTrigger wf:TagTrigger ;
+    wf:hasStep wf:ValidateReleaseStep, wf:BuildReleaseStep, wf:TestReleaseStep, wf:PackageStep, wf:PublishStep, wf:NotifyStep .
+
+wf:ValidateReleaseStep a wf:WorkflowStep ;
+    rdfs:label "Validate Release" ;
+    cmd:description "Validate release readiness" ;
+    wf:order 1 ;
+    wf:timeout 300 ;
+    wf:retryCount 1 ;
+    wf:parallel false ;
+    wf:optional false ;
+    wf:onFailure "abort" ;
+    wf:executesCommand cmd:ValidateReleaseCommand ;
+    wf:hasCondition wf:ValidVersionCondition .
+
+wf:BuildReleaseStep a wf:WorkflowStep ;
+    rdfs:label "Build Release" ;
+    cmd:description "Build release artifacts" ;
+    wf:order 2 ;
+    wf:timeout 1800 ;
+    wf:retryCount 2 ;
+    wf:parallel false ;
+    wf:optional false ;
+    wf:onFailure "abort" ;
+    wf:dependsOn wf:ValidateReleaseStep ;
+    wf:executesCommand cmd:BuildCommand .
+
+wf:TestReleaseStep a wf:WorkflowStep ;
+    rdfs:label "Test Release" ;
+    cmd:description "Run comprehensive tests on release build" ;
+    wf:order 3 ;
+    wf:timeout 2400 ;
+    wf:retryCount 1 ;
+    wf:parallel false ;
+    wf:optional false ;
+    wf:onFailure "abort" ;
+    wf:dependsOn wf:BuildReleaseStep ;
+    wf:executesCommand cmd:TestCommand .
+
+wf:PackageStep a wf:WorkflowStep ;
+    rdfs:label "Package Release" ;
+    cmd:description "Package release for distribution" ;
+    wf:order 4 ;
+    wf:timeout 900 ;
+    wf:retryCount 2 ;
+    wf:parallel false ;
+    wf:optional false ;
+    wf:onFailure "abort" ;
+    wf:dependsOn wf:TestReleaseStep ;
+    wf:executesCommand cmd:PackageCommand .
+
+wf:PublishStep a wf:WorkflowStep ;
+    rdfs:label "Publish Release" ;
+    cmd:description "Publish release to repositories" ;
+    wf:order 5 ;
+    wf:timeout 600 ;
+    wf:retryCount 3 ;
+    wf:parallel true ;
+    wf:optional false ;
+    wf:onFailure "notify" ;
+    wf:dependsOn wf:PackageStep ;
+    wf:executesCommand cmd:PublishCommand ;
+    wf:hasCondition wf:PublishPermissionCondition .
+
+wf:NotifyStep a wf:WorkflowStep ;
+    rdfs:label "Notify Release" ;
+    cmd:description "Notify team about release" ;
+    wf:order 6 ;
+    wf:timeout 120 ;
+    wf:retryCount 2 ;
+    wf:parallel false ;
+    wf:optional true ;
+    wf:onFailure "ignore" ;
+    wf:dependsOn wf:PublishStep ;
+    wf:executesCommand cmd:NotifyCommand .
+
+# Triggers
+wf:GitPushTrigger a wf:Trigger ;
+    rdfs:label "Git Push Trigger" ;
+    wf:triggerEvent "git.push" ;
+    cmd:description "Triggered when code is pushed to repository" .
+
+wf:PullRequestTrigger a wf:Trigger ;
+    rdfs:label "Pull Request Trigger" ;
+    wf:triggerEvent "git.pull_request" ;
+    cmd:description "Triggered when pull request is created or updated" .
+
+wf:ManualTrigger a wf:Trigger ;
+    rdfs:label "Manual Trigger" ;
+    wf:triggerEvent "manual" ;
+    cmd:description "Manually triggered workflow" .
+
+wf:TagTrigger a wf:Trigger ;
+    rdfs:label "Tag Trigger" ;
+    wf:triggerEvent "git.tag" ;
+    cmd:description "Triggered when a git tag is created" .
+
+# Conditions
+wf:HasTestsCondition a wf:Condition ;
+    rdfs:label "Has Tests Condition" ;
+    wf:conditionType "file_exists" ;
+    wf:conditionValue "test/" ;
+    cmd:description "Check if test directory exists" .
+
+wf:MainBranchCondition a wf:Condition ;
+    rdfs:label "Main Branch Condition" ;
+    wf:conditionType "branch" ;
+    wf:conditionValue "main" ;
+    cmd:description "Check if current branch is main" .
+
+wf:ProductionReadyCondition a wf:Condition ;
+    rdfs:label "Production Ready Condition" ;
+    wf:conditionType "environment_variable" ;
+    wf:conditionValue "PRODUCTION_READY=true" ;
+    cmd:description "Check if production deployment is enabled" .
+
+wf:ValidVersionCondition a wf:Condition ;
+    rdfs:label "Valid Version Condition" ;
+    wf:conditionType "version_format" ;
+    wf:conditionValue "^v\\d+\\.\\d+\\.\\d+$" ;
+    cmd:description "Check if tag follows semantic versioning" .
+
+wf:PublishPermissionCondition a wf:Condition ;
+    rdfs:label "Publish Permission Condition" ;
+    wf:conditionType "permission" ;
+    wf:conditionValue "publish" ;
+    cmd:description "Check if user has publish permissions" .
+
+# Commands used in workflows (references to command.ttl)
+cmd:CheckoutCommand a cmd:Command ;
+    rdfs:label "Checkout Command" ;
+    cmd:description "Checkout code from repository" .
+
+cmd:InstallCommand a cmd:Command ;
+    rdfs:label "Install Command" ;
+    cmd:description "Install project dependencies" .
+
+cmd:BackupCommand a cmd:Command ;
+    rdfs:label "Backup Command" ;
+    cmd:description "Create database backup" .
+
+cmd:ValidateMigrationCommand a cmd:Command ;
+    rdfs:label "Validate Migration Command" ;
+    cmd:description "Validate migration scripts" .
+
+cmd:VerifyCommand a cmd:Command ;
+    rdfs:label "Verify Command" ;
+    cmd:description "Verify operation completed successfully" .
+
+cmd:CleanupCommand a cmd:Command ;
+    rdfs:label "Cleanup Command" ;
+    cmd:description "Clean up temporary files" .
+
+cmd:ValidateReleaseCommand a cmd:Command ;
+    rdfs:label "Validate Release Command" ;
+    cmd:description "Validate release readiness" .
+
+cmd:PublishCommand a cmd:Command ;
+    rdfs:label "Publish Command" ;
+    cmd:description "Publish artifacts to repositories" .
+
+cmd:NotifyCommand a cmd:Command ;
+    rdfs:label "Notify Command" ;
+    cmd:description "Send notifications to team" .

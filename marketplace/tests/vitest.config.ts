@@ -13,7 +13,8 @@ export default defineConfig({
     // Test file patterns
     include: [
       'tests/**/*.test.ts',
-      'tests/**/*.spec.ts'
+      'tests/**/*.spec.ts',
+      'tests/**/*.feature.ts'
     ],
     exclude: [
       'node_modules/**',

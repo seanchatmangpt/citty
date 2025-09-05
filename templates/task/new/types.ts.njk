@@ -1,0 +1,331 @@
+---
+to: src/tasks/types/{{ name | kebabCase }}-types.ts
+---
+import type { z } from 'zod';
+import type {
+  {{ name | camelCase }}InputSchema,
+  {{ name | camelCase }}OutputSchema,
+  {{ name | camelCase }}ConfigSchema,
+  {{ name | camelCase }}ErrorSchema,
+  {{ name | camelCase }}ProgressSchema,
+  {{ name | camelCase }}ResultSchema,
+} from '../schemas/{{ name | kebabCase }}-schema';
+
+/**
+ * Core type definitions for {{ name | kebabCase }} task
+ */
+
+// Base types from schemas
+export type {{ name | pascalCase }}Input = z.infer<typeof {{ name | camelCase }}InputSchema>;
+export type {{ name | pascalCase }}Output = z.infer<typeof {{ name | camelCase }}OutputSchema>;
+export type {{ name | pascalCase }}Config = z.infer<typeof {{ name | camelCase }}ConfigSchema>;
+export type {{ name | pascalCase }}Error = z.infer<typeof {{ name | camelCase }}ErrorSchema>;
+export type {{ name | pascalCase }}Progress = z.infer<typeof {{ name | camelCase }}ProgressSchema>;
+export type {{ name | pascalCase }}Result = z.infer<typeof {{ name | camelCase }}ResultSchema>;
+
+{% if interfaces %}
+/**
+ * Extended interfaces for {{ name | kebabCase }} task
+ */
+{% for interface in interfaces %}
+export interface {{ interface.name }} {% if interface.extends %}extends {{ interface.extends | join(", ") }} {% endif %}{
+  {% for prop in interface.properties %}
+  {% if prop.readonly %}readonly {% endif %}{{ prop.name }}{% if prop.optional %}?{% endif %}: {{ prop.type }};{% if prop.description %} // {{ prop.description }}{% endif %}
+  {% endfor %}
+  {% if interface.methods %}
+  
+  // Methods
+  {% for method in interface.methods %}
+  {{ method.name }}({% for param in method.parameters %}{{ param.name }}: {{ param.type }}{% if not loop.last %}, {% endif %}{% endfor %}): {{ method.returnType }};{% if method.description %} // {{ method.description }}{% endif %}
+  {% endfor %}
+  {% endif %}
+}
+
+{% endfor %}
+{% endif %}
+
+{% if enums %}
+/**
+ * Enums for {{ name | kebabCase }} task
+ */
+{% for enum in enums %}
+export enum {{ enum.name }} {
+  {% for value in enum.values %}
+  {{ value.name }} = '{{ value.value }}',{% if value.comment %} // {{ value.comment }}{% endif %}
+  {% endfor %}
+}
+
+{% endfor %}
+{% endif %}
+
+{% if constants %}
+/**
+ * Constants for {{ name | kebabCase }} task
+ */
+{% for constant in constants %}
+export const {{ constant.name }} = {{ constant.value | stringify }}{% if constant.type %} as {{ constant.type }}{% endif %};{% if constant.description %} // {{ constant.description }}{% endif %}
+{% endfor %}
+
+{% endif %}
+
+{% if typeAliases %}
+/**
+ * Type aliases for {{ name | kebabCase }} task
+ */
+{% for alias in typeAliases %}
+export type {{ alias.name }} = {{ alias.type }};{% if alias.description %} // {{ alias.description }}{% endif %}
+{% endfor %}
+
+{% endif %}
+
+{% if generics %}
+/**
+ * Generic types for {{ name | kebabCase }} task
+ */
+{% for generic in generics %}
+export type {{ generic.name }}<{{ generic.parameters | join(", ") }}> = {{ generic.definition }};{% if generic.description %} // {{ generic.description }}{% endif %}
+{% endfor %}
+
+{% endif %}
+
+{% if utilities %}
+/**
+ * Utility types for {{ name | kebabCase }} task
+ */
+{% for utility in utilities %}
+export type {{ utility.name }} = {{ utility.definition }};{% if utility.description %} // {{ utility.description }}{% endif %}
+{% endfor %}
+
+{% endif %}
+
+/**
+ * Task execution context for {{ name | kebabCase }}
+ */
+export interface {{ name | pascalCase }}Context {
+  /** Task configuration */
+  readonly config: {{ name | pascalCase }}Config;
+  
+  /** Logger instance */
+  readonly logger: {
+    debug(message: string, data?: unknown): void;
+    info(message: string, data?: unknown): void;
+    warn(message: string, data?: unknown): void;
+    error(message: string, data?: unknown): void;
+    start(message: string): void;
+    success(message: string, data?: unknown): void;
+  };
+  
+  /** Abort signal for cancellation */
+  readonly signal?: AbortSignal;
+  
+  /** Shared state between tasks */
+  readonly state: Record<string, unknown>;
+  
+  /** Task metadata */
+  readonly metadata: {
+    taskId: string;
+    workflowId?: string;
+    executionId: string;
+    startTime: number;
+    {% if contextMetadata %}
+    {% for meta in contextMetadata %}
+    {{ meta.name }}: {{ meta.type }};
+    {% endfor %}
+    {% endif %}
+  };
+  
+  {% if contextExtensions %}
+  {% for ext in contextExtensions %}
+  /** {{ ext.description }} */
+  readonly {{ ext.name }}: {{ ext.type }};
+  {% endfor %}
+  {% endif %}
+}
+
+/**
+ * Task definition interface for {{ name | kebabCase }}
+ */
+export interface {{ name | pascalCase }}TaskDefinition {
+  /** Unique task identifier */
+  readonly id: string;
+  
+  /** Human-readable task name */
+  readonly name: string;
+  
+  /** Task description */
+  readonly description: string;
+  
+  /** Task version */
+  readonly version: string;
+  
+  /** Task category */
+  readonly category?: string;
+  
+  /** Task tags */
+  readonly tags?: string[];
+  
+  /** Input validation schema */
+  readonly inputSchema: typeof {{ name | camelCase }}InputSchema;
+  
+  /** Output validation schema */
+  readonly outputSchema: typeof {{ name | camelCase }}OutputSchema;
+  
+  /** Task timeout in milliseconds */
+  readonly timeout?: number;
+  
+  /** Number of retry attempts */
+  readonly retries?: number;
+  
+  /** Task priority (higher = more important) */
+  readonly priority?: number;
+  
+  /** Whether this task is critical for workflow success */
+  readonly critical?: boolean;
+  
+  /** Task dependencies */
+  readonly dependencies?: string[];
+  
+  /** Resource requirements */
+  readonly resources?: {
+    memory?: number;
+    cpu?: number;
+    disk?: number;
+    network?: boolean;
+  };
+  
+  /**
+   * Validate task input
+   */
+  validate(input: {{ name | pascalCase }}Input, context: {{ name | pascalCase }}Context): Promise<boolean>;
+  
+  /**
+   * Execute the task
+   */
+  execute(input: {{ name | pascalCase }}Input, context: {{ name | pascalCase }}Context): Promise<{{ name | pascalCase }}Result>;
+  
+  /**
+   * Get current task progress
+   */
+  getProgress(): {{ name | pascalCase }}Progress;
+  
+  /**
+   * Cancel the running task
+   */
+  cancel(): Promise<void>;
+  
+  {% if hasRollback %}
+  /**
+   * Rollback task execution
+   */
+  rollback?(input: {{ name | pascalCase }}Input, context: {{ name | pascalCase }}Context): Promise<void>;
+  {% endif %}
+  
+  {% if hasEstimation %}
+  /**
+   * Estimate task execution duration
+   */
+  estimateDuration?(input: {{ name | pascalCase }}Input, context: {{ name | pascalCase }}Context): Promise<number>;
+  {% endif %}
+}
+
+/**
+ * Task factory interface for {{ name | kebabCase }}
+ */
+export interface {{ name | pascalCase }}TaskFactory {
+  /**
+   * Create a new task instance
+   */
+  create(config?: Partial<{{ name | pascalCase }}Config>): {{ name | pascalCase }}TaskDefinition;
+  
+  /**
+   * Validate task configuration
+   */
+  validateConfig(config: unknown): {{ name | pascalCase }}Config;
+  
+  /**
+   * Get default configuration
+   */
+  getDefaultConfig(): {{ name | pascalCase }}Config;
+}
+
+{% if events %}
+/**
+ * Event types for {{ name | kebabCase }} task
+ */
+{% for event in events %}
+export interface {{ event.name }}Event {
+  type: '{{ event.type }}';
+  taskId: string;
+  timestamp: number;
+  {% if event.payload %}
+  payload: {{ event.payload }};
+  {% endif %}
+  {% for prop in event.properties %}
+  {{ prop.name }}: {{ prop.type }};
+  {% endfor %}
+}
+
+{% endfor %}
+
+export type {{ name | pascalCase }}Event = {% for event in events %}{{ event.name }}Event{% if not loop.last %} | {% endif %}{% endfor %};
+{% endif %}
+
+{% if hooks %}
+/**
+ * Hook types for {{ name | kebabCase }} task
+ */
+export interface {{ name | pascalCase }}Hooks {
+  {% for hook in hooks %}
+  /** {{ hook.description }} */
+  {{ hook.name }}?: {{ hook.signature }};
+  {% endfor %}
+}
+{% endif %}
+
+{% if plugins %}
+/**
+ * Plugin interface for {{ name | kebabCase }} task
+ */
+export interface {{ name | pascalCase }}Plugin {
+  /** Plugin name */
+  readonly name: string;
+  
+  /** Plugin version */
+  readonly version: string;
+  
+  /** Plugin description */
+  readonly description?: string;
+  
+  {% for method in plugins.methods %}
+  {{ method.name }}?: {{ method.signature }};
+  {% endfor %}
+}
+{% endif %}
+
+{% if customTypes %}
+/**
+ * Custom types specific to {{ name | kebabCase }} task
+ */
+{% for type in customTypes %}
+{{ type.definition | safe }}
+
+{% endfor %}
+{% endif %}
+
+/**
+ * Complete type bundle for {{ name | kebabCase }} task
+ */
+export interface {{ name | pascalCase }}TypeBundle {
+  Input: {{ name | pascalCase }}Input;
+  Output: {{ name | pascalCase }}Output;
+  Config: {{ name | pascalCase }}Config;
+  Error: {{ name | pascalCase }}Error;
+  Progress: {{ name | pascalCase }}Progress;
+  Result: {{ name | pascalCase }}Result;
+  Context: {{ name | pascalCase }}Context;
+  TaskDefinition: {{ name | pascalCase }}TaskDefinition;
+  TaskFactory: {{ name | pascalCase }}TaskFactory;
+  {% if events %}Event: {{ name | pascalCase }}Event;{% endif %}
+  {% if hooks %}Hooks: {{ name | pascalCase }}Hooks;{% endif %}
+  {% if plugins %}Plugin: {{ name | pascalCase }}Plugin;{% endif %}
+}

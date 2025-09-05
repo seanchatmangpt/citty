@@ -1,0 +1,127 @@
+---
+to: help/{{ command | kebabCase }}.txt
+---
+{{ header || ("Usage: citty " + command) }}
+
+{{ description }}
+
+USAGE:
+  citty {{ command }}{% for arg in arguments %} {{ arg.usage || ("--" + arg.name + " <" + arg.type + ">") }}{% endfor %}{% if hasFlags %} [flags]{% endif %}
+
+{% if arguments %}
+ARGUMENTS:
+{% for arg in arguments %}
+  --{{ arg.name }}{% if arg.alias %}, -{{ arg.alias }}{% endif %}
+      {{ arg.description }}
+      Type: {{ arg.type }}
+      {% if arg.required %}Required: true{% else %}Required: false{% endif %}
+      {% if arg.default %}Default: {{ arg.default }}{% endif %}
+      {% if arg.choices %}Choices: {{ arg.choices | join(", ") }}{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if hasFlags %}
+FLAGS:
+  --verbose, -v
+      Enable verbose output for debugging
+
+  --force, -f  
+      Force operation without confirmation prompts
+
+  --help, -h
+      Show this help message
+
+  --version
+      Show version information
+
+{% if additionalFlags %}
+{% for flag in additionalFlags %}
+  --{{ flag.name }}{% if flag.alias %}, -{{ flag.alias }}{% endif %}
+      {{ flag.description }}
+      {% if flag.default %}Default: {{ flag.default }}{% endif %}
+
+{% endfor %}
+{% endif %}
+{% endif %}
+
+{% if examples %}
+EXAMPLES:
+{% for example in examples %}
+  # {{ example.description }}
+  citty {{ command }} {{ example.command }}
+  {% if example.output %}
+  # Output: {{ example.output }}
+  {% endif %}
+
+{% endfor %}
+{% else %}
+EXAMPLES:
+  # Basic usage
+  citty {{ command }}{% for arg in arguments %}{% if arg.required %} --{{ arg.name }} "{{ arg.example }}"{% endif %}{% endfor %}
+
+  # With verbose output
+  citty {{ command }}{% for arg in arguments %}{% if arg.required %} --{{ arg.name }} "{{ arg.example }}"{% endif %}{% endfor %} --verbose
+{% endif %}
+
+{% if configuration %}
+CONFIGURATION:
+{% if configuration.file %}
+  Configuration can be provided via {{ configuration.file }}:
+  
+  {{ configuration.example | indent(2) }}
+
+{% endif %}
+{% if configuration.env %}
+  Environment variables:
+{% for env in configuration.env %}
+  {{ env.name }} - {{ env.description }}
+{% endfor %}
+
+{% endif %}
+{% endif %}
+
+{% if prerequisites %}
+PREREQUISITES:
+{% for prereq in prerequisites %}
+  - {{ prereq }}
+{% endfor %}
+
+{% endif %}
+
+{% if notes %}
+NOTES:
+{% for note in notes %}
+  {{ note }}
+{% endfor %}
+
+{% endif %}
+
+{% if errorCodes %}
+EXIT CODES:
+  0   Success
+{% for code in errorCodes %}
+  {{ code.value }}   {{ code.description }}
+{% endfor %}
+{% else %}
+EXIT CODES:
+  0   Success
+  1   General error
+  2   Invalid arguments
+  130 Interrupted (Ctrl+C)
+{% endif %}
+
+{% if seeAlso %}
+SEE ALSO:
+{% for related in seeAlso %}
+  citty {{ related.command }}  {{ related.description }}
+{% endfor %}
+
+{% endif %}
+
+{% if footer %}
+{{ footer }}
+{% else %}
+For more information, visit: https://github.com/{{ repoOwner || "owner" }}/{{ repoName || "citty" }}
+Report bugs at: https://github.com/{{ repoOwner || "owner" }}/{{ repoName || "citty" }}/issues
+{% endif %}

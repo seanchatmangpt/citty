@@ -1,49 +1,35 @@
-export * from "./types";
-export type { RunCommandOptions } from "./command";
-export type { RunMainOptions } from "./main";
+// Main entry point for @unjs/unjucks
+export * from './types.js';
+export * from './context.js';
+export * from './walker.js';
+export * from './renderer.js';
+export * from './ontology.js';
 
-export { defineCommand, runCommand } from "./command";
-export { parseArgs } from "./args";
-export { renderUsage, showUsage } from "./usage";
-export { runMain, createMain } from "./main";
-export {
-  toOntology,
-  toSimpleOntology,
-  fromOntology,
-  generateFromOntology,
-  validateOntology,
-} from "./ontology";
-
-// Commands
-export { generateCommand } from "./commands/generate";
-export { generateProCommand } from "./commands/generate-pro";
-
-// AI Generation
+// Re-export main functionality for convenience
 export { 
-  OllamaGenerator, 
-  generateCLI, 
-  enhanceCLI, 
-  checkOllama 
-} from "./ai/ollama-generator";
-export type { AIPromptConfig } from "./ai/ollama-generator";
+  createTemplateContext, 
+  useTemplateContext, 
+  updateTemplateContext 
+} from './context.js';
 
-// Weaver Forge
 export { 
-  WeaverForge
-} from "./weaver/forge-integration";
-export type { WeaverForgeConfig } from "./weaver/forge-integration";
+  walkTemplates, 
+  resolveTemplate, 
+  listGenerators, 
+  listActions 
+} from './walker.js';
 
-// OpenTelemetry
-export {
-  initializeTelemetry,
-  shutdownTelemetry,
-  setupCLITelemetry,
-  traceCommand,
-  monitorPerformance,
-  CLIMetrics
-} from "./otel/instrumentation";
-export type { TelemetryConfig } from "./otel/instrumentation";
+export { 
+  renderTemplate, 
+  renderString, 
+  registerFilter, 
+  registerFilters,
+  TemplateRenderer 
+} from './renderer.js';
 
-// Export Citty Pro features
-export * from "./pro";
-export type * from "./types/citty-pro";
+export { 
+  loadOntologyContext, 
+  queryEntities, 
+  expandContext,
+  OntologyManager 
+} from './ontology.js';

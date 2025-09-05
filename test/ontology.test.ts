@@ -1,4 +1,5 @@
 import { expect, it, describe } from "vitest";
+// Skip for now - need to check if functions exist in new structure
 import { toOntology, toSimpleOntology, defineCommand } from "../src";
 
 describe("ontology", () => {

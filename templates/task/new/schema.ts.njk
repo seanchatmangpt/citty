@@ -1,0 +1,283 @@
+---
+to: src/tasks/schemas/{{ name | kebabCase }}-schema.ts
+---
+import { z } from 'zod';
+
+/**
+ * Base schemas for {{ name | kebabCase }} task
+ */
+
+{% for schema in schemas %}
+/**
+ * {{ schema.description }}
+ */
+export const {{ schema.name | camelCase }}Schema = z.{{ schema.type }}({
+  {% for field in schema.fields %}
+  {{ field.name }}: z.{{ field.type }}()
+    {%- if field.optional %}.optional(){% endif %}
+    {%- if field.nullable %}.nullable(){% endif %}
+    {%- if field.default %}.default({{ field.default | stringify }}){% endif %}
+    {%- if field.description %}.describe('{{ field.description }}'){% endif %}
+    {%- if field.validation %}
+    {%- for validation in field.validation %}
+    .{{ validation.method }}({{ validation.params | join(", ") }})
+    {%- endfor %}
+    {% endif %},
+  {% endfor %}
+});
+
+export type {{ schema.name | pascalCase }} = z.infer<typeof {{ schema.name | camelCase }}Schema>;
+
+{% endfor %}
+
+{% if enums %}
+/**
+ * Enums for {{ name | kebabCase }} task
+ */
+{% for enum in enums %}
+export const {{ enum.name | pascalCase }} = z.enum([
+  {% for value in enum.values %}
+  '{{ value.key }}'{% if value.comment %} // {{ value.comment }}{% endif %},
+  {% endfor %}
+]);
+
+export type {{ enum.name | pascalCase }}Type = z.infer<typeof {{ enum.name | pascalCase }}>;
+
+{% endfor %}
+{% endif %}
+
+{% if unions %}
+/**
+ * Union types for {{ name | kebabCase }} task
+ */
+{% for union in unions %}
+export const {{ union.name | camelCase }}Schema = z.union([
+  {% for type in union.types %}
+  {{ type.schema | safe }},
+  {% endfor %}
+]);
+
+export type {{ union.name | pascalCase }} = z.infer<typeof {{ union.name | camelCase }}Schema>;
+
+{% endfor %}
+{% endif %}
+
+{% if discriminatedUnions %}
+/**
+ * Discriminated unions for {{ name | kebabCase }} task
+ */
+{% for union in discriminatedUnions %}
+export const {{ union.name | camelCase }}Schema = z.discriminatedUnion('{{ union.discriminator }}', [
+  {% for variant in union.variants %}
+  z.object({
+    {{ union.discriminator }}: z.literal('{{ variant.type }}'),
+    {% for field in variant.fields %}
+    {{ field.name }}: z.{{ field.type }}()
+      {%- if field.optional %}.optional(){% endif %}
+      {%- if field.description %}.describe('{{ field.description }}'){% endif %},
+    {% endfor %}
+  }),
+  {% endfor %}
+]);
+
+export type {{ union.name | pascalCase }} = z.infer<typeof {{ union.name | camelCase }}Schema>;
+
+{% endfor %}
+{% endif %}
+
+{% if arrays %}
+/**
+ * Array schemas for {{ name | kebabCase }} task
+ */
+{% for array in arrays %}
+export const {{ array.name | camelCase }}Schema = z.array(
+  {% if array.itemSchema %}
+  {{ array.itemSchema | safe }}
+  {% else %}
+  z.{{ array.itemType }}()
+  {% endif %}
+)
+{%- if array.min %}.min({{ array.min }}){% endif %}
+{%- if array.max %}.max({{ array.max }}){% endif %}
+{%- if array.length %}.length({{ array.length }}){% endif %}
+{%- if array.description %}.describe('{{ array.description }}'){% endif %};
+
+export type {{ array.name | pascalCase }} = z.infer<typeof {{ array.name | camelCase }}Schema>;
+
+{% endfor %}
+{% endif %}
+
+{% if records %}
+/**
+ * Record schemas for {{ name | kebabCase }} task
+ */
+{% for record in records %}
+export const {{ record.name | camelCase }}Schema = z.record(
+  {% if record.keySchema %}{{ record.keySchema | safe }}{% else %}z.string(){% endif %},
+  {% if record.valueSchema %}{{ record.valueSchema | safe }}{% else %}z.{{ record.valueType }}(){% endif %}
+){% if record.description %}.describe('{{ record.description }}'){% endif %};
+
+export type {{ record.name | pascalCase }} = z.infer<typeof {{ record.name | camelCase }}Schema>;
+
+{% endfor %}
+{% endif %}
+
+{% if transforms %}
+/**
+ * Transform schemas for {{ name | kebabCase }} task
+ */
+{% for transform in transforms %}
+export const {{ transform.name | camelCase }}Schema = z.{{ transform.baseType }}()
+  {% for step in transform.steps %}
+  .{{ step.method }}({{ step.params | join(", ") }})
+  {% endfor %}
+  {% if transform.description %}.describe('{{ transform.description }}'){% endif %};
+
+export type {{ transform.name | pascalCase }} = z.infer<typeof {{ transform.name | camelCase }}Schema>;
+
+{% endfor %}
+{% endif %}
+
+{% if conditionals %}
+/**
+ * Conditional schemas for {{ name | kebabCase }} task
+ */
+{% for conditional in conditionals %}
+export const {{ conditional.name | camelCase }}Schema = z.object({
+  {% for field in conditional.baseFields %}
+  {{ field.name }}: z.{{ field.type }}()
+    {%- if field.optional %}.optional(){% endif %}
+    {%- if field.description %}.describe('{{ field.description }}'){% endif %},
+  {% endfor %}
+}).{{ conditional.method }}((data) => {
+  {{ conditional.condition | safe }}
+});
+
+export type {{ conditional.name | pascalCase }} = z.infer<typeof {{ conditional.name | camelCase }}Schema>;
+
+{% endfor %}
+{% endif %}
+
+/**
+ * Main input schema for {{ name | kebabCase }} task
+ */
+export const {{ name | camelCase }}InputSchema = z.object({
+  {% for input in inputs %}
+  {{ input.name }}: {% if input.ref %}{{ input.ref | camelCase }}Schema{% else %}z.{{ input.type }}(){% endif %}
+    {%- if input.optional %}.optional(){% endif %}
+    {%- if input.default %}.default({{ input.default | stringify }}){% endif %}
+    {%- if input.description %}.describe('{{ input.description }}'){% endif %},
+  {% endfor %}
+});
+
+/**
+ * Main output schema for {{ name | kebabCase }} task
+ */
+export const {{ name | camelCase }}OutputSchema = z.object({
+  {% for output in outputs %}
+  {{ output.name }}: {% if output.ref %}{{ output.ref | camelCase }}Schema{% else %}z.{{ output.type }}(){% endif %}
+    {%- if output.optional %}.optional(){% endif %}
+    {%- if output.description %}.describe('{{ output.description }}'){% endif %},
+  {% endfor %}
+});
+
+/**
+ * Configuration schema for {{ name | kebabCase }} task
+ */
+export const {{ name | camelCase }}ConfigSchema = z.object({
+  {% for config in configuration %}
+  {{ config.name }}: z.{{ config.type }}()
+    {%- if config.optional %}.optional(){% endif %}
+    {%- if config.default %}.default({{ config.default | stringify }}){% endif %}
+    {%- if config.description %}.describe('{{ config.description }}'){% endif %},
+  {% endfor %}
+});
+
+/**
+ * Error schema for {{ name | kebabCase }} task
+ */
+export const {{ name | camelCase }}ErrorSchema = z.object({
+  code: z.string().describe('Error code'),
+  message: z.string().describe('Error message'),
+  details: z.unknown().optional().describe('Additional error details'),
+  stack: z.string().optional().describe('Error stack trace'),
+  timestamp: z.string().datetime().default(() => new Date().toISOString()),
+  taskId: z.string().describe('Task identifier'),
+  {% if errorFields %}
+  {% for field in errorFields %}
+  {{ field.name }}: z.{{ field.type }}()
+    {%- if field.optional %}.optional(){% endif %}
+    {%- if field.description %}.describe('{{ field.description }}'){% endif %},
+  {% endfor %}
+  {% endif %}
+});
+
+/**
+ * Progress schema for {{ name | kebabCase }} task
+ */
+export const {{ name | camelCase }}ProgressSchema = z.object({
+  current: z.number().min(0).describe('Current progress value'),
+  total: z.number().min(0).describe('Total progress value'),
+  percentage: z.number().min(0).max(100).optional().describe('Progress percentage'),
+  status: z.enum(['idle', 'running', 'completed', 'failed', 'cancelled']).describe('Task status'),
+  message: z.string().optional().describe('Progress message'),
+  estimatedTimeRemaining: z.number().optional().describe('Estimated time remaining in milliseconds'),
+});
+
+/**
+ * Result schema for {{ name | kebabCase }} task
+ */
+export const {{ name | camelCase }}ResultSchema = z.object({
+  success: z.boolean().describe('Whether the task succeeded'),
+  data: {{ name | camelCase }}OutputSchema.optional().describe('Task output data'),
+  error: {{ name | camelCase }}ErrorSchema.optional().describe('Task error information'),
+  metadata: z.record(z.unknown()).optional().describe('Additional metadata'),
+  metrics: z.record(z.number()).optional().describe('Performance metrics'),
+  progress: {{ name | camelCase }}ProgressSchema.optional().describe('Final progress state'),
+});
+
+// Export all type definitions
+export type {{ name | pascalCase }}Input = z.infer<typeof {{ name | camelCase }}InputSchema>;
+export type {{ name | pascalCase }}Output = z.infer<typeof {{ name | camelCase }}OutputSchema>;
+export type {{ name | pascalCase }}Config = z.infer<typeof {{ name | camelCase }}ConfigSchema>;
+export type {{ name | pascalCase }}Error = z.infer<typeof {{ name | camelCase }}ErrorSchema>;
+export type {{ name | pascalCase }}Progress = z.infer<typeof {{ name | camelCase }}ProgressSchema>;
+export type {{ name | pascalCase }}Result = z.infer<typeof {{ name | camelCase }}ResultSchema>;
+
+/**
+ * Schema registry for {{ name | kebabCase }} task
+ */
+export const {{ name | camelCase }}Schemas = {
+  input: {{ name | camelCase }}InputSchema,
+  output: {{ name | camelCase }}OutputSchema,
+  config: {{ name | camelCase }}ConfigSchema,
+  error: {{ name | camelCase }}ErrorSchema,
+  progress: {{ name | camelCase }}ProgressSchema,
+  result: {{ name | camelCase }}ResultSchema,
+  {% for schema in schemas %}
+  {{ schema.name | camelCase }}: {{ schema.name | camelCase }}Schema,
+  {% endfor %}
+} as const;
+
+{% if validationHelpers %}
+/**
+ * Validation helper functions
+ */
+{% for helper in validationHelpers %}
+export function {{ helper.name }}(value: unknown): {{ helper.returnType }} {
+  {{ helper.implementation | safe }}
+}
+
+{% endfor %}
+{% endif %}
+
+{% if schemaUtils %}
+/**
+ * Schema utility functions
+ */
+export const {{ name | camelCase }}SchemaUtils = {
+  {% for util in schemaUtils %}
+  {{ util.name }}: {{ util.implementation | safe }},
+  {% endfor %}
+};
+{% endif %}

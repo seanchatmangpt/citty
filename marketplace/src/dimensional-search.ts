@@ -24,7 +24,9 @@ export class KDTree {
 
   constructor(products: ProductDimension[], dimensions: string[]) {
     this.dimensions = dimensions;
-    this.root = this.buildTree(products, 0);
+    // Filter out products with invalid coordinates
+    const validProducts = products.filter(p => p && p.coordinates && typeof p.coordinates === 'object');
+    this.root = this.buildTree(validProducts, 0);
   }
 
   private buildTree(products: ProductDimension[], depth: number): KDTreeNode | undefined {
@@ -75,9 +77,9 @@ export class KDTree {
       results.push({ product: node.point, distance });
     } else {
       const maxIndex = results.reduce((maxIdx, curr, idx) => 
-        curr.distance > results[maxIdx].distance ? idx : maxIdx, 0);
+        curr && results[maxIdx] && curr.distance > results[maxIdx].distance ? idx : maxIdx, 0);
       
-      if (distance < results[maxIndex].distance) {
+      if (results[maxIndex] && distance < results[maxIndex].distance) {
         results[maxIndex] = { product: node.point, distance };
       }
     }
@@ -110,10 +112,12 @@ export class DimensionalSearchEngine {
     const productMap = new Map<string, ProductDimension>();
     const clusters = new Map<string, ProductDimension[]>();
 
-    // Extract all dimensions
+    // Extract all dimensions from valid products
     for (const product of products) {
-      productMap.set(product.id, product);
-      Object.keys(product.coordinates).forEach(dim => dimensionsSet.add(dim));
+      if (product && product.coordinates && typeof product.coordinates === 'object') {
+        productMap.set(product.id, product);
+        Object.keys(product.coordinates).forEach(dim => dimensionsSet.add(dim));
+      }
     }
 
     const dimensions = Array.from(dimensionsSet);
@@ -170,6 +174,20 @@ export class DimensionalSearchEngine {
       const candidates = this.index.tree.nearestNeighbors(queryPoint, query.limit * 3);
       
       for (const product of candidates) {
+        if (!product || !product.coordinates) continue; // Skip invalid products
+        
+        // Check if product meets dimensional criteria
+        let meetsCriteria = true;
+        for (const [dim, spec] of Object.entries(query.dimensions)) {
+          const productValue = product.coordinates[dim];
+          if (productValue !== undefined) {
+            if (spec.min !== undefined && productValue < spec.min) meetsCriteria = false;
+            if (spec.max !== undefined && productValue > spec.max) meetsCriteria = false;
+          }
+        }
+        
+        if (!meetsCriteria) continue;
+        
         const score = this.calculateRelevanceScore(product, query, user);
         if (score > 0) {
           const distance = DimensionalMath.euclideanDistance(queryPoint, product.coordinates);

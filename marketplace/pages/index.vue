@@ -172,7 +172,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import type { MarketplaceItemUnion } from '~/types/marketplace'
 
 // Meta tags

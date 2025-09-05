@@ -340,23 +340,51 @@ Focus on practical, real-world usage patterns.
   }
 
   /**
-   * List available models
+   * List available models from Ollama
    */
   async getAvailableModels(): Promise<string[]> {
     try {
-      // This is a placeholder - in reality you'd call ollama API
-      // For now, return common coding models
-      return [
+      // Attempt to connect to Ollama and get actual models
+      const response = await fetch('http://localhost:11434/api/tags', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const models = data.models?.map((model: any) => model.name) || [];
+        
+        if (models.length > 0) {
+          consola.success(`Found ${models.length} Ollama models`);
+          return models.sort();
+        }
+      }
+      
+      // Fallback to common coding models if Ollama is not available
+      consola.warn('Ollama not available, using default model list');
+      const defaultModels = [
         'qwen2.5-coder:3b',
-        'qwen2.5-coder:7b',
+        'qwen2.5-coder:7b', 
         'qwen2.5-coder:14b',
         'codellama:7b',
         'codellama:13b',
         'deepseek-coder:6.7b',
+        'llama3:8b',
+        'mistral:7b',
+        'phi3:medium'
+      ];
+      
+      return defaultModels;
+      
+    } catch (error) {
+      consola.warn(`Failed to fetch Ollama models: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // Return minimal fallback models
+      return [
+        'qwen2.5-coder:3b',
+        'codellama:7b',
         'llama3:8b'
       ];
-    } catch {
-      return [];
     }
   }
 }

@@ -1,0 +1,64 @@
+{
+  "name": "untology",
+  "version": "1.0.0",
+  "description": "Minimalist N3/RDF wrapper for unjs ecosystem with context-driven graph management",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./advanced": {
+      "types": "./dist/advanced.d.ts",
+      "import": "./dist/advanced.mjs",
+      "require": "./dist/advanced.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "unbuild",
+    "dev": "vitest dev",
+    "lint": "eslint --cache .",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "release": "pnpm test && changelogen --release && npm publish"
+  },
+  "dependencies": {
+    "n3": "^1.26.0",
+    "unctx": "^2.3.1",
+    "defu": "^6.1.4",
+    "ofetch": "^1.4.1",
+    "pathe": "^1.1.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "@vitest/coverage-v8": "^3.0.8",
+    "eslint": "^9.22.0",
+    "eslint-config-unjs": "^0.4.2",
+    "typescript": "^5.8.2",
+    "unbuild": "^3.5.0",
+    "vitest": "^3.0.8"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/unjs/untology.git"
+  },
+  "keywords": [
+    "rdf",
+    "n3",
+    "turtle",
+    "ontology",
+    "semantic",
+    "graph",
+    "sparql",
+    "unjs"
+  ],
+  "author": "unjs",
+  "license": "MIT"
+}

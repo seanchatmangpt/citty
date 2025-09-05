@@ -1,0 +1,233 @@
+---
+to: test/commands/{{ name | kebabCase }}.test.ts
+---
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { runCommand } from 'citty';
+import command from '../../src/commands/{{ name | kebabCase }}';
+import { consola } from 'consola';
+
+// Mock consola to prevent actual logging during tests
+vi.mock('consola');
+const mockedConsola = vi.mocked(consola);
+
+describe('{{ name | kebabCase }} command', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    {% if mocks %}
+    {% for mock in mocks %}
+    vi.mock('{{ mock.module }}', () => ({
+      {{ mock.exports | safe }}
+    }));
+    {% endfor %}
+    {% endif %}
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  describe('command definition', () => {
+    it('should have correct meta properties', () => {
+      expect(command.meta.name).toBe('{{ name | kebabCase }}');
+      expect(command.meta.description).toBe('{{ description }}');
+      {% if version %}
+      expect(command.meta.version).toBe('{{ version }}');
+      {% endif %}
+    });
+
+    it('should define expected arguments', () => {
+      {% for arg in arguments %}
+      expect(command.args).toHaveProperty('{{ arg.name }}');
+      expect(command.args.{{ arg.name }}.type).toBe('{{ arg.type }}');
+      {% if arg.description %}
+      expect(command.args.{{ arg.name }}.description).toBe('{{ arg.description }}');
+      {% endif %}
+      {% endfor %}
+    });
+  });
+
+  describe('argument validation', () => {
+    {% for arg in arguments %}
+    {% if arg.required %}
+    it('should require {{ arg.name }} argument', async () => {
+      const result = await runCommand(command, {
+        rawArgs: []
+      });
+      
+      expect(result).toEqual(
+        expect.objectContaining({
+          error: expect.stringContaining('{{ arg.name }}')
+        })
+      );
+    });
+    {% endif %}
+
+    {% if arg.choices %}
+    it('should validate {{ arg.name }} choices', async () => {
+      const result = await runCommand(command, {
+        rawArgs: ['--{{ arg.name }}', 'invalid-choice']
+      });
+      
+      expect(result).toEqual(
+        expect.objectContaining({
+          error: expect.stringContaining('{{ arg.name }}')
+        })
+      );
+    });
+    {% endif %}
+    {% endfor %}
+
+    {% if hasTypeValidation %}
+    it('should validate argument types', async () => {
+      const testCases = [
+        {% for validation in typeValidations %}
+        {
+          args: {{ validation.args | stringify }},
+          expectedError: '{{ validation.expectedError }}'
+        },
+        {% endfor %}
+      ];
+
+      for (const testCase of testCases) {
+        const result = await runCommand(command, {
+          rawArgs: Object.entries(testCase.args).flatMap(([key, value]) => [`--${key}`, String(value)])
+        });
+        
+        expect(result.error).toContain(testCase.expectedError);
+      }
+    });
+    {% endif %}
+  });
+
+  describe('command execution', () => {
+    {% for test in tests %}
+    it('{{ test.description }}', async () => {
+      {% if test.setup %}
+      // Setup
+      {{ test.setup | safe }}
+      {% endif %}
+
+      const result = await runCommand(command, {
+        rawArgs: {{ test.args | stringify }}
+      });
+
+      {% if test.expectations %}
+      {% for expectation in test.expectations %}
+      {{ expectation | safe }};
+      {% endfor %}
+      {% else %}
+      expect(result.error).toBeUndefined();
+      expect(mockedConsola.success).toHaveBeenCalled();
+      {% endif %}
+
+      {% if test.cleanup %}
+      // Cleanup
+      {{ test.cleanup | safe }}
+      {% endif %}
+    });
+    {% endfor %}
+
+    {% if hasDefaultTests %}
+    it('should execute successfully with valid arguments', async () => {
+      const result = await runCommand(command, {
+        rawArgs: [
+          {% for arg in arguments %}
+          '--{{ arg.name }}', '{{ arg.testValue || arg.example || "test" }}',
+          {% endfor %}
+        ]
+      });
+
+      expect(result.error).toBeUndefined();
+      expect(mockedConsola.start).toHaveBeenCalledWith('{{ actionText || ("Running " + name) }}...');
+      expect(mockedConsola.success).toHaveBeenCalledWith('{{ successMessage || (name + " completed successfully") }}');
+    });
+
+    it('should handle verbose flag', async () => {
+      const result = await runCommand(command, {
+        rawArgs: [
+          {% for arg in arguments %}
+          '--{{ arg.name }}', '{{ arg.testValue || arg.example || "test" }}',
+          {% endfor %}
+          '--verbose'
+        ]
+      });
+
+      expect(result.error).toBeUndefined();
+      expect(mockedConsola.debug).toHaveBeenCalled();
+    });
+
+    it('should handle errors gracefully', async () => {
+      // Mock an error in the implementation
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+
+      // Trigger error condition
+      const result = await runCommand(command, {
+        rawArgs: ['--invalid-arg', 'value']
+      });
+
+      expect(exitSpy).toHaveBeenCalledWith(1);
+      
+      errorSpy.mockRestore();
+      exitSpy.mockRestore();
+    });
+    {% endif %}
+  });
+
+  {% if hasIntegrationTests %}
+  describe('integration tests', () => {
+    {% for integration in integrationTests %}
+    it('{{ integration.description }}', async () => {
+      {% if integration.setup %}
+      // Integration setup
+      {{ integration.setup | safe }}
+      {% endif %}
+
+      const result = await runCommand(command, {
+        rawArgs: {{ integration.args | stringify }}
+      });
+
+      {% for expectation in integration.expectations %}
+      {{ expectation | safe }};
+      {% endfor %}
+
+      {% if integration.cleanup %}
+      // Integration cleanup
+      {{ integration.cleanup | safe }}
+      {% endif %}
+    });
+    {% endfor %}
+  });
+  {% endif %}
+
+  {% if hasPerformanceTests %}
+  describe('performance tests', () => {
+    it('should execute within reasonable time limits', async () => {
+      const startTime = Date.now();
+      
+      const result = await runCommand(command, {
+        rawArgs: [
+          {% for arg in arguments %}
+          '--{{ arg.name }}', '{{ arg.testValue || arg.example || "test" }}',
+          {% endfor %}
+        ]
+      });
+
+      const executionTime = Date.now() - startTime;
+      
+      expect(result.error).toBeUndefined();
+      expect(executionTime).toBeLessThan({{ performanceThreshold || 5000 }}); // 5 seconds default
+    });
+  });
+  {% endif %}
+
+  {% if hasEdgeCases %}
+  describe('edge cases', () => {
+    {% for edge in edgeCases %}
+    it('{{ edge.description }}', async () => {
+      {{ edge.test | safe }}
+    });
+    {% endfor %}
+  });
+  {% endif %}
+});

@@ -1,0 +1,223 @@
+---
+to: docs/{{ component | kebabCase }}-CHANGELOG.md
+---
+# {{ component | titleCase }} Changelog
+
+All notable changes to {{ component }} will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+{% for version in versions %}
+## [{{ version.number }}] - {{ version.date }}
+
+{% if version.summary %}
+{{ version.summary }}
+{% endif %}
+
+{% if version.breaking %}
+### 🚨 BREAKING CHANGES
+
+{% for change in version.breaking %}
+- **{{ change.scope }}**: {{ change.description }}
+  {% if change.migration %}
+  
+  **Migration:** {{ change.migration }}
+  {% endif %}
+  {% if change.code %}
+  
+  ```{{ change.language || "typescript" }}
+  // Before
+  {{ change.code.before | safe }}
+  
+  // After  
+  {{ change.code.after | safe }}
+  ```
+  {% endif %}
+{% endfor %}
+{% endif %}
+
+{% if version.added %}
+### ✨ Added
+
+{% for item in version.added %}
+- {{ item.description }}{% if item.pr %} ([#{{ item.pr }}]({{ repoUrl }}/pull/{{ item.pr }})){% endif %}
+  {% if item.details %}
+  {{ item.details | indent(2) }}
+  {% endif %}
+{% endfor %}
+{% endif %}
+
+{% if version.changed %}
+### 🔧 Changed
+
+{% for item in version.changed %}
+- {{ item.description }}{% if item.pr %} ([#{{ item.pr }}]({{ repoUrl }}/pull/{{ item.pr }})){% endif %}
+  {% if item.details %}
+  {{ item.details | indent(2) }}
+  {% endif %}
+{% endfor %}
+{% endif %}
+
+{% if version.deprecated %}
+### ⚠️ Deprecated
+
+{% for item in version.deprecated %}
+- {{ item.description }}{% if item.pr %} ([#{{ item.pr }}]({{ repoUrl }}/pull/{{ item.pr }})){% endif %}
+  {% if item.replacement %}
+  
+  **Use instead:** {{ item.replacement }}
+  {% endif %}
+  {% if item.removalVersion %}
+  
+  **Will be removed in:** v{{ item.removalVersion }}
+  {% endif %}
+{% endfor %}
+{% endif %}
+
+{% if version.removed %}
+### 🗑️ Removed
+
+{% for item in version.removed %}
+- {{ item.description }}{% if item.pr %} ([#{{ item.pr }}]({{ repoUrl }}/pull/{{ item.pr }})){% endif %}
+{% endfor %}
+{% endif %}
+
+{% if version.fixed %}
+### 🐛 Fixed
+
+{% for item in version.fixed %}
+- {{ item.description }}{% if item.pr %} ([#{{ item.pr }}]({{ repoUrl }}/pull/{{ item.pr }})){% endif %}
+  {% if item.issue %}
+  
+  **Fixes:** [#{{ item.issue }}]({{ repoUrl }}/issues/{{ item.issue }})
+  {% endif %}
+{% endfor %}
+{% endif %}
+
+{% if version.security %}
+### 🔒 Security
+
+{% for item in version.security %}
+- {{ item.description }}{% if item.pr %} ([#{{ item.pr }}]({{ repoUrl }}/pull/{{ item.pr }})){% endif %}
+  {% if item.severity %}
+  
+  **Severity:** {{ item.severity }}
+  {% endif %}
+  {% if item.cve %}
+  
+  **CVE:** {{ item.cve }}
+  {% endif %}
+{% endfor %}
+{% endif %}
+
+{% if version.performance %}
+### ⚡ Performance
+
+{% for item in version.performance %}
+- {{ item.description }}{% if item.improvement %} ({{ item.improvement }} improvement){% endif %}{% if item.pr %} ([#{{ item.pr }}]({{ repoUrl }}/pull/{{ item.pr }})){% endif %}
+{% endfor %}
+{% endif %}
+
+{% if version.dependencies %}
+### 📦 Dependencies
+
+{% for item in version.dependencies %}
+- {{ item.action | capitalize }} {{ item.name }}{% if item.oldVersion %} from {{ item.oldVersion }}{% endif %}{% if item.newVersion %} to {{ item.newVersion }}{% endif %}{% if item.pr %} ([#{{ item.pr }}]({{ repoUrl }}/pull/{{ item.pr }})){% endif %}
+{% endfor %}
+{% endif %}
+
+{% if version.internal %}
+### 🏗️ Internal
+
+{% for item in version.internal %}
+- {{ item.description }}{% if item.pr %} ([#{{ item.pr }}]({{ repoUrl }}/pull/{{ item.pr }})){% endif %}
+{% endfor %}
+{% endif %}
+
+{% if version.documentation %}
+### 📚 Documentation
+
+{% for item in version.documentation %}
+- {{ item.description }}{% if item.pr %} ([#{{ item.pr }}]({{ repoUrl }}/pull/{{ item.pr }})){% endif %}
+{% endfor %}
+{% endif %}
+
+{% if version.contributors %}
+### 👥 Contributors
+
+{% for contributor in version.contributors %}
+- [@{{ contributor.username }}]({{ contributor.profile }}){% if contributor.commits %} ({{ contributor.commits }} commits){% endif %}
+{% endfor %}
+{% endif %}
+
+{% if version.links %}
+### 🔗 Links
+
+{% for link in version.links %}
+- [{{ link.text }}]({{ link.url }})
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+
+{% if unreleased %}
+## [Unreleased]
+
+{% if unreleased.summary %}
+{{ unreleased.summary }}
+{% endif %}
+
+{% if unreleased.added %}
+### ✨ Added
+
+{% for item in unreleased.added %}
+- {{ item.description }}{% if item.pr %} ([#{{ item.pr }}]({{ repoUrl }}/pull/{{ item.pr }})){% endif %}
+{% endfor %}
+{% endif %}
+
+{% if unreleased.changed %}
+### 🔧 Changed
+
+{% for item in unreleased.changed %}
+- {{ item.description }}{% if item.pr %} ([#{{ item.pr }}]({{ repoUrl }}/pull/{{ item.pr }})){% endif %}
+{% endfor %}
+{% endif %}
+
+{% if unreleased.fixed %}
+### 🐛 Fixed
+
+{% for item in unreleased.fixed %}
+- {{ item.description }}{% if item.pr %} ([#{{ item.pr }}]({{ repoUrl }}/pull/{{ item.pr }})){% endif %}
+{% endfor %}
+{% endif %}
+
+{% endif %}
+
+---
+
+{% if footer %}
+{{ footer }}
+{% else %}
+## Release Process
+
+1. Update version in `package.json`
+2. Update this changelog
+3. Create release commit: `git commit -m "chore: release v{version}"`
+4. Tag release: `git tag v{version}`
+5. Push changes: `git push && git push --tags`
+6. GitHub Actions will handle the rest
+
+## Version Scheme
+
+- **Major** (X.0.0): Breaking changes
+- **Minor** (0.X.0): New features, backward compatible
+- **Patch** (0.0.X): Bug fixes, backward compatible
+
+## Links
+
+- [Repository]({{ repoUrl || "https://github.com/owner/repo" }})
+- [Issues]({{ repoUrl || "https://github.com/owner/repo" }}/issues)
+- [Releases]({{ repoUrl || "https://github.com/owner/repo" }}/releases)
+- [NPM Package](https://www.npmjs.com/package/{{ packageName }})
+{% endif %}

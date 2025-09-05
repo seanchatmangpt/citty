@@ -1,0 +1,56 @@
+# {{ class | label }}
+
+**Type**: {{ class | namespace }}{{ class | localName }}  
+**Description**: {{ class | comment | default("No description available") }}
+
+## Class Hierarchy
+
+{% set superClasses = class | superClasses %}
+{% if superClasses.length > 0 %}
+**Inherits from**:
+{% for superClass in superClasses %}
+- [{{ superClass | label }}]({{ superClass | localName | kebabCase }}.md)
+{% endfor %}
+{% endif %}
+
+## Properties
+
+{% set properties = class | properties %}
+{% if properties.length > 0 %}
+| Property | Type | Description |
+|----------|------|-------------|
+{% for property in properties %}
+| **{{ property.property | localName }}** | {{ property.range | join(', ') | localName }} | {{ property.property | comment | default('—') }} |
+{% endfor %}
+{% else %}
+*No properties defined for this class.*
+{% endif %}
+
+## Instances
+
+{% set instances = class | instances %}
+{% if instances.length > 0 %}
+This class has {{ instances.length }} defined instance(s):
+
+{% for instance in instances %}
+- **{{ instance | localName }}**: {{ instance | label | default(instance | localName) }}
+{% endfor %}
+{% else %}
+*No instances defined for this class.*
+{% endif %}
+
+## Usage Example
+
+```turtle
+@prefix ex: <{{ ns('ex') }}> .
+@prefix {{ class | namespace | localName | snakeCase }}: <{{ class | namespace }}> .
+
+ex:my{{ class | localName | pascalCase }} a {{ class | prefix }};
+{% for property in properties | slice(0, 3) %}
+    {{ property.property | prefix }} "example value" ;
+{% endfor %}
+    .
+```
+
+---
+*Generated on {{ now() }} from ontology: {{ ontology.metadata.source }}*

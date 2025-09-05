@@ -1,0 +1,120 @@
+@prefix : <http://example.org/vocab#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# Ontology declaration
+<http://example.org/vocab#> rdf:type owl:Ontology ;
+    rdfs:label "Basic Example Ontology" ;
+    rdfs:comment "A simple ontology for demonstrating the Untology-Unjucks pipeline" .
+
+# Classes
+:Person rdf:type owl:Class ;
+    rdfs:label "Person" ;
+    rdfs:comment "A human being" .
+
+:Organization rdf:type owl:Class ;
+    rdfs:label "Organization" ;
+    rdfs:comment "A structured group of people" .
+
+:Project rdf:type owl:Class ;
+    rdfs:label "Project" ;
+    rdfs:comment "A temporary endeavor to create a unique product or service" .
+
+:Skill rdf:type owl:Class ;
+    rdfs:label "Skill" ;
+    rdfs:comment "An ability or expertise in a particular area" .
+
+# Object Properties
+:worksFor rdf:type owl:ObjectProperty ;
+    rdfs:label "works for" ;
+    rdfs:comment "Indicates employment relationship" ;
+    rdfs:domain :Person ;
+    rdfs:range :Organization .
+
+:participatesIn rdf:type owl:ObjectProperty ;
+    rdfs:label "participates in" ;
+    rdfs:comment "Indicates participation in a project" ;
+    rdfs:domain :Person ;
+    rdfs:range :Project .
+
+:hasSkill rdf:type owl:ObjectProperty ;
+    rdfs:label "has skill" ;
+    rdfs:comment "Indicates a person has a particular skill" ;
+    rdfs:domain :Person ;
+    rdfs:range :Skill .
+
+:manages rdf:type owl:ObjectProperty ;
+    rdfs:label "manages" ;
+    rdfs:comment "Indicates management relationship" ;
+    rdfs:domain :Person ;
+    rdfs:range :Project .
+
+# Data Properties
+:firstName rdf:type owl:DatatypeProperty ;
+    rdfs:label "first name" ;
+    rdfs:comment "The first name of a person" ;
+    rdfs:domain :Person ;
+    rdfs:range xsd:string .
+
+:lastName rdf:type owl:DatatypeProperty ;
+    rdfs:label "last name" ;
+    rdfs:comment "The last name of a person" ;
+    rdfs:domain :Person ;
+    rdfs:range xsd:string .
+
+:email rdf:type owl:DatatypeProperty ;
+    rdfs:label "email" ;
+    rdfs:comment "Email address" ;
+    rdfs:domain :Person ;
+    rdfs:range xsd:string .
+
+:organizationName rdf:type owl:DatatypeProperty ;
+    rdfs:label "organization name" ;
+    rdfs:comment "The name of an organization" ;
+    rdfs:domain :Organization ;
+    rdfs:range xsd:string .
+
+:projectName rdf:type owl:DatatypeProperty ;
+    rdfs:label "project name" ;
+    rdfs:comment "The name of a project" ;
+    rdfs:domain :Project ;
+    rdfs:range xsd:string .
+
+:projectDescription rdf:type owl:DatatypeProperty ;
+    rdfs:label "project description" ;
+    rdfs:comment "A description of what the project is about" ;
+    rdfs:domain :Project ;
+    rdfs:range xsd:string .
+
+:skillLevel rdf:type owl:DatatypeProperty ;
+    rdfs:label "skill level" ;
+    rdfs:comment "The proficiency level in a skill" ;
+    rdfs:domain :Skill ;
+    rdfs:range xsd:integer .
+
+# Some example instances
+:john rdf:type :Person ;
+    :firstName "John" ;
+    :lastName "Doe" ;
+    :email "john.doe@example.com" .
+
+:acmeCorp rdf:type :Organization ;
+    :organizationName "ACME Corporation" .
+
+:webProject rdf:type :Project ;
+    :projectName "Website Redesign" ;
+    :projectDescription "Complete overhaul of the corporate website" .
+
+:javascript rdf:type :Skill ;
+    rdfs:label "JavaScript" .
+
+:python rdf:type :Skill ;
+    rdfs:label "Python" .
+
+# Relationships
+:john :worksFor :acmeCorp ;
+      :participatesIn :webProject ;
+      :hasSkill :javascript , :python ;
+      :manages :webProject .

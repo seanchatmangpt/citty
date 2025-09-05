@@ -1,0 +1,132 @@
+{
+  "name": "build",
+  "description": "Build the project with comprehensive configuration options and optimization settings",
+  "arguments": [
+    {
+      "name": "config",
+      "type": "string", 
+      "description": "Path to build configuration file",
+      "required": true,
+      "example": "./build.config.json",
+      "validation": [
+        {
+          "method": "refine",
+          "params": ["(val) => val.endsWith('.json')", "{ message: 'Config must be a JSON file' }"]
+        }
+      ]
+    },
+    {
+      "name": "output",
+      "type": "string",
+      "description": "Output directory for built files", 
+      "alias": "o",
+      "default": "./dist",
+      "example": "./build"
+    },
+    {
+      "name": "mode",
+      "type": "string",
+      "description": "Build mode configuration",
+      "choices": ["development", "production", "staging"],
+      "default": "production"
+    },
+    {
+      "name": "watch", 
+      "type": "boolean",
+      "description": "Enable watch mode for file changes",
+      "default": false
+    },
+    {
+      "name": "minify",
+      "type": "boolean", 
+      "description": "Minify output files",
+      "default": true
+    }
+  ],
+  "hasFlags": true,
+  "hasVerboseLogging": true,
+  "hasErrorHandling": true,
+  "category": "Build",
+  "version": "1.2.0",
+  "actionText": "Building project",
+  "successMessage": "Build completed successfully",
+  "errorPrefix": "Build failed",
+  "isAsync": true,
+  "ontology": {
+    "imports": [
+      {
+        "statement": "{ BuildConfig } from '../types/build'"
+      },
+      {
+        "statement": "{ validateConfig } from '../utils/validation'"
+      }
+    ],
+    "context": {
+      "buildSystem": "vite",
+      "targetFormat": "esm"
+    }
+  },
+  "preHooks": [
+    {
+      "name": "validateEnvironment"
+    }
+  ],
+  "postHooks": [
+    {
+      "name": "generateManifest"
+    }
+  ],
+  "implementation": "const buildResult = await buildProject({\n    config: validatedArgs.config,\n    output: validatedArgs.output,\n    mode: validatedArgs.mode,\n    watch: validatedArgs.watch,\n    minify: validatedArgs.minify\n  });\n  \n  context.buildArtifacts = buildResult.artifacts;\n  context.buildMetrics = buildResult.metrics;",
+  "exports": [
+    {
+      "statement": "{ BuildConfig, BuildResult } from './types'"
+    }
+  ],
+  "tests": [
+    {
+      "description": "should build with default configuration",
+      "args": ["--config", "test/fixtures/build.config.json"],
+      "expectations": [
+        "expect(result.error).toBeUndefined()",
+        "expect(mockedConsola.success).toHaveBeenCalledWith('Build completed successfully')"
+      ]
+    },
+    {
+      "description": "should build in watch mode",
+      "args": ["--config", "test/fixtures/build.config.json", "--watch"],
+      "setup": "const watchSpy = vi.spyOn(fs, 'watch');",
+      "expectations": [
+        "expect(watchSpy).toHaveBeenCalled()"
+      ],
+      "cleanup": "watchSpy.mockRestore();"
+    }
+  ],
+  "mocks": [
+    {
+      "module": "../utils/build",
+      "exports": "{ buildProject: vi.fn().mockResolvedValue({ artifacts: [], metrics: {} }) }"
+    }
+  ],
+  "hasIntegrationTests": true,
+  "integrationTests": [
+    {
+      "description": "should create output directory and build files",
+      "args": ["--config", "test/fixtures/integration.config.json", "--output", "tmp/test-build"],
+      "setup": "await fs.ensureDir('tmp/test-build');",
+      "expectations": [
+        "expect(await fs.pathExists('tmp/test-build')).toBe(true)",
+        "expect(await fs.readdir('tmp/test-build')).toContain('index.js')"
+      ],
+      "cleanup": "await fs.remove('tmp/test-build');"
+    }
+  ],
+  "hasPerformanceTests": true,
+  "performanceThreshold": 10000,
+  "hasEdgeCases": true,
+  "edgeCases": [
+    {
+      "description": "should handle missing config file gracefully",
+      "test": "const result = await runCommand(command, {\n  rawArgs: ['--config', 'non-existent.json']\n});\nexpect(result.error).toContain('Config file not found');"
+    }
+  ]
+}

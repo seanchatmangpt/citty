@@ -1,0 +1,105 @@
+# Enterprise Untology → Unjucks Configuration
+# This configuration demonstrates production-ready settings for large-scale ontology processing
+
+name: enterprise-knowledge-management
+
+# Multiple ontology sources with different formats
+ontologies:
+  # Business domain model
+  - path: ./ontologies/business/core-model.ttl
+    format: turtle
+    namespace: https://enterprise.com/business#
+    
+  # Technical architecture ontology  
+  - path: ./ontologies/architecture/system-model.n3
+    format: n3
+    namespace: https://enterprise.com/architecture#
+    
+  # Regulatory compliance model
+  - path: ./ontologies/compliance/gdpr-model.rdf
+    format: rdf-xml
+    namespace: https://enterprise.com/compliance#
+    
+  # Data governance ontology
+  - path: ./ontologies/governance/data-catalog.jsonld
+    format: json-ld
+    namespace: https://enterprise.com/data#
+
+# Multi-format template generation
+templates:
+  # Documentation generation
+  - path: ./templates/docs/**/*.md.njk
+    output: docs/{{ template.dir | replace('templates/docs/', '') }}/{{ template.name | replace('.njk', '') }}
+    context:
+      organization: "Enterprise Corp"
+      version: "2024.1"
+      environment: production
+    filters:
+      - "https://enterprise.com/business#"
+      - "https://enterprise.com/architecture#"
+      
+  # API code generation
+  - path: ./templates/api/**/*.ts.njk
+    output: src/generated/{{ template.name | replace('.njk', '') }}
+    context:
+      apiVersion: "v2"
+      framework: "fastify"
+      database: "postgresql"
+    filters:
+      - "https://enterprise.com/business#"
+      
+  # Configuration templates
+  - path: ./templates/config/**/*.yaml.njk
+    output: deploy/{{ template.name | replace('.njk', '') }}
+    context:
+      environment: "production"
+      region: "us-east-1"
+    filters:
+      - "https://enterprise.com/architecture#"
+      
+  # Compliance reports
+  - path: ./templates/compliance/**/*.njk
+    output: reports/compliance/{{ template.name | replace('.njk', '.html') }}
+    context:
+      reportDate: "{{ now() | date('YYYY-MM-DD') }}"
+      auditor: "Compliance Team"
+    filters:
+      - "https://enterprise.com/compliance#"
+      
+  # SQL schema generation
+  - path: ./templates/database/**/*.sql.njk
+    output: migrations/{{ now() | date('YYYYMMDDHHmmss') }}_{{ template.name | replace('.njk', '') }}
+    context:
+      database: "enterprise_db"
+      schema: "public"
+    filters:
+      - "https://enterprise.com/data#"
+
+# Enterprise output configuration
+output:
+  directory: ./generated-enterprise
+  clean: false # Preserve existing files in production
+  
+# High-performance HIVE QUEEN configuration
+hiveQueen:
+  enabled: true
+  workers: 12 # Scale based on available CPU cores
+  parallelism: both # Parallel ontology loading AND template rendering
+  
+# Production file watching (typically disabled in CI/CD)
+watch:
+  enabled: false # Enable only for development
+  debounce: 2000 # Longer debounce for stability
+  ignore:
+    - node_modules/**
+    - .git/**
+    - generated-enterprise/**
+    - "**/*.log"
+    - "**/.*"
+    - dist/**
+    - build/**
+    
+# Strict validation for production
+validation:
+  strict: true
+  schema: ./schemas/enterprise-validation.json

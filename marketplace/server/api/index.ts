@@ -23,8 +23,8 @@ import { cacheMiddleware } from './middleware/cache.js'
 import { errorHandler } from './middleware/errorHandler.js'
 
 // WebSocket handlers
-import { setupAuctionWebSocket } from './websocket/auctionHandler.js'
-import { setupNotificationWebSocket } from './websocket/notificationHandler.js'
+import setupAuctionWebSocket from './websocket/auctionHandler.js'
+import setupNotificationWebSocket from './websocket/notificationHandler.js'
 
 export const marketplaceApiCommand = defineCommand({
   meta: {

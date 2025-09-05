@@ -403,7 +403,7 @@ describe('DimensionalMath', () => {
     it('should return 1 for identical normalized vectors', () => {
       const identical = { x: 1, y: 1 };
       const similarity = DimensionalMath.cosineSimilarity(identical, identical);
-      expect(similarity).toBe(1);
+      expect(similarity).toBeCloseTo(1, 10); // Use toBeCloseTo for floating point precision
     });
 
     it('should return 0 for zero vectors', () => {

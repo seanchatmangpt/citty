@@ -1,0 +1,241 @@
+---
+to: docs/commands/{{ name | kebabCase }}.md
+---
+# {{ name | titleCase }} Command
+
+{{ description }}
+
+## Usage
+
+```bash
+citty {{ name | kebabCase }} [options]
+```
+
+## Arguments
+
+{% for arg in arguments %}
+### `--{{ arg.name }}`{% if arg.alias %}, `-{{ arg.alias }}`{% endif %}
+
+- **Type**: `{{ arg.type }}`
+- **Required**: {% if arg.required %}Yes{% else %}No{% endif %}
+{% if arg.default %}- **Default**: `{{ arg.default }}`{% endif %}
+{% if arg.choices %}- **Choices**: {{ arg.choices | join(", ") | backticks }}{% endif %}
+
+{{ arg.description }}
+
+{% if arg.example %}
+**Example**:
+```bash
+citty {{ name | kebabCase }} --{{ arg.name }} {{ arg.example }}
+```
+{% endif %}
+
+{% endfor %}
+
+## Flags
+
+{% if hasFlags %}
+### `--verbose`, `-v`
+
+Enable verbose output for debugging purposes.
+
+### `--force`, `-f`
+
+Force operation without confirmation prompts.
+
+{% endif %}
+
+## Examples
+
+### Basic Usage
+
+```bash
+# {{ basicExample.description || "Basic command execution" }}
+citty {{ name | kebabCase }}{% for arg in arguments %}{% if arg.required %} --{{ arg.name }} "{{ arg.example }}"{% endif %}{% endfor %}
+```
+
+{% for example in examples %}
+### {{ example.title }}
+
+{{ example.description }}
+
+```bash
+citty {{ name | kebabCase }} {{ example.command }}
+```
+
+{% if example.output %}
+**Expected Output**:
+```
+{{ example.output }}
+```
+{% endif %}
+
+{% endfor %}
+
+## Configuration
+
+{% if hasConfiguration %}
+This command can be configured using:
+
+{% for config in configuration %}
+### {{ config.name }}
+
+{{ config.description }}
+
+{% if config.file %}
+**Configuration File**: `{{ config.file }}`
+
+```{{ config.format || "json" }}
+{{ config.example | safe }}
+```
+{% endif %}
+
+{% if config.env %}
+**Environment Variables**:
+{% for env in config.env %}
+- `{{ env.name }}`: {{ env.description }}
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% else %}
+This command does not require additional configuration.
+{% endif %}
+
+## Error Handling
+
+{% if errorHandling %}
+{% for error in errorHandling %}
+### {{ error.name }}
+
+**Cause**: {{ error.cause }}
+
+**Solution**: {{ error.solution }}
+
+{% if error.example %}
+**Example**:
+```bash
+{{ error.example }}
+```
+{% endif %}
+
+{% endfor %}
+{% else %}
+The command includes comprehensive error handling:
+
+- **Validation Errors**: Invalid arguments will be clearly reported
+- **Runtime Errors**: Unexpected errors are caught and logged
+- **Exit Codes**: Non-zero exit codes indicate failure states
+{% endif %}
+
+## Integration
+
+{% if integrations %}
+This command integrates with:
+
+{% for integration in integrations %}
+### {{ integration.name }}
+
+{{ integration.description }}
+
+{% if integration.setup %}
+**Setup**:
+```bash
+{{ integration.setup }}
+```
+{% endif %}
+
+{% endfor %}
+{% else %}
+This command can be used standalone or integrated into workflows and scripts.
+{% endif %}
+
+## API Reference
+
+{% if hasApiReference %}
+### Function Signature
+
+```typescript
+function execute{{ name | pascalCase }}(
+  args: {{ name | pascalCase }}Args{% if ontology.context %},
+  context: Record<string, unknown>{% endif %}
+): Promise<void>
+```
+
+### Types
+
+```typescript
+{% for type in types %}
+{{ type.definition | safe }}
+
+{% endfor %}
+```
+
+### Interfaces
+
+```typescript
+{% for interface in interfaces %}
+{{ interface.definition | safe }}
+
+{% endfor %}
+```
+{% endif %}
+
+## Development
+
+{% if development %}
+### Building
+
+```bash
+{{ development.build || "pnpm run build" }}
+```
+
+### Testing
+
+```bash
+{{ development.test || "pnpm test" }}
+```
+
+### Linting
+
+```bash
+{{ development.lint || "pnpm run lint" }}
+```
+{% endif %}
+
+## Related Commands
+
+{% if relatedCommands %}
+{% for related in relatedCommands %}
+- [`{{ related.name }}`](./{{ related.name | kebabCase }}.md): {{ related.description }}
+{% endfor %}
+{% else %}
+No related commands.
+{% endif %}
+
+## Changelog
+
+{% if changelog %}
+{% for version in changelog %}
+### {{ version.version }}
+
+{{ version.description }}
+
+{% for change in version.changes %}
+- {{ change }}
+{% endfor %}
+
+{% endfor %}
+{% else %}
+### {{ version || "1.0.0" }}
+
+Initial implementation of {{ name | kebabCase }} command.
+{% endif %}
+
+## Contributing
+
+{% if contributing %}
+{{ contributing | safe }}
+{% else %}
+See the main [contributing guidelines](../../CONTRIBUTING.md) for information on how to contribute to this command.
+{% endif %}

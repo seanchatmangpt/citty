@@ -1,0 +1,327 @@
+---
+to: src/tasks/{{ name | kebabCase }}.ts
+---
+import { z } from 'zod';
+import { consola } from 'consola';
+import type { TaskDefinition, TaskContext, TaskResult, TaskProgress } from '../types/task';
+{% if ontology.imports %}
+{% for import in ontology.imports %}
+import {{ import.statement }};
+{% endfor %}
+{% endif %}
+
+/**
+ * Input schema for {{ name | kebabCase }} task
+ */
+const {{ name | camelCase }}InputSchema = z.object({
+  {% for input in inputs %}
+  {{ input.name }}: z.{{ input.type }}()
+    {%- if input.optional %}.optional(){% endif %}
+    {%- if input.default %}.default({{ input.default | stringify }}){% endif %}
+    {%- if input.description %}.describe('{{ input.description }}'){% endif %}
+    {%- if input.validation %}{{ input.validation | safe }}{% endif %},
+  {% endfor %}
+});
+
+/**
+ * Output schema for {{ name | kebabCase }} task
+ */
+const {{ name | camelCase }}OutputSchema = z.object({
+  {% for output in outputs %}
+  {{ output.name }}: z.{{ output.type }}()
+    {%- if output.optional %}.optional(){% endif %}
+    {%- if output.description %}.describe('{{ output.description }}'){% endif %},
+  {% endfor %}
+});
+
+export type {{ name | pascalCase }}Input = z.infer<typeof {{ name | camelCase }}InputSchema>;
+export type {{ name | pascalCase }}Output = z.infer<typeof {{ name | camelCase }}OutputSchema>;
+
+/**
+ * {{ description }}
+ * 
+ * ## Features
+ * {% for feature in features %}
+ * - {{ feature }}
+ * {% endfor %}
+ * 
+ * ## Usage
+ * ```typescript
+ * const task = new {{ name | pascalCase }}Task();
+ * const result = await task.execute({
+ *   {% for input in inputs %}
+ *   {{ input.name }}: {{ input.example | stringify }},
+ *   {% endfor %}
+ * });
+ * ```
+ * 
+ * @category {{ category || "Tasks" }}
+ * @since {{ since || "1.0.0" }}
+ */
+export class {{ name | pascalCase }}Task implements TaskDefinition<{{ name | pascalCase }}Input, {{ name | pascalCase }}Output> {
+  readonly id = '{{ id || (name | kebabCase) }}';
+  readonly name = '{{ name }}';
+  readonly description = '{{ description }}';
+  readonly version = '{{ version || "1.0.0" }}';
+  {% if category %}readonly category = '{{ category }}';{% endif %}
+  {% if tags %}readonly tags = {{ tags | stringify }};{% endif %}
+  
+  readonly inputSchema = {{ name | camelCase }}InputSchema;
+  readonly outputSchema = {{ name | camelCase }}OutputSchema;
+  
+  {% if timeout %}readonly timeout = {{ timeout }};{% endif %}
+  {% if retries %}readonly retries = {{ retries }};{% endif %}
+  {% if priority %}readonly priority = {{ priority }};{% endif %}
+  {% if critical %}readonly critical = {{ critical }};{% endif %}
+  
+  {% if dependencies %}
+  readonly dependencies = {{ dependencies | stringify }};
+  {% endif %}
+  
+  {% if resources %}
+  readonly resources = {
+    {% for key, value in resources %}
+    {{ key }}: {{ value | stringify }},
+    {% endfor %}
+  };
+  {% endif %}
+
+  private progress: TaskProgress = { current: 0, total: 100, status: 'idle' };
+  private cancelRequested = false;
+
+  /**
+   * Validate task input parameters
+   */
+  async validate(input: {{ name | pascalCase }}Input, context: TaskContext): Promise<boolean> {
+    try {
+      // Schema validation
+      this.inputSchema.parse(input);
+      
+      {% if customValidation %}
+      // Custom validation logic
+      {{ customValidation | safe }}
+      {% endif %}
+      
+      {% if prerequisites %}
+      // Check prerequisites
+      {% for prereq in prerequisites %}
+      if (!({{ prereq.check | safe }})) {
+        throw new Error('{{ prereq.message }}');
+      }
+      {% endfor %}
+      {% endif %}
+      
+      return true;
+    } catch (error) {
+      context.logger.error('Validation failed:', error.message);
+      return false;
+    }
+  }
+
+  /**
+   * Execute the {{ name | kebabCase }} task
+   */
+  async execute(input: {{ name | pascalCase }}Input, context: TaskContext): Promise<TaskResult<{{ name | pascalCase }}Output>> {
+    const { logger, signal, state } = context;
+    const startTime = Date.now();
+    
+    try {
+      // Validate input
+      const validatedInput = this.inputSchema.parse(input);
+      logger.debug('Task input validated:', validatedInput);
+      
+      // Initialize progress
+      this.progress = { current: 0, total: 100, status: 'running' };
+      
+      {% if preExecution %}
+      // Pre-execution setup
+      logger.debug('Setting up {{ name | kebabCase }} task...');
+      {{ preExecution | safe }}
+      this.updateProgress(10, 'Setup complete');
+      {% endif %}
+      
+      // Check for cancellation
+      if (signal?.aborted || this.cancelRequested) {
+        throw new Error('Task was cancelled');
+      }
+      
+      // Main task execution
+      logger.start('{{ actionText || ("Executing " + name) }}...');
+      
+      {% if implementation %}
+      {{ implementation | safe }}
+      {% else %}
+      const result = await this.performTask(validatedInput, context);
+      {% endif %}
+      
+      this.updateProgress(90, 'Processing results');
+      
+      {% if postExecution %}
+      // Post-execution processing
+      logger.debug('Processing {{ name | kebabCase }} results...');
+      {{ postExecution | safe }}
+      {% endif %}
+      
+      // Validate output
+      const validatedOutput = this.outputSchema.parse(result);
+      
+      this.updateProgress(100, 'completed');
+      
+      const executionTime = Date.now() - startTime;
+      logger.success('{{ successMessage || (name + " completed") }}', { executionTime });
+      
+      return {
+        success: true,
+        data: validatedOutput,
+        metadata: {
+          executionTime,
+          taskId: this.id,
+          {% if customMetadata %}
+          {{ customMetadata | safe }},
+          {% endif %}
+        },
+        {% if metrics %}
+        metrics: {
+          {% for metric in metrics %}
+          {{ metric.name }}: {{ metric.calculate | safe }},
+          {% endfor %}
+        },
+        {% endif %}
+      };
+      
+    } catch (error) {
+      this.progress = { current: 0, total: 100, status: 'failed' };
+      
+      logger.error('{{ errorPrefix || ("Task " + name + " failed") }}:', error.message);
+      
+      {% if errorHandling %}
+      // Custom error handling
+      {{ errorHandling | safe }}
+      {% endif %}
+      
+      return {
+        success: false,
+        error: {
+          message: error.message,
+          code: error.code || 'TASK_EXECUTION_ERROR',
+          stack: error.stack,
+        },
+        metadata: {
+          executionTime: Date.now() - startTime,
+          taskId: this.id,
+          {% if errorMetadata %}
+          {{ errorMetadata | safe }},
+          {% endif %}
+        },
+      };
+    } finally {
+      {% if cleanup %}
+      // Cleanup
+      try {
+        {{ cleanup | safe }}
+      } catch (cleanupError) {
+        logger.warn('Cleanup failed:', cleanupError.message);
+      }
+      {% endif %}
+    }
+  }
+
+  /**
+   * Get current task progress
+   */
+  getProgress(): TaskProgress {
+    return { ...this.progress };
+  }
+
+  /**
+   * Update task progress
+   */
+  private updateProgress(current: number, status: string = 'running'): void {
+    this.progress = {
+      current: Math.min(current, 100),
+      total: 100,
+      status,
+      message: status,
+    };
+  }
+
+  /**
+   * Cancel the running task
+   */
+  async cancel(): Promise<void> {
+    this.cancelRequested = true;
+    this.progress = { current: 0, total: 100, status: 'cancelled' };
+  }
+
+  {% if rollback %}
+  /**
+   * Rollback task execution
+   */
+  async rollback(input: {{ name | pascalCase }}Input, context: TaskContext): Promise<void> {
+    const { logger } = context;
+    
+    try {
+      logger.info('Rolling back {{ name | kebabCase }} task...');
+      {{ rollback | safe }}
+      logger.success('{{ name | kebabCase }} rollback completed');
+    } catch (error) {
+      logger.error('Rollback failed:', error.message);
+      throw error;
+    }
+  }
+  {% endif %}
+
+  {% if estimateDuration %}
+  /**
+   * Estimate task execution duration
+   */
+  async estimateDuration(input: {{ name | pascalCase }}Input, context: TaskContext): Promise<number> {
+    {{ estimateDuration | safe }}
+  }
+  {% endif %}
+
+  {% if not implementation %}
+  /**
+   * Core task implementation
+   */
+  private async performTask(
+    input: {{ name | pascalCase }}Input,
+    context: TaskContext
+  ): Promise<{{ name | pascalCase }}Output> {
+    // TODO: Implement {{ name | kebabCase }} task logic
+    {% if skeleton %}
+    {{ skeleton | safe }}
+    {% else %}
+    const { {{ inputs | pluck("name") | join(", ") }} } = input;
+    
+    // Task implementation goes here
+    this.updateProgress(50, 'Processing...');
+    
+    // Simulate work
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    return {
+      {% for output in outputs %}
+      {{ output.name }}: {{ output.example | stringify }}, // TODO: Generate actual value
+      {% endfor %}
+    };
+    {% endif %}
+  }
+  {% endif %}
+
+  {% if utilities %}
+  // Utility methods
+  {% for utility in utilities %}
+  {{ utility.implementation | safe }}
+  
+  {% endfor %}
+  {% endif %}
+}
+
+// Export factory function for convenience
+export function create{{ name | pascalCase }}Task(): {{ name | pascalCase }}Task {
+  return new {{ name | pascalCase }}Task();
+}
+
+// Export default instance
+export default new {{ name | pascalCase }}Task();

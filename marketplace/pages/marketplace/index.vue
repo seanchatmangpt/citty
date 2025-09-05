@@ -210,7 +210,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import type { ItemType } from '~/types/marketplace'
 
 // Meta

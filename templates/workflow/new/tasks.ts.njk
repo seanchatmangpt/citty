@@ -1,0 +1,210 @@
+---
+to: src/workflows/tasks/{{ name | kebabCase }}-tasks.ts
+---
+import { z } from 'zod';
+import type { TaskDefinition, TaskContext, TaskResult } from '../../types/workflow';
+{% if ontology.imports %}
+{% for import in ontology.imports %}
+import {{ import.statement }};
+{% endfor %}
+{% endif %}
+
+{% for task in tasks %}
+/**
+ * Schema for {{ task.name | camelCase }} task parameters
+ */
+const {{ task.name | camelCase }}ParametersSchema = z.object({
+  {% for param in task.parameters %}
+  {{ param.name }}: z.{{ param.type }}()
+    {%- if param.optional %}.optional(){% endif %}
+    {%- if param.default %}.default({{ param.default | stringify }}){% endif %}
+    {%- if param.description %}.describe('{{ param.description }}'){% endif %},
+  {% endfor %}
+});
+
+export type {{ task.name | pascalCase }}Parameters = z.infer<typeof {{ task.name | camelCase }}ParametersSchema>;
+
+/**
+ * {{ task.description }}
+ * 
+ * @example
+ * ```typescript
+ * const result = await {{ task.name | camelCase }}Task.execute({
+ *   parameters: { {{ task.exampleParams }} },
+ *   context: workflowContext
+ * });
+ * ```
+ */
+export const {{ task.name | camelCase }}Task: TaskDefinition<{{ task.name | pascalCase }}Parameters> = {
+  id: '{{ task.id }}',
+  name: '{{ task.name }}',
+  description: '{{ task.description }}',
+  version: '{{ task.version || "1.0.0" }}',
+  {% if task.category %}category: '{{ task.category }}',{% endif %}
+  {% if task.tags %}tags: {{ task.tags | stringify }},{% endif %}
+  
+  parametersSchema: {{ task.name | camelCase }}ParametersSchema,
+  
+  {% if task.dependencies %}
+  dependencies: {{ task.dependencies | stringify }},
+  {% endif %}
+  
+  {% if task.timeout %}timeout: {{ task.timeout }},{% endif %}
+  {% if task.retries %}retries: {{ task.retries }},{% endif %}
+  {% if task.critical %}critical: {{ task.critical }},{% endif %}
+  
+  {% if task.validation %}
+  async validate(parameters: {{ task.name | pascalCase }}Parameters, context: TaskContext): Promise<boolean> {
+    {{ task.validation | safe }}
+  },
+  {% endif %}
+  
+  async execute(parameters: {{ task.name | pascalCase }}Parameters, context: TaskContext): Promise<TaskResult> {
+    const { logger, state, config } = context;
+    
+    try {
+      // Validate parameters
+      const validatedParams = {{ task.name | camelCase }}ParametersSchema.parse(parameters);
+      
+      logger.start('{{ task.actionText || ("Executing " + task.name) }}...');
+      
+      {% if task.preConditions %}
+      // Check pre-conditions
+      {% for condition in task.preConditions %}
+      if (!({{ condition.check | safe }})) {
+        throw new Error('{{ condition.message }}');
+      }
+      {% endfor %}
+      {% endif %}
+      
+      {% if task.setup %}
+      // Setup phase
+      logger.debug('Setting up {{ task.name }}...');
+      {{ task.setup | safe }}
+      {% endif %}
+      
+      // Main execution
+      {% if task.implementation %}
+      {{ task.implementation | safe }}
+      {% else %}
+      const result = await perform{{ task.name | pascalCase }}(validatedParams, context);
+      {% endif %}
+      
+      {% if task.postConditions %}
+      // Verify post-conditions
+      {% for condition in task.postConditions %}
+      if (!({{ condition.check | safe }})) {
+        throw new Error('{{ condition.message }}');
+      }
+      {% endfor %}
+      {% endif %}
+      
+      logger.success('{{ task.successMessage || (task.name + " completed") }}');
+      
+      return {
+        success: true,
+        data: {% if task.returnData %}{{ task.returnData | safe }}{% else %}result{% endif %},
+        {% if task.metadata %}metadata: {{ task.metadata | stringify }},{% endif %}
+        metrics: {
+          executionTime: Date.now() - context.startTime,
+          {% if task.customMetrics %}
+          {% for metric in task.customMetrics %}
+          {{ metric.name }}: {{ metric.value | safe }},
+          {% endfor %}
+          {% endif %}
+        },
+      };
+      
+    } catch (error) {
+      logger.error('{{ task.errorPrefix || ("Task " + task.name + " failed") }}:', error.message);
+      
+      {% if task.onError %}
+      // Error handling
+      {{ task.onError | safe }}
+      {% endif %}
+      
+      return {
+        success: false,
+        error: error.message,
+        stack: error.stack,
+        {% if task.errorMetadata %}metadata: {{ task.errorMetadata | stringify }},{% endif %}
+      };
+    } finally {
+      {% if task.cleanup %}
+      // Cleanup
+      try {
+        {{ task.cleanup | safe }}
+      } catch (cleanupError) {
+        logger.warn('Cleanup failed:', cleanupError.message);
+      }
+      {% endif %}
+    }
+  },
+  
+  {% if task.rollback %}
+  async rollback(parameters: {{ task.name | pascalCase }}Parameters, context: TaskContext): Promise<void> {
+    const { logger } = context;
+    
+    logger.info('Rolling back {{ task.name }}...');
+    
+    try {
+      {{ task.rollback | safe }}
+      logger.success('{{ task.name }} rollback completed');
+    } catch (error) {
+      logger.error('Rollback failed for {{ task.name }}:', error.message);
+      throw error;
+    }
+  },
+  {% endif %}
+  
+  {% if task.estimateDuration %}
+  async estimateDuration(parameters: {{ task.name | pascalCase }}Parameters, context: TaskContext): Promise<number> {
+    {{ task.estimateDuration | safe }}
+  },
+  {% endif %}
+  
+  {% if task.getProgress %}
+  async getProgress(parameters: {{ task.name | pascalCase }}Parameters, context: TaskContext): Promise<number> {
+    {{ task.getProgress | safe }}
+  },
+  {% endif %}
+};
+
+{% if not task.implementation %}
+/**
+ * Core implementation for {{ task.name }}
+ */
+async function perform{{ task.name | pascalCase }}(
+  parameters: {{ task.name | pascalCase }}Parameters,
+  context: TaskContext
+): Promise<unknown> {
+  // TODO: Implement {{ task.name }} logic
+  {% if task.skeleton %}
+  {{ task.skeleton | safe }}
+  {% else %}
+  const { {{ task.parameters | pluck("name") | join(", ") }} } = parameters;
+  
+  // Implementation goes here
+  return { success: true };
+  {% endif %}
+}
+{% endif %}
+
+{% endfor %}
+
+// Task registry for {{ name | kebabCase }} workflow
+export const {{ name | camelCase }}Tasks = {
+  {% for task in tasks %}
+  {{ task.name | camelCase }}: {{ task.name | camelCase }}Task,
+  {% endfor %}
+};
+
+{% if taskUtilities %}
+// Shared utilities for {{ name | kebabCase }} tasks
+{% for utility in taskUtilities %}
+{{ utility.implementation | safe }}
+
+{% endfor %}
+{% endif %}
+
+export default {{ name | camelCase }}Tasks;

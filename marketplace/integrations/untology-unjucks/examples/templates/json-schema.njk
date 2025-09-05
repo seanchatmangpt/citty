@@ -1,0 +1,152 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "{{ ontology.metadata.source | replace('.ttl', '') | replace('.rdf', '') | replace('.n3', '') }}.schema.json",
+  "title": "{{ ontology.metadata.source | basename | replace('.ttl', '') | replace('.rdf', '') | replace('.n3', '') | pascalCase }} Schema",
+  "description": "JSON Schema generated from ontology {{ ontology.metadata.source }}",
+  "type": "object",
+  "definitions": {
+    {% set classes = [] %}
+    {% for triple in ontology.triples %}
+      {% if triple.predicate == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' and (triple.object == 'http://www.w3.org/2002/07/owl#Class' or triple.object == 'http://www.w3.org/2000/01/rdf-schema#Class') %}
+        {% set classes = (classes.push(triple.subject), classes) %}
+      {% endif %}
+    {% endfor %}
+    
+    {% for classUri in classes | unique | sortBy('length') %}
+    {% set className = classUri | localName | jsonSchema %}
+    {% set properties = classUri | properties %}
+    {% set dataProps = classUri | dataProperties %}
+    {% set objProps = classUri | objectProperties %}
+    "{{ className }}": {
+      "type": "object",
+      "title": "{{ classUri | label }}",
+      "description": "{{ classUri | comment or 'Generated from ' + classUri }}",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uri",
+          "description": "Unique identifier for this {{ className }}"
+        },
+        "type": {
+          "type": "string",
+          "const": "{{ classUri }}",
+          "description": "RDF type identifier"
+        }{% if dataProps.length > 0 or objProps.length > 0 %},{% endif %}
+        
+        {% for prop in dataProps %}
+        {% set propName = prop.property | localName | camelCase %}
+        {% set propType = 'string' %}
+        {% set propFormat = null %}
+        {% if prop.range %}
+          {% for rangeType in prop.range %}
+            {% if rangeType.includes('integer') %}
+              {% set propType = 'integer' %}
+            {% elif rangeType.includes('boolean') %}
+              {% set propType = 'boolean' %}
+            {% elif rangeType.includes('dateTime') %}
+              {% set propType = 'string' %}
+              {% set propFormat = 'date-time' %}
+            {% elif rangeType.includes('date') %}
+              {% set propType = 'string' %}
+              {% set propFormat = 'date' %}
+            {% elif rangeType.includes('decimal') or rangeType.includes('float') or rangeType.includes('double') %}
+              {% set propType = 'number' %}
+            {% elif rangeType.includes('anyURI') %}
+              {% set propType = 'string' %}
+              {% set propFormat = 'uri' %}
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+        "{{ propName }}": {
+          "type": "{{ propType }}"{% if propFormat %},
+          "format": "{{ propFormat }}"{% endif %},
+          "title": "{{ prop.property | label or propName | capitalize }}",
+          "description": "{{ prop.property | comment or 'Property ' + propName + ' of type ' + propType }}"
+        }{% if not loop.last or objProps.length > 0 %},{% endif %}
+        {% endfor %}
+        
+        {% for prop in objProps %}
+        {% set propName = prop.property | localName | camelCase %}
+        {% set relatedClass = 'string' %}
+        {% if prop.range %}
+          {% for rangeType in prop.range %}
+            {% set relatedClass = rangeType | localName | jsonSchema %}
+          {% endfor %}
+        {% endif %}
+        "{{ propName }}": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/{{ relatedClass }}"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/{{ relatedClass }}"
+              }
+            },
+            {
+              "type": "string",
+              "format": "uri"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uri"
+              }
+            }
+          ],
+          "title": "{{ prop.property | label or propName | capitalize }}",
+          "description": "{{ prop.property | comment or 'References to ' + relatedClass + ' instances' }}"
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+      },
+      "required": ["id", "type"],
+      "additionalProperties": false
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  },
+  "properties": {
+    "entities": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {% for classUri in classes | unique %}
+          {% set className = classUri | localName | jsonSchema %}
+          {
+            "$ref": "#/definitions/{{ className }}"
+          }{% if not loop.last %},{% endif %}
+          {% endfor %}
+        ]
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "Source ontology file"
+        },
+        "generated": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Schema generation timestamp"
+        },
+        "classes": {
+          "type": "integer",
+          "description": "Number of classes in the ontology"
+        },
+        "properties": {
+          "type": "integer", 
+          "description": "Number of properties in the ontology"
+        },
+        "triples": {
+          "type": "integer",
+          "description": "Total number of triples in the ontology"
+        }
+      }
+    }
+  },
+  "required": ["entities"],
+  "additionalProperties": false
+}

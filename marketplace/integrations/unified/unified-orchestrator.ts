@@ -17,7 +17,7 @@ import {
 
 interface OrchestrationOptions {
   configPath?: string;
-  environment?: 'development' | 'staging' | 'production';
+  environment?: 'development' | 'staging' | 'production' | 'test';
   enableMetrics?: boolean;
   enableWorkflows?: boolean;
   enableEvents?: boolean;
@@ -161,12 +161,8 @@ export class UnifiedOrchestrator extends EventEmitter {
   }
 
   private async initializeWorkflowEngine(): Promise<void> {
-    if (!this.metrics) {
-      throw new Error('Metrics collector must be initialized before workflow engine');
-    }
-
-    // Gateway will be initialized after workflow engine
-    this.workflowEngine = new WorkflowEngine(this.gateway!, this.metrics);
+    // Gateway will be initialized after workflow engine - pass null for now, we'll set it later
+    this.workflowEngine = new WorkflowEngine(null as any, this.metrics);
     await this.workflowEngine.start();
     
     this.logger.info('Workflow engine initialized');

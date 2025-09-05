@@ -1,0 +1,229 @@
+---
+to: src/workflows/{{ name | kebabCase }}.ts
+---
+import { z } from 'zod';
+import { consola } from 'consola';
+import type { WorkflowDefinition, WorkflowContext, TaskResult } from '../types/workflow';
+{% if ontology.imports %}
+{% for import in ontology.imports %}
+import {{ import.statement }};
+{% endfor %}
+{% endif %}
+
+/**
+ * Schema for {{ name | kebabCase }} workflow configuration
+ */
+const {{ name | camelCase }}ConfigSchema = z.object({
+  {% for config in configuration %}
+  {{ config.name }}: z.{{ config.type }}()
+    {%- if config.optional %}.optional(){% endif %}
+    {%- if config.default %}.default({{ config.default | stringify }}){% endif %}
+    {%- if config.description %}.describe('{{ config.description }}'){% endif %},
+  {% endfor %}
+  
+  // Workflow execution settings
+  parallel: z.boolean().default({{ parallel || false }}).describe('Execute tasks in parallel'),
+  retries: z.number().default({{ retries || 3 }}).describe('Number of retries on failure'),
+  timeout: z.number().default({{ timeout || 30000 }}).describe('Timeout in milliseconds'),
+  continueOnError: z.boolean().default({{ continueOnError || false }}).describe('Continue execution on task failure'),
+});
+
+export type {{ name | pascalCase }}Config = z.infer<typeof {{ name | camelCase }}ConfigSchema>;
+
+/**
+ * {{ description }}
+ * 
+ * This workflow orchestrates the following tasks:
+ * {% for task in tasks %}
+ * - {{ task.name }}: {{ task.description }}
+ * {% endfor %}
+ */
+export const {{ name | camelCase }}Workflow: WorkflowDefinition<{{ name | pascalCase }}Config> = {
+  name: '{{ name | kebabCase }}',
+  version: '{{ version || "1.0.0" }}',
+  description: '{{ description }}',
+  {% if category %}category: '{{ category }}',{% endif %}
+  {% if tags %}tags: {{ tags | stringify }},{% endif %}
+  
+  schema: {{ name | camelCase }}ConfigSchema,
+  
+  {% if dependencies %}
+  dependencies: {{ dependencies | stringify }},
+  {% endif %}
+  
+  {% if prerequisites %}
+  prerequisites: {
+    {% for prereq in prerequisites %}
+    {{ prereq.name }}: {
+      check: {{ prereq.check | safe }},
+      message: '{{ prereq.message }}',
+      {% if prereq.fix %}fix: {{ prereq.fix | safe }},{% endif %}
+    },
+    {% endfor %}
+  },
+  {% endif %}
+
+  tasks: [
+    {% for task in tasks %}
+    {
+      id: '{{ task.id }}',
+      name: '{{ task.name }}',
+      description: '{{ task.description }}',
+      {% if task.dependsOn %}dependsOn: {{ task.dependsOn | stringify }},{% endif %}
+      {% if task.condition %}condition: {{ task.condition | safe }},{% endif %}
+      {% if task.timeout %}timeout: {{ task.timeout }},{% endif %}
+      {% if task.retries %}retries: {{ task.retries }},{% endif %}
+      {% if task.critical %}critical: {{ task.critical }},{% endif %}
+      
+      async execute(context: WorkflowContext<{{ name | pascalCase }}Config>): Promise<TaskResult> {
+        const { config, logger, state } = context;
+        
+        try {
+          logger.start('{{ task.actionText || ("Executing " + task.name) }}...');
+          
+          {% if task.validation %}
+          // Validate task preconditions
+          {{ task.validation | safe }}
+          {% endif %}
+          
+          {% if task.setup %}
+          // Task setup
+          {{ task.setup | safe }}
+          {% endif %}
+          
+          // Main task execution
+          {% if task.implementation %}
+          {{ task.implementation | safe }}
+          {% else %}
+          const result = await execute{{ task.name | pascalCase }}Task(config, context);
+          
+          // Store result in workflow state
+          state.{{ task.id }}Result = result;
+          {% endif %}
+          
+          {% if task.validation %}
+          // Validate task results
+          {{ task.postValidation | safe }}
+          {% endif %}
+          
+          logger.success('{{ task.successMessage || (task.name + " completed") }}');
+          
+          return {
+            success: true,
+            data: {% if task.returnData %}{{ task.returnData | safe }}{% else %}state.{{ task.id }}Result{% endif %},
+            {% if task.metadata %}metadata: {{ task.metadata | stringify }},{% endif %}
+          };
+          
+        } catch (error) {
+          logger.error('{{ task.errorPrefix || ("Task " + task.name + " failed") }}:', error.message);
+          
+          {% if task.cleanup %}
+          // Cleanup on error
+          try {
+            {{ task.cleanup | safe }}
+          } catch (cleanupError) {
+            logger.warn('Cleanup failed:', cleanupError.message);
+          }
+          {% endif %}
+          
+          return {
+            success: false,
+            error: error.message,
+            {% if task.errorMetadata %}metadata: {{ task.errorMetadata | stringify }},{% endif %}
+          };
+        }
+      },
+      
+      {% if task.rollback %}
+      async rollback(context: WorkflowContext<{{ name | pascalCase }}Config>): Promise<void> {
+        const { logger } = context;
+        
+        try {
+          logger.info('Rolling back {{ task.name }}...');
+          {{ task.rollback | safe }}
+          logger.success('{{ task.name }} rollback completed');
+        } catch (error) {
+          logger.error('Rollback failed for {{ task.name }}:', error.message);
+          throw error;
+        }
+      },
+      {% endif %}
+    },
+    {% endfor %}
+  ],
+
+  {% if hooks %}
+  hooks: {
+    {% if hooks.beforeStart %}
+    async beforeStart(context: WorkflowContext<{{ name | pascalCase }}Config>): Promise<void> {
+      {{ hooks.beforeStart | safe }}
+    },
+    {% endif %}
+    
+    {% if hooks.afterComplete %}
+    async afterComplete(context: WorkflowContext<{{ name | pascalCase }}Config>): Promise<void> {
+      {{ hooks.afterComplete | safe }}
+    },
+    {% endif %}
+    
+    {% if hooks.onError %}
+    async onError(context: WorkflowContext<{{ name | pascalCase }}Config>, error: Error): Promise<void> {
+      {{ hooks.onError | safe }}
+    },
+    {% endif %}
+    
+    {% if hooks.onTaskComplete %}
+    async onTaskComplete(context: WorkflowContext<{{ name | pascalCase }}Config>, taskId: string, result: TaskResult): Promise<void> {
+      {{ hooks.onTaskComplete | safe }}
+    },
+    {% endif %}
+  },
+  {% endif %}
+
+  {% if metrics %}
+  metrics: {
+    {% for metric in metrics %}
+    {{ metric.name }}: {
+      type: '{{ metric.type }}',
+      description: '{{ metric.description }}',
+      {% if metric.unit %}unit: '{{ metric.unit }}',{% endif %}
+      calculate: {{ metric.calculate | safe }},
+    },
+    {% endfor %}
+  },
+  {% endif %}
+};
+
+{% for task in tasks %}
+{% if not task.implementation %}
+/**
+ * Execute {{ task.name }} task
+ */
+async function execute{{ task.name | pascalCase }}Task(
+  config: {{ name | pascalCase }}Config,
+  context: WorkflowContext<{{ name | pascalCase }}Config>
+): Promise<unknown> {
+  // TODO: Implement {{ task.name }} task logic
+  {% if task.parameters %}
+  const { {{ task.parameters | join(", ") }} } = config;
+  {% endif %}
+  
+  {% if task.exampleImplementation %}
+  {{ task.exampleImplementation | safe }}
+  {% else %}
+  throw new Error('{{ task.name }} task not implemented');
+  {% endif %}
+}
+{% endif %}
+
+{% endfor %}
+
+{% if utilities %}
+// Utility functions
+{% for utility in utilities %}
+{{ utility.implementation | safe }}
+
+{% endfor %}
+{% endif %}
+
+export default {{ name | camelCase }}Workflow;

@@ -1,0 +1,10 @@
+
+> @unjs/unjucks@0.1.0 test /Users/sac/dev/citty
+> vitest --reporter=json
+
+Testing types with tsc and vue-tsc is an experimental feature.
+Breaking changes might not follow SemVer, please pin Vitest's version when using it.
+(node:73127) [DEP0147] DeprecationWarning: In future versions of Node.js, fs.rmdir(path, { recursive: true }) will be removed. Use fs.rm(path, { recursive: true }) instead
+(Use `node --trace-deprecation ...` to show where the warning was created)
+JSON report written to /Users/sac/dev/citty/test-results.json
+JSON report written to /Users/sac/dev/citty/test-results.json

@@ -1,0 +1,237 @@
+-- Auto-generated SQL schema from ontology
+-- Generated on {{ now() }} by Untology-Unjucks Pipeline
+-- Source: {{ ontology.metadata.source }}
+
+-- Database setup
+SET NAMES utf8mb4;
+SET CHARACTER SET utf8mb4;
+
+-- Create database if it doesn't exist
+CREATE DATABASE IF NOT EXISTS {{ ontology.metadata.source | basename | replace('.ttl', '') | replace('.rdf', '') | replace('.n3', '') | sqlTable }}_db 
+CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+USE {{ ontology.metadata.source | basename | replace('.ttl', '') | replace('.rdf', '') | replace('.n3', '') | sqlTable }}_db;
+
+-- Ontology metadata table
+CREATE TABLE IF NOT EXISTS ontology_metadata (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    source_file VARCHAR(255) NOT NULL,
+    generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    classes_count INT NOT NULL,
+    properties_count INT NOT NULL,
+    triples_count INT NOT NULL,
+    INDEX idx_source (source_file),
+    INDEX idx_generated (generated_at)
+) ENGINE=InnoDB;
+
+-- Insert metadata
+INSERT INTO ontology_metadata (source_file, classes_count, properties_count, triples_count)
+VALUES ('{{ ontology.metadata.source }}', {{ classes | length }}, {{ properties | length }}, {{ ontology.triples.length }});
+
+{% set classes = [] %}
+{% set allProps = [] %}
+{% for triple in ontology.triples %}
+  {% if triple.predicate == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' and (triple.object == 'http://www.w3.org/2002/07/owl#Class' or triple.object == 'http://www.w3.org/2000/01/rdf-schema#Class') %}
+    {% set classes = (classes.push(triple.subject), classes) %}
+  {% endif %}
+{% endfor %}
+
+-- Create tables for each class
+{% for classUri in classes | unique | sortBy('length') %}
+{% set className = classUri | localName | sqlTable %}
+{% set properties = classUri | properties %}
+{% set dataProps = classUri | dataProperties %}
+{% set objProps = classUri | objectProperties %}
+
+-- Table: {{ className }}
+-- Description: {{ classUri | comment or classUri | label }}
+-- Original URI: {{ classUri }}
+DROP TABLE IF EXISTS {{ className }};
+CREATE TABLE {{ className }} (
+    -- Primary key
+    id VARCHAR(255) PRIMARY KEY,
+    
+    -- RDF type information
+    rdf_type VARCHAR(500) NOT NULL DEFAULT '{{ classUri }}',
+    
+    -- Timestamps
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    {% for prop in dataProps %}
+    {% set propName = prop.property | localName | sqlTable %}
+    {% set sqlType = 'TEXT' %}
+    {% set nullable = 'NULL' %}
+    {% if prop.range %}
+      {% for rangeType in prop.range %}
+        {% if rangeType.includes('integer') %}
+          {% set sqlType = 'BIGINT' %}
+        {% elif rangeType.includes('boolean') %}
+          {% set sqlType = 'BOOLEAN' %}
+        {% elif rangeType.includes('dateTime') %}
+          {% set sqlType = 'DATETIME' %}
+        {% elif rangeType.includes('date') %}
+          {% set sqlType = 'DATE' %}
+        {% elif rangeType.includes('decimal') or rangeType.includes('float') or rangeType.includes('double') %}
+          {% set sqlType = 'DECIMAL(10,2)' %}
+        {% elif rangeType.includes('string') and rangeType.includes('length') %}
+          {% set sqlType = 'VARCHAR(255)' %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+    
+    -- {{ prop.property | comment or prop.property | label }}
+    -- Original URI: {{ prop.property }}
+    {{ propName }} {{ sqlType }} {{ nullable }},
+    {% endfor %}
+    
+    -- Indexes
+    INDEX idx_{{ className }}_rdf_type (rdf_type),
+    INDEX idx_{{ className }}_created (created_at),
+    INDEX idx_{{ className }}_updated (updated_at){% if dataProps | length > 0 %},{% endif %}
+    {% for prop in dataProps %}
+    {% set propName = prop.property | localName | sqlTable %}
+    INDEX idx_{{ className }}_{{ propName }} ({{ propName }}){% if not loop.last %},{% endif %}
+    {% endfor %}
+    
+) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+{% if objProps | length > 0 %}
+-- Relationship tables for {{ className }}
+{% for prop in objProps %}
+{% set propName = prop.property | localName | sqlTable %}
+{% set relationTable = className + '_' + propName %}
+{% set targetClass = 'entity' %}
+{% if prop.range %}
+  {% for rangeType in prop.range %}
+    {% set targetClass = rangeType | localName | sqlTable %}
+  {% endfor %}
+{% endif %}
+
+-- Relationship: {{ className }} {{ propName }} {{ targetClass }}
+-- Description: {{ prop.property | comment or prop.property | label }}
+-- Original URI: {{ prop.property }}
+DROP TABLE IF EXISTS {{ relationTable }};
+CREATE TABLE {{ relationTable }} (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    source_id VARCHAR(255) NOT NULL,
+    target_id VARCHAR(255) NOT NULL,
+    property_uri VARCHAR(500) NOT NULL DEFAULT '{{ prop.property }}',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Foreign keys
+    FOREIGN KEY (source_id) REFERENCES {{ className }}(id) ON DELETE CASCADE,
+    
+    -- Indexes
+    UNIQUE KEY unique_relationship (source_id, target_id, property_uri),
+    INDEX idx_{{ relationTable }}_source (source_id),
+    INDEX idx_{{ relationTable }}_target (target_id),
+    INDEX idx_{{ relationTable }}_property (property_uri),
+    INDEX idx_{{ relationTable }}_created (created_at)
+    
+) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+
+-- Generic triples table for any additional RDF data
+DROP TABLE IF EXISTS rdf_triples;
+CREATE TABLE rdf_triples (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    subject VARCHAR(500) NOT NULL,
+    predicate VARCHAR(500) NOT NULL,
+    object TEXT NOT NULL,
+    object_type ENUM('uri', 'literal', 'bnode') NOT NULL DEFAULT 'literal',
+    graph VARCHAR(500) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Indexes for efficient querying
+    INDEX idx_triples_subject (subject),
+    INDEX idx_triples_predicate (predicate),
+    INDEX idx_triples_object_type (object_type),
+    INDEX idx_triples_graph (graph),
+    INDEX idx_triples_spo (subject, predicate, object(100)),
+    INDEX idx_triples_created (created_at)
+    
+) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Views for easier querying
+{% for classUri in classes | unique %}
+{% set className = classUri | localName | sqlTable %}
+
+-- View for {{ className }} with all relationships
+CREATE OR REPLACE VIEW {{ className }}_full AS
+SELECT 
+    e.*{% set objProps = classUri | objectProperties %}{% for prop in objProps %},
+    {% set propName = prop.property | localName | sqlTable %}
+    {% set relationTable = className + '_' + propName %}
+    GROUP_CONCAT({{ propName }}_rel.target_id SEPARATOR ',') AS {{ propName }}_ids{% endfor %}
+FROM {{ className }} e
+{% for prop in objProps %}
+{% set propName = prop.property | localName | sqlTable %}
+{% set relationTable = className + '_' + propName %}
+LEFT JOIN {{ relationTable }} {{ propName }}_rel ON e.id = {{ propName }}_rel.source_id
+{% endfor %}
+GROUP BY e.id;
+
+{% endfor %}
+
+-- Utility stored procedures
+DELIMITER //
+
+-- Get all classes
+CREATE PROCEDURE GetAllClasses()
+BEGIN
+    {% set classNames = [] %}
+    {% for classUri in classes | unique %}
+    {% set className = classUri | localName | sqlTable %}
+    {% set classNames = (classNames.push("SELECT '" + className + "' as table_name, '" + classUri + "' as class_uri, COUNT(*) as instance_count FROM " + className), classNames) %}
+    {% endfor %}
+    
+    {{ classNames | join('\n    UNION ALL\n    ') }};
+END //
+
+-- Get entity by URI
+CREATE PROCEDURE GetEntity(IN entity_uri VARCHAR(500))
+BEGIN
+    DECLARE table_name VARCHAR(255);
+    DECLARE sql_stmt TEXT;
+    
+    -- Find which table contains this entity
+    {% for classUri in classes | unique %}
+    {% set className = classUri | localName | sqlTable %}
+    IF EXISTS(SELECT 1 FROM {{ className }} WHERE id = entity_uri) THEN
+        SET table_name = '{{ className }}';
+        SET sql_stmt = CONCAT('SELECT * FROM ', table_name, '_full WHERE id = ?');
+        PREPARE stmt FROM sql_stmt;
+        EXECUTE stmt USING entity_uri;
+        DEALLOCATE PREPARE stmt;
+    END IF;
+    {% endfor %}
+END //
+
+DELIMITER ;
+
+-- Sample queries (commented out)
+/*
+-- Get all instances of a class
+SELECT * FROM person_full;
+
+-- Find relationships
+SELECT p.first_name, p.last_name, o.organization_name
+FROM person p
+JOIN person_works_for pwo ON p.id = pwo.source_id
+JOIN organization o ON pwo.target_id = o.id;
+
+-- Full-text search across all entities
+SELECT 'person' as entity_type, id, first_name as name FROM person WHERE first_name LIKE '%search%'
+UNION ALL
+SELECT 'organization' as entity_type, id, organization_name as name FROM organization WHERE organization_name LIKE '%search%';
+*/
+
+-- Performance optimization
+ANALYZE TABLE {% for classUri in classes | unique %}{{ classUri | localName | sqlTable }}{% if not loop.last %}, {% endif %}{% endfor %};
+
+COMMIT;

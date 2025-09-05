@@ -104,32 +104,57 @@ export class ProjectGenerator {
    * Generate package files using Weaver Forge templates
    */
   private async generatePackageFiles(): Promise<void> {
-    const context: TemplateContext = {
-      name: this.options.name,
-      description: this.options.description,
-      version: "1.0.0",
-      author: this.options.author,
-      license: this.options.license || "MIT",
-      repository: this.options.repository,
-      commands: this.options.commands?.map(cmd => ({
-        name: cmd.name,
-        description: cmd.description,
-        args: cmd.args || [],
-      })) || [],
-      dependencies: this.generateDependencies(),
-      devDependencies: this.generateDevDependencies(),
-      scripts: this.generateScripts(),
-      includeOpenTelemetry: this.options.includeOpenTelemetry,
-      includeTests: this.options.includeTests,
-      includeDocs: this.options.includeDocs,
-    };
+    try {
+      const context: TemplateContext = {
+        name: this.options.name,
+        description: this.options.description,
+        version: "1.0.0",
+        author: this.options.author,
+        license: this.options.license || "MIT",
+        repository: this.options.repository,
+        commands: this.options.commands?.map(cmd => ({
+          name: cmd.name,
+          description: cmd.description,
+          args: cmd.args || [],
+        })) || [],
+        dependencies: this.generateDependencies(),
+        devDependencies: this.generateDevDependencies(),
+        scripts: this.generateScripts(),
+        includeOpenTelemetry: this.options.includeOpenTelemetry,
+        includeTests: this.options.includeTests,
+        includeDocs: this.options.includeDocs,
+      };
 
-    // Use Weaver Forge to generate project
-    weaverForge.generateProject(
-      this.options.template!,
-      this.options.outputDir,
-      context
-    );
+      // Validate template exists
+      if (!this.options.template) {
+        throw new Error('Template not specified');
+      }
+
+      // Use Weaver Forge to generate project
+      weaverForge.generateProject(
+        this.options.template,
+        this.options.outputDir,
+        context
+      );
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to generate package files: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Get package manager command with proper formatting
+   */
+  private getPackageManagerCommand(script: string): string {
+    switch (this.options.packageManager) {
+      case "yarn":
+        return `yarn ${script}`;
+      case "pnpm":
+        return `pnpm run ${script}`;
+      case "npm":
+      default:
+        return `npm run ${script}`;
+    }
   }
 
   /**
@@ -174,19 +199,40 @@ export class ProjectGenerator {
    * Initialize package manager and install dependencies
    */
   private async initializePackageManager(): Promise<void> {
-    const cwd = this.options.outputDir;
+    const cwd = resolve(this.options.outputDir);
     
     try {
       console.log(`📦 Installing dependencies with ${this.options.packageManager}...`);
       
-      const installCmd = this.options.packageManager === "yarn" ? "yarn" : 
-                        this.options.packageManager === "pnpm" ? "pnpm install" : "npm install";
+      // Validate package manager and construct command
+      let installCmd: string;
+      switch (this.options.packageManager) {
+        case "yarn":
+          installCmd = "yarn install";
+          break;
+        case "pnpm":
+          installCmd = "pnpm install";
+          break;
+        case "npm":
+        default:
+          installCmd = "npm install";
+          break;
+      }
+      
+      // Ensure package.json exists before installing
+      const packageJsonPath = join(cwd, 'package.json');
+      if (!existsSync(packageJsonPath)) {
+        throw new Error('package.json not found, cannot install dependencies');
+      }
       
       await this.execCommand(installCmd, { cwd });
       console.log("✅ Dependencies installed successfully");
     } catch (error) {
-      console.warn("⚠️  Failed to install dependencies automatically:", error);
-      console.log(`Please run: cd ${cwd} && ${this.options.packageManager} install`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.warn("⚠️  Failed to install dependencies automatically:", errorMessage);
+      console.log(`Please run manually:`);
+      console.log(`  cd ${cwd}`);
+      console.log(`  ${this.options.packageManager} install`);
     }
   }
 
@@ -194,21 +240,31 @@ export class ProjectGenerator {
    * Run initial build and test validation
    */
   private async runInitialValidation(): Promise<void> {
-    const cwd = this.options.outputDir;
+    const cwd = resolve(this.options.outputDir);
     
     try {
+      // Construct package manager commands
+      const buildCmd = this.getPackageManagerCommand('build');
+      const testCmd = this.getPackageManagerCommand('test');
+      
       console.log("🔧 Running initial build...");
-      await this.execCommand(`${this.options.packageManager} run build`, { cwd });
+      await this.execCommand(buildCmd, { cwd });
       console.log("✅ Build successful");
 
       if (this.options.includeTests) {
         console.log("🧪 Running tests...");
-        await this.execCommand(`${this.options.packageManager} test`, { cwd });
+        await this.execCommand(testCmd, { cwd });
         console.log("✅ Tests passed");
       }
     } catch (error) {
-      console.warn("⚠️  Initial validation failed:", error);
-      console.log("You may need to fix issues manually");
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.warn("⚠️  Initial validation failed:", errorMessage);
+      console.log("Manual steps to complete setup:");
+      console.log(`  cd ${cwd}`);
+      console.log(`  ${this.options.packageManager} run build`);
+      if (this.options.includeTests) {
+        console.log(`  ${this.options.packageManager} run test`);
+      }
     }
   }
 
@@ -391,28 +447,56 @@ ${command.args?.filter(arg => arg.required).map(arg => `      ${arg.name}: ${arg
   }
 
   /**
-   * Execute command helper
+   * Execute command helper with robust error handling
    */
   private execCommand(command: string, options: { cwd: string }): Promise<void> {
     return new Promise((resolve, reject) => {
-      const [cmd, ...args] = command.split(" ");
-      const child = spawn(cmd, args, {
-        cwd: options.cwd,
-        stdio: "inherit",
-        shell: true,
-      });
-
-      child.on("close", (code) => {
-        if (code === 0) {
-          resolve();
-        } else {
-          reject(new Error(`Command failed with exit code ${code}`));
+      try {
+        const [cmd, ...args] = command.split(" ");
+        
+        if (!cmd) {
+          reject(new Error("Empty command provided"));
+          return;
         }
-      });
 
-      child.on("error", (error) => {
-        reject(error);
-      });
+        // Validate that the directory exists
+        if (!existsSync(options.cwd)) {
+          reject(new Error(`Working directory does not exist: ${options.cwd}`));
+          return;
+        }
+
+        const child = spawn(cmd, args, {
+          cwd: options.cwd,
+          stdio: "inherit",
+          shell: process.platform === "win32",
+          env: { ...process.env, PATH: process.env.PATH },
+        });
+
+        // Set timeout for long-running commands
+        const timeout = setTimeout(() => {
+          child.kill('SIGTERM');
+          reject(new Error(`Command timeout: ${command}`));
+        }, 300000); // 5 minutes
+
+        child.on("close", (code, signal) => {
+          clearTimeout(timeout);
+          if (signal) {
+            reject(new Error(`Command killed with signal ${signal}: ${command}`));
+          } else if (code === 0) {
+            resolve();
+          } else {
+            reject(new Error(`Command failed with exit code ${code}: ${command}`));
+          }
+        });
+
+        child.on("error", (error) => {
+          clearTimeout(timeout);
+          reject(new Error(`Failed to spawn command: ${error.message}`));
+        });
+
+      } catch (error) {
+        reject(new Error(`Command execution setup failed: ${error instanceof Error ? error.message : 'Unknown error'}`));
+      }
     });
   }
 }

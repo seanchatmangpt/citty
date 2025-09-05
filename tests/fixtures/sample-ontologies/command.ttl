@@ -1,0 +1,419 @@
+# Sample Command Ontology for Testing
+# Defines a comprehensive set of CLI commands with various argument types
+
+@prefix cmd: <http://example.org/commands#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+# Command class definitions
+cmd:Command a owl:Class ;
+    rdfs:label "Command" ;
+    rdfs:comment "Base class for all CLI commands" .
+
+cmd:CommandGroup a owl:Class ;
+    rdfs:label "Command Group" ;
+    rdfs:comment "A group of related commands" .
+
+cmd:Argument a owl:Class ;
+    rdfs:label "Argument" ;
+    rdfs:comment "A command-line argument" .
+
+cmd:Option a owl:Class ;
+    rdfs:label "Option" ;
+    rdfs:comment "A command-line option/flag" .
+
+# Property definitions
+cmd:hasArgument a owl:ObjectProperty ;
+    rdfs:domain cmd:Command ;
+    rdfs:range cmd:Argument ;
+    rdfs:label "has argument" .
+
+cmd:hasOption a owl:ObjectProperty ;
+    rdfs:domain cmd:Command ;
+    rdfs:range cmd:Option ;
+    rdfs:label "has option" .
+
+cmd:hasSubCommand a owl:ObjectProperty ;
+    rdfs:domain cmd:Command ;
+    rdfs:range cmd:Command ;
+    rdfs:label "has sub-command" .
+
+cmd:inheritsFrom a owl:ObjectProperty ;
+    rdfs:domain cmd:Command ;
+    rdfs:range cmd:Command ;
+    rdfs:label "inherits from" .
+
+cmd:type a owl:DatatypeProperty ;
+    rdfs:domain [ owl:unionOf (cmd:Argument cmd:Option) ] ;
+    rdfs:range xsd:string ;
+    rdfs:label "data type" .
+
+cmd:required a owl:DatatypeProperty ;
+    rdfs:domain [ owl:unionOf (cmd:Argument cmd:Option) ] ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "required" .
+
+cmd:default a owl:DatatypeProperty ;
+    rdfs:domain [ owl:unionOf (cmd:Argument cmd:Option) ] ;
+    rdfs:label "default value" .
+
+cmd:description a owl:DatatypeProperty ;
+    rdfs:range xsd:string ;
+    rdfs:label "description" .
+
+cmd:category a owl:DatatypeProperty ;
+    rdfs:domain cmd:Command ;
+    rdfs:range xsd:string ;
+    rdfs:label "category" .
+
+cmd:alias a owl:DatatypeProperty ;
+    rdfs:domain [ owl:unionOf (cmd:Command cmd:Option) ] ;
+    rdfs:range xsd:string ;
+    rdfs:label "alias" .
+
+cmd:examples a owl:DatatypeProperty ;
+    rdfs:domain cmd:Command ;
+    rdfs:range xsd:string ;
+    rdfs:label "usage examples" .
+
+# Base command for inheritance
+cmd:BaseCommand a cmd:Command ;
+    rdfs:label "Base Command" ;
+    cmd:description "Base command with common options" ;
+    cmd:abstract true ;
+    cmd:hasOption cmd:verbose, cmd:config, cmd:help .
+
+# Development commands
+cmd:BuildCommand a cmd:Command ;
+    rdfs:label "Build Command" ;
+    cmd:description "Build the project with various options" ;
+    cmd:category "development" ;
+    cmd:inheritsFrom cmd:BaseCommand ;
+    cmd:alias "build" ;
+    cmd:hasArgument cmd:target ;
+    cmd:hasOption cmd:watch, cmd:production, cmd:sourcemap ;
+    cmd:examples "build --target=dist --watch" .
+
+cmd:TestCommand a cmd:Command ;
+    rdfs:label "Test Command" ;
+    cmd:description "Run project tests with coverage and filtering" ;
+    cmd:category "development" ;
+    cmd:inheritsFrom cmd:BaseCommand ;
+    cmd:alias "test" ;
+    cmd:hasArgument cmd:testPattern ;
+    cmd:hasOption cmd:coverage, cmd:watch, cmd:reporter ;
+    cmd:examples "test --coverage --pattern=*.spec.ts" .
+
+cmd:ServeCommand a cmd:Command ;
+    rdfs:label "Serve Command" ;
+    cmd:description "Start a development server" ;
+    cmd:category "development" ;
+    cmd:inheritsFrom cmd:BaseCommand ;
+    cmd:alias "serve" ;
+    cmd:hasArgument cmd:port, cmd:host ;
+    cmd:hasOption cmd:https, cmd:openBrowser, cmd:cors ;
+    cmd:examples "serve --port=8080 --https" .
+
+cmd:LintCommand a cmd:Command ;
+    rdfs:label "Lint Command" ;
+    cmd:description "Lint code with auto-fixing capabilities" ;
+    cmd:category "development" ;
+    cmd:inheritsFrom cmd:BaseCommand ;
+    cmd:alias "lint" ;
+    cmd:hasArgument cmd:files ;
+    cmd:hasOption cmd:fix, cmd:format, cmd:rules ;
+    cmd:examples "lint src/ --fix --format=stylish" .
+
+# Deployment commands
+cmd:DeployCommand a cmd:Command ;
+    rdfs:label "Deploy Command" ;
+    cmd:description "Deploy application to various environments" ;
+    cmd:category "deployment" ;
+    cmd:inheritsFrom cmd:BaseCommand ;
+    cmd:alias "deploy" ;
+    cmd:hasArgument cmd:environment ;
+    cmd:hasOption cmd:dryRun, cmd:force, cmd:rollback ;
+    cmd:examples "deploy production --dry-run" .
+
+cmd:PackageCommand a cmd:Command ;
+    rdfs:label "Package Command" ;
+    cmd:description "Package application for distribution" ;
+    cmd:category "deployment" ;
+    cmd:inheritsFrom cmd:BaseCommand ;
+    cmd:alias "package" ;
+    cmd:hasArgument cmd:format, cmd:output ;
+    cmd:hasOption cmd:minify, cmd:bundle ;
+    cmd:examples "package --format=zip --output=dist/" .
+
+# Database commands (subcommands example)
+cmd:DatabaseCommand a cmd:Command ;
+    rdfs:label "Database Command" ;
+    cmd:description "Database management operations" ;
+    cmd:category "database" ;
+    cmd:inheritsFrom cmd:BaseCommand ;
+    cmd:alias "db" ;
+    cmd:hasSubCommand cmd:CreateDatabaseCommand, cmd:MigrateDatabaseCommand, cmd:SeedDatabaseCommand .
+
+cmd:CreateDatabaseCommand a cmd:Command ;
+    rdfs:label "Create Database Command" ;
+    cmd:description "Create a new database" ;
+    cmd:category "database" ;
+    cmd:alias "create" ;
+    cmd:hasArgument cmd:databaseName ;
+    cmd:hasOption cmd:charset, cmd:collation .
+
+cmd:MigrateDatabaseCommand a cmd:Command ;
+    rdfs:label "Migrate Database Command" ;
+    cmd:description "Run database migrations" ;
+    cmd:category "database" ;
+    cmd:alias "migrate" ;
+    cmd:hasArgument cmd:direction ;
+    cmd:hasOption cmd:steps, cmd:dryRun .
+
+cmd:SeedDatabaseCommand a cmd:Command ;
+    rdfs:label "Seed Database Command" ;
+    cmd:description "Seed database with test data" ;
+    cmd:category "database" ;
+    cmd:alias "seed" ;
+    cmd:hasArgument cmd:seedFile ;
+    cmd:hasOption cmd:force .
+
+# Arguments definition
+cmd:target a cmd:Argument ;
+    rdfs:label "Build Target" ;
+    cmd:description "Directory or file to build" ;
+    cmd:type "string" ;
+    cmd:default "./dist" ;
+    cmd:required false .
+
+cmd:testPattern a cmd:Argument ;
+    rdfs:label "Test Pattern" ;
+    cmd:description "Glob pattern to match test files" ;
+    cmd:type "string" ;
+    cmd:required false .
+
+cmd:port a cmd:Argument ;
+    rdfs:label "Port Number" ;
+    cmd:description "Port number for the server" ;
+    cmd:type "number" ;
+    cmd:default 3000 ;
+    cmd:min 1 ;
+    cmd:max 65535 ;
+    cmd:required false .
+
+cmd:host a cmd:Argument ;
+    rdfs:label "Host Address" ;
+    cmd:description "Host address to bind server to" ;
+    cmd:type "string" ;
+    cmd:default "localhost" ;
+    cmd:required false .
+
+cmd:files a cmd:Argument ;
+    rdfs:label "Files" ;
+    cmd:description "Files or directories to lint" ;
+    cmd:type "array" ;
+    cmd:required true ;
+    cmd:variadic true .
+
+cmd:environment a cmd:Argument ;
+    rdfs:label "Environment" ;
+    cmd:description "Deployment environment" ;
+    cmd:type "string" ;
+    cmd:enum "development", "staging", "production" ;
+    cmd:required true .
+
+cmd:format a cmd:Argument ;
+    rdfs:label "Package Format" ;
+    cmd:description "Output package format" ;
+    cmd:type "string" ;
+    cmd:enum "zip", "tar", "docker" ;
+    cmd:default "zip" ;
+    cmd:required false .
+
+cmd:output a cmd:Argument ;
+    rdfs:label "Output Directory" ;
+    cmd:description "Directory for packaged output" ;
+    cmd:type "string" ;
+    cmd:default "./dist" ;
+    cmd:required false .
+
+cmd:databaseName a cmd:Argument ;
+    rdfs:label "Database Name" ;
+    cmd:description "Name of the database to create" ;
+    cmd:type "string" ;
+    cmd:required true .
+
+cmd:direction a cmd:Argument ;
+    rdfs:label "Migration Direction" ;
+    cmd:description "Direction to migrate (up/down)" ;
+    cmd:type "string" ;
+    cmd:enum "up", "down" ;
+    cmd:default "up" ;
+    cmd:required false .
+
+cmd:seedFile a cmd:Argument ;
+    rdfs:label "Seed File" ;
+    cmd:description "Path to seed data file" ;
+    cmd:type "string" ;
+    cmd:required false .
+
+# Options/Flags definition
+cmd:verbose a cmd:Option ;
+    rdfs:label "Verbose" ;
+    cmd:description "Enable verbose output" ;
+    cmd:type "boolean" ;
+    cmd:alias "-v" ;
+    cmd:default false ;
+    cmd:required false .
+
+cmd:config a cmd:Option ;
+    rdfs:label "Config File" ;
+    cmd:description "Path to configuration file" ;
+    cmd:type "string" ;
+    cmd:alias "-c" ;
+    cmd:required false .
+
+cmd:help a cmd:Option ;
+    rdfs:label "Help" ;
+    cmd:description "Show help information" ;
+    cmd:type "boolean" ;
+    cmd:alias "-h" ;
+    cmd:default false ;
+    cmd:required false .
+
+cmd:watch a cmd:Option ;
+    rdfs:label "Watch Mode" ;
+    cmd:description "Enable watch mode for automatic rebuilds" ;
+    cmd:type "boolean" ;
+    cmd:alias "-w" ;
+    cmd:default false ;
+    cmd:required false .
+
+cmd:production a cmd:Option ;
+    rdfs:label "Production Mode" ;
+    cmd:description "Build for production environment" ;
+    cmd:type "boolean" ;
+    cmd:alias "-p" ;
+    cmd:default false ;
+    cmd:required false .
+
+cmd:sourcemap a cmd:Option ;
+    rdfs:label "Source Maps" ;
+    cmd:description "Generate source maps" ;
+    cmd:type "boolean" ;
+    cmd:default false ;
+    cmd:required false .
+
+cmd:coverage a cmd:Option ;
+    rdfs:label "Coverage" ;
+    cmd:description "Generate test coverage report" ;
+    cmd:type "boolean" ;
+    cmd:default false ;
+    cmd:required false .
+
+cmd:reporter a cmd:Option ;
+    rdfs:label "Test Reporter" ;
+    cmd:description "Test output reporter format" ;
+    cmd:type "string" ;
+    cmd:enum "spec", "dot", "json", "html" ;
+    cmd:default "spec" ;
+    cmd:required false .
+
+cmd:https a cmd:Option ;
+    rdfs:label "HTTPS" ;
+    cmd:description "Enable HTTPS server" ;
+    cmd:type "boolean" ;
+    cmd:default false ;
+    cmd:required false .
+
+cmd:openBrowser a cmd:Option ;
+    rdfs:label "Open Browser" ;
+    cmd:description "Automatically open browser" ;
+    cmd:type "boolean" ;
+    cmd:default false ;
+    cmd:required false .
+
+cmd:cors a cmd:Option ;
+    rdfs:label "CORS" ;
+    cmd:description "Enable CORS headers" ;
+    cmd:type "boolean" ;
+    cmd:default false ;
+    cmd:required false .
+
+cmd:fix a cmd:Option ;
+    rdfs:label "Auto Fix" ;
+    cmd:description "Automatically fix linting errors" ;
+    cmd:type "boolean" ;
+    cmd:default false ;
+    cmd:required false .
+
+cmd:format a cmd:Option ;
+    rdfs:label "Output Format" ;
+    cmd:description "Linting output format" ;
+    cmd:type "string" ;
+    cmd:enum "stylish", "compact", "json" ;
+    cmd:default "stylish" ;
+    cmd:required false .
+
+cmd:rules a cmd:Option ;
+    rdfs:label "Linting Rules" ;
+    cmd:description "Path to custom linting rules" ;
+    cmd:type "string" ;
+    cmd:required false .
+
+cmd:dryRun a cmd:Option ;
+    rdfs:label "Dry Run" ;
+    cmd:description "Perform dry run without making changes" ;
+    cmd:type "boolean" ;
+    cmd:default false ;
+    cmd:required false .
+
+cmd:force a cmd:Option ;
+    rdfs:label "Force" ;
+    cmd:description "Force operation even if risky" ;
+    cmd:type "boolean" ;
+    cmd:default false ;
+    cmd:required false .
+
+cmd:rollback a cmd:Option ;
+    rdfs:label "Rollback" ;
+    cmd:description "Rollback to previous deployment" ;
+    cmd:type "boolean" ;
+    cmd:default false ;
+    cmd:required false .
+
+cmd:minify a cmd:Option ;
+    rdfs:label "Minify" ;
+    cmd:description "Minify packaged output" ;
+    cmd:type "boolean" ;
+    cmd:default false ;
+    cmd:required false .
+
+cmd:bundle a cmd:Option ;
+    rdfs:label "Bundle" ;
+    cmd:description "Bundle dependencies" ;
+    cmd:type "boolean" ;
+    cmd:default true ;
+    cmd:required false .
+
+cmd:charset a cmd:Option ;
+    rdfs:label "Character Set" ;
+    cmd:description "Database character set" ;
+    cmd:type "string" ;
+    cmd:default "utf8mb4" ;
+    cmd:required false .
+
+cmd:collation a cmd:Option ;
+    rdfs:label "Collation" ;
+    cmd:description "Database collation" ;
+    cmd:type "string" ;
+    cmd:default "utf8mb4_unicode_ci" ;
+    cmd:required false .
+
+cmd:steps a cmd:Option ;
+    rdfs:label "Migration Steps" ;
+    cmd:description "Number of migration steps to run" ;
+    cmd:type "number" ;
+    cmd:required false .

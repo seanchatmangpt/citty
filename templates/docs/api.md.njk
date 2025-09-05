@@ -1,0 +1,535 @@
+---
+to: docs/api/{{ module | kebabCase }}.md
+---
+# {{ module | titleCase }} API Reference
+
+{{ description }}
+
+{% if badges %}
+{% for badge in badges %}
+[![{{ badge.alt }}]({{ badge.src }})]({{ badge.href }})
+{% endfor %}
+{% endif %}
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+{% if classes %}
+- [Classes](#classes)
+  {% for class in classes %}
+  - [{{ class.name }}](#{{ class.name | lower }})
+  {% endfor %}
+{% endif %}
+{% if functions %}
+- [Functions](#functions)
+  {% for func in functions %}
+  - [{{ func.name }}](#{{ func.name | kebabCase }})
+  {% endfor %}
+{% endif %}
+{% if interfaces %}
+- [Interfaces](#interfaces)
+  {% for interface in interfaces %}
+  - [{{ interface.name }}](#{{ interface.name | lower }})
+  {% endfor %}
+{% endif %}
+{% if types %}
+- [Types](#types)
+  {% for type in types %}
+  - [{{ type.name }}](#{{ type.name | lower }})
+  {% endfor %}
+{% endif %}
+{% if constants %}
+- [Constants](#constants)
+{% endif %}
+{% if examples %}
+- [Examples](#examples)
+  {% for example in examples %}
+  - [{{ example.title }}](#{{ example.title | kebabCase }})
+  {% endfor %}
+{% endif %}
+
+## Installation
+
+```bash
+{{ installCommand || "pnpm add " + packageName }}
+```
+
+## Quick Start
+
+```typescript
+{{ quickStart | safe }}
+```
+
+{% if classes %}
+## Classes
+
+{% for class in classes %}
+### {{ class.name }}
+
+{{ class.description }}
+
+{% if class.example %}
+**Example**:
+```typescript
+{{ class.example | safe }}
+```
+{% endif %}
+
+#### Constructor
+
+```typescript
+constructor({{ class.constructor.parameters | map('name') | join(', ') }})
+```
+
+{% if class.constructor.parameters %}
+**Parameters:**
+{% for param in class.constructor.parameters %}
+- `{{ param.name }}`: `{{ param.type }}` - {{ param.description }}
+{% endfor %}
+{% endif %}
+
+#### Properties
+
+{% for prop in class.properties %}
+##### {{ prop.name }}
+
+```typescript
+{{ prop.accessibility || 'public' }} {{ prop.name }}: {{ prop.type }}
+```
+
+{{ prop.description }}
+
+{% if prop.example %}
+**Example**:
+```typescript
+{{ prop.example | safe }}
+```
+{% endif %}
+
+{% endfor %}
+
+#### Methods
+
+{% for method in class.methods %}
+##### {{ method.name }}
+
+```typescript
+{{ method.accessibility || 'public' }} {{ method.name }}({{ method.parameters | map('name') | join(', ') }}): {{ method.returnType }}
+```
+
+{{ method.description }}
+
+**Parameters:**
+{% for param in method.parameters %}
+- `{{ param.name }}`: `{{ param.type }}` - {{ param.description }}
+{% endfor %}
+
+**Returns:** `{{ method.returnType }}` - {{ method.returnDescription }}
+
+{% if method.throws %}
+**Throws:**
+{% for error in method.throws %}
+- `{{ error.type }}` - {{ error.description }}
+{% endfor %}
+{% endif %}
+
+{% if method.example %}
+**Example**:
+```typescript
+{{ method.example | safe }}
+```
+{% endif %}
+
+{% endfor %}
+
+---
+
+{% endfor %}
+{% endif %}
+
+{% if functions %}
+## Functions
+
+{% for func in functions %}
+### {{ func.name }}
+
+```typescript
+function {{ func.name }}({{ func.parameters | map('name') | join(', ') }}): {{ func.returnType }}
+```
+
+{{ func.description }}
+
+**Parameters:**
+{% for param in func.parameters %}
+- `{{ param.name }}`: `{{ param.type }}` - {{ param.description }}
+{% endfor %}
+
+**Returns:** `{{ func.returnType }}` - {{ func.returnDescription }}
+
+{% if func.throws %}
+**Throws:**
+{% for error in func.throws %}
+- `{{ error.type }}` - {{ error.description }}
+{% endfor %}
+{% endif %}
+
+{% if func.example %}
+**Example**:
+```typescript
+{{ func.example | safe }}
+```
+{% endif %}
+
+{% if func.seeAlso %}
+**See Also:**
+{% for link in func.seeAlso %}
+- [{{ link.text }}](#{{ link.anchor }})
+{% endfor %}
+{% endif %}
+
+---
+
+{% endfor %}
+{% endif %}
+
+{% if interfaces %}
+## Interfaces
+
+{% for interface in interfaces %}
+### {{ interface.name }}
+
+{{ interface.description }}
+
+```typescript
+interface {{ interface.name }}{% if interface.extends %} extends {{ interface.extends | join(', ') }}{% endif %} {
+  {% for prop in interface.properties %}
+  {{ prop.name }}{% if prop.optional %}?{% endif %}: {{ prop.type }};{% if prop.description %} // {{ prop.description }}{% endif %}
+  {% endfor %}
+  {% if interface.methods %}
+  
+  // Methods
+  {% for method in interface.methods %}
+  {{ method.name }}({{ method.parameters | map('name') | join(', ') }}): {{ method.returnType }};{% if method.description %} // {{ method.description }}{% endif %}
+  {% endfor %}
+  {% endif %}
+}
+```
+
+{% if interface.properties %}
+#### Properties
+
+{% for prop in interface.properties %}
+##### {{ prop.name }}
+
+- **Type:** `{{ prop.type }}`
+- **Optional:** {% if prop.optional %}Yes{% else %}No{% endif %}
+
+{{ prop.description }}
+
+{% endfor %}
+{% endif %}
+
+{% if interface.methods %}
+#### Methods
+
+{% for method in interface.methods %}
+##### {{ method.name }}
+
+```typescript
+{{ method.name }}({{ method.parameters | map('name') | join(', ') }}): {{ method.returnType }}
+```
+
+{{ method.description }}
+
+{% if method.parameters %}
+**Parameters:**
+{% for param in method.parameters %}
+- `{{ param.name }}`: `{{ param.type }}` - {{ param.description }}
+{% endfor %}
+{% endif %}
+
+**Returns:** `{{ method.returnType }}` - {{ method.returnDescription }}
+
+{% endfor %}
+{% endif %}
+
+---
+
+{% endfor %}
+{% endif %}
+
+{% if types %}
+## Types
+
+{% for type in types %}
+### {{ type.name }}
+
+```typescript
+type {{ type.name }} = {{ type.definition }};
+```
+
+{{ type.description }}
+
+{% if type.example %}
+**Example**:
+```typescript
+{{ type.example | safe }}
+```
+{% endif %}
+
+---
+
+{% endfor %}
+{% endif %}
+
+{% if enums %}
+## Enums
+
+{% for enum in enums %}
+### {{ enum.name }}
+
+{{ enum.description }}
+
+```typescript
+enum {{ enum.name }} {
+  {% for value in enum.values %}
+  {{ value.name }} = {{ value.value }},{% if value.description %} // {{ value.description }}{% endif %}
+  {% endfor %}
+}
+```
+
+#### Values
+
+{% for value in enum.values %}
+- **{{ value.name }}**: `{{ value.value }}` - {{ value.description }}
+{% endfor %}
+
+---
+
+{% endfor %}
+{% endif %}
+
+{% if constants %}
+## Constants
+
+{% for constant in constants %}
+### {{ constant.name }}
+
+```typescript
+const {{ constant.name }}: {{ constant.type }} = {{ constant.value | stringify }};
+```
+
+{{ constant.description }}
+
+{% endfor %}
+{% endif %}
+
+{% if examples %}
+## Examples
+
+{% for example in examples %}
+### {{ example.title }}
+
+{{ example.description }}
+
+```typescript
+{{ example.code | safe }}
+```
+
+{% if example.output %}
+**Output:**
+```
+{{ example.output }}
+```
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if configuration %}
+## Configuration
+
+{{ configuration.description }}
+
+### Options
+
+{% for option in configuration.options %}
+#### {{ option.name }}
+
+- **Type:** `{{ option.type }}`
+- **Default:** `{{ option.default | stringify }}`
+- **Required:** {% if option.required %}Yes{% else %}No{% endif %}
+
+{{ option.description }}
+
+{% if option.example %}
+**Example:**
+```typescript
+{{ option.example | safe }}
+```
+{% endif %}
+
+{% endfor %}
+
+### Example Configuration
+
+```typescript
+{{ configuration.example | safe }}
+```
+{% endif %}
+
+{% if errorHandling %}
+## Error Handling
+
+{{ errorHandling.description }}
+
+### Error Types
+
+{% for error in errorHandling.errors %}
+#### {{ error.name }}
+
+{{ error.description }}
+
+```typescript
+class {{ error.name }} extends {{ error.extends || 'Error' }} {
+  {% for prop in error.properties %}
+  {{ prop.name }}: {{ prop.type }};
+  {% endfor %}
+}
+```
+
+**Example:**
+```typescript
+{{ error.example | safe }}
+```
+
+{% endfor %}
+{% endif %}
+
+{% if migration %}
+## Migration Guide
+
+{{ migration.description }}
+
+{% for version in migration.versions %}
+### Migrating to {{ version.version }}
+
+{{ version.description }}
+
+#### Breaking Changes
+
+{% for change in version.breakingChanges %}
+- {{ change }}
+{% endfor %}
+
+#### Migration Steps
+
+{% for step in version.steps %}
+{{ loop.index }}. {{ step }}
+{% endfor %}
+
+{% if version.codeChanges %}
+#### Code Changes
+
+**Before:**
+```typescript
+{{ version.codeChanges.before | safe }}
+```
+
+**After:**
+```typescript
+{{ version.codeChanges.after | safe }}
+```
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if testing %}
+## Testing
+
+{{ testing.description }}
+
+### Test Utilities
+
+{% for utility in testing.utilities %}
+#### {{ utility.name }}
+
+```typescript
+{{ utility.signature }}
+```
+
+{{ utility.description }}
+
+**Example:**
+```typescript
+{{ utility.example | safe }}
+```
+
+{% endfor %}
+
+### Example Tests
+
+```typescript
+{{ testing.example | safe }}
+```
+{% endif %}
+
+{% if performance %}
+## Performance
+
+{{ performance.description }}
+
+### Benchmarks
+
+{% for benchmark in performance.benchmarks %}
+- **{{ benchmark.name }}**: {{ benchmark.result }}
+{% endfor %}
+
+### Optimization Tips
+
+{% for tip in performance.tips %}
+- {{ tip }}
+{% endfor %}
+{% endif %}
+
+{% if troubleshooting %}
+## Troubleshooting
+
+{% for issue in troubleshooting %}
+### {{ issue.problem }}
+
+**Symptoms:** {{ issue.symptoms }}
+
+**Cause:** {{ issue.cause }}
+
+**Solution:**
+{{ issue.solution }}
+
+{% if issue.example %}
+**Example:**
+```typescript
+{{ issue.example | safe }}
+```
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+## Contributing
+
+{{ contributing || "See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines." }}
+
+## License
+
+{{ license || "MIT" }}
+
+## Changelog
+
+See [CHANGELOG.md](../CHANGELOG.md) for version history.
+
+---
+
+**Generated on:** {{ generatedDate || "{{ new Date().toISOString().split('T')[0] }}" }}
+**API Version:** {{ apiVersion || version || "1.0.0" }}

@@ -61,7 +61,7 @@ const SystemConfigSchema = z.object({
 });
 
 const UnifiedConfigSchema = z.object({
-  environment: z.enum(['development', 'staging', 'production']),
+  environment: z.enum(['development', 'staging', 'production', 'test']),
   version: z.string(),
   
   // System configurations
@@ -169,7 +169,7 @@ const UnifiedConfigSchema = z.object({
     retryPolicy: z.object({
       maxRetries: z.number().default(3),
       initialDelay: z.number().default(1000),
-      backoffMultiplier: z.number().default(2
+      backoffMultiplier: z.number().default(2)
     })
   }),
   
@@ -205,6 +205,7 @@ export class ConfigManager extends EventEmitter {
 
   constructor() {
     super();
+    this.setMaxListeners(20); // Increase max listeners
     this.logger = new Logger('info');
     this.config = this.getDefaultConfig();
   }

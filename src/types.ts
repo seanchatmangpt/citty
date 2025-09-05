@@ -1,138 +1,106 @@
-// ----- Args -----
-
-export type ArgType =
-  | "boolean"
-  | "string"
-  | "number"
-  | "enum"
-  | "positional"
-  | undefined;
-
-// Args: Definition
-
-export type _ArgDef<T extends ArgType, VT extends boolean | number | string> = {
-  type?: T;
-  description?: string;
-  valueHint?: string;
-  alias?: string | string[];
-  default?: VT;
-  required?: boolean;
-  options?: (string | number)[];
-};
-
-export type BooleanArgDef = Omit<_ArgDef<"boolean", boolean>, "options"> & {
-  negativeDescription?: string;
-};
-export type StringArgDef = Omit<_ArgDef<"string", string>, "options">;
-export type NumberArgDef = Omit<_ArgDef<"number", number>, "options">;
-export type EnumArgDef = _ArgDef<"enum", string>;
-export type PositionalArgDef = Omit<
-  _ArgDef<"positional", string>,
-  "alias" | "options"
->;
-
-export type ArgDef =
-  | BooleanArgDef
-  | StringArgDef
-  | NumberArgDef
-  | PositionalArgDef
-  | EnumArgDef;
-
-export type ArgsDef = Record<string, ArgDef>;
-
-export type Arg = ArgDef & { name: string; alias: string[] };
-
-// Args: Parsed
-
-type ResolveParsedArgType<T extends ArgDef, VT> = T extends {
-  default?: any;
-  required?: boolean;
-}
-  ? T["default"] extends NonNullable<VT>
-    ? VT
-    : T["required"] extends true
-      ? VT
-      : VT | undefined
-  : VT | undefined;
-
-type ParsedPositionalArg<T extends ArgDef> = T extends { type: "positional" }
-  ? ResolveParsedArgType<T, string>
-  : never;
-
-type ParsedStringArg<T extends ArgDef> = T extends { type: "string" }
-  ? ResolveParsedArgType<T, string>
-  : never;
-
-type ParsedNumberArg<T extends ArgDef> = T extends { type: "number" }
-  ? ResolveParsedArgType<T, number>
-  : never;
-
-type ParsedBooleanArg<T extends ArgDef> = T extends { type: "boolean" }
-  ? ResolveParsedArgType<T, boolean>
-  : never;
-
-type ParsedEnumArg<T extends ArgDef> = T extends {
-  type: "enum";
-  options: infer U;
-}
-  ? U extends Array<any>
-    ? ResolveParsedArgType<T, U[number]>
-    : never
-  : never;
-
-type RawArgs = {
-  _: string[];
-};
-
-// prettier-ignore
-type ParsedArg<T extends ArgDef> =
-  T["type"] extends "positional" ? ParsedPositionalArg<T> :
-  T["type"] extends "boolean" ? ParsedBooleanArg<T> :
-  T["type"] extends "string" ? ParsedStringArg<T> :
-  T["type"] extends "number" ? ParsedNumberArg<T> :
-  T["type"] extends "enum" ? ParsedEnumArg<T> :
-  never;
-
-// prettier-ignore
-export type ParsedArgs<T extends ArgsDef = ArgsDef> = RawArgs &
-  { [K in keyof T]: ParsedArg<T[K]>; } & 
-  { [K in keyof T as T[K] extends { alias: string } ? T[K]["alias"] : never]: ParsedArg<T[K]> } &
-  { [K in keyof T as T[K] extends { alias: string[] } ? T[K]["alias"][number] : never]: ParsedArg<T[K]> } &
-  Record<string, string | number | boolean | string[]>;
-
-// ----- Command -----
-
-// Command: Shared
-
-export interface CommandMeta {
-  name?: string;
-  version?: string;
-  description?: string;
-  hidden?: boolean;
+export interface TemplateContext {
+  [key: string]: any;
 }
 
-// Command: Definition
+export interface TemplateFilter {
+  (value: any, ...args: any[]): any;
+}
 
-export type SubCommandsDef = Record<string, Resolvable<CommandDef<any>>>;
+export interface TemplateOptions {
+  autoescape?: boolean;
+  throwOnUndefined?: boolean;
+  trimBlocks?: boolean;
+  lstripBlocks?: boolean;
+  tags?: {
+    blockStart?: string;
+    blockEnd?: string;
+    variableStart?: string;
+    variableEnd?: string;
+    commentStart?: string;
+    commentEnd?: string;
+  };
+}
 
-export type CommandDef<T extends ArgsDef = ArgsDef> = {
-  meta?: Resolvable<CommandMeta>;
-  args?: Resolvable<T>;
-  subCommands?: Resolvable<SubCommandsDef>;
-  setup?: (context: CommandContext<T>) => any | Promise<any>;
-  cleanup?: (context: CommandContext<T>) => any | Promise<any>;
-  run?: (context: CommandContext<T>) => any | Promise<any>;
-};
+export interface WalkOptions {
+  extensions?: string[];
+  ignore?: string[];
+  maxDepth?: number;
+}
 
-export type CommandContext<T extends ArgsDef = ArgsDef> = {
-  rawArgs: string[];
-  args: ParsedArgs<T>;
-  cmd: CommandDef<T>;
-  subCommand?: CommandDef<T>;
-  data?: any;
-};
+export interface TemplateInfo {
+  path: string;
+  generator: string;
+  action: string;
+  relativePath: string;
+}
 
-// ----- Utils -----
+export interface OntologyEntity {
+  id: string;
+  type: string;
+  properties: Record<string, any>;
+  relationships: Array<{
+    type: string;
+    target: string;
+    properties?: Record<string, any>;
+  }>;
+}
 
-export type Awaitable<T> = () => T | Promise<T>;
-export type Resolvable<T> = T | Promise<T> | (() => T) | (() => Promise<T>);
+export interface OntologyContext {
+  entities: OntologyEntity[];
+  types: Record<string, any>;
+  relationships: Record<string, any>;
+}
+
+export interface CliOptions {
+  generator?: string;
+  action?: string;
+  output?: string;
+  dryRun?: boolean;
+  diff?: boolean;
+  context?: string;
+  ontology?: string;
+  interactive?: boolean;
+}
+
+export interface RenderResult {
+  output: string;
+  metadata: {
+    template: string;
+    context: TemplateContext;
+    timestamp: Date;
+    duration: number;
+  };
+}
+
+export class UnjucksError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public details?: any
+  ) {
+    super(message);
+    this.name = 'UnjucksError';
+  }
+}
+
+export class TemplateNotFoundError extends UnjucksError {
+  constructor(generator: string, action: string) {
+    super(
+      `Template not found for generator "${generator}" and action "${action}"`,
+      'TEMPLATE_NOT_FOUND',
+      { generator, action }
+    );
+  }
+}
+
+export class OntologyError extends UnjucksError {
+  constructor(message: string, source?: string) {
+    super(message, 'ONTOLOGY_ERROR', { source });
+  }
+}
+
+export class ContextError extends UnjucksError {
+  constructor(message: string, missingKeys?: string[]) {
+    super(message, 'CONTEXT_ERROR', { missingKeys });
+  }
+}

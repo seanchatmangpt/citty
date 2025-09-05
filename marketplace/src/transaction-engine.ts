@@ -48,7 +48,7 @@ export class TransactionEngine {
 
     // Validate transaction context
     const validation = this.validateContext(context);
-    if (!validation.valid) {
+    if (!validation.isValid) {
       return {
         transaction: {} as TransactionDimension,
         success: false,
@@ -67,13 +67,14 @@ export class TransactionEngine {
 
     // Generate transaction ID and security elements
     const transactionId = this.generateTransactionId();
-    const security = this.generateSecurityElements(context, transactionId);
+    const timestamp = new Date();
+    const security = this.generateSecurityElements(context, transactionId, timestamp.getTime(), pricing);
 
     // Create transaction object
     const transaction: TransactionDimension = {
       id: transactionId,
       coordinates: this.calculateTransactionCoordinates(context),
-      timestamp: new Date(),
+      timestamp,
       version: 1,
       buyer: {
         id: context.buyer.id,
@@ -106,7 +107,8 @@ export class TransactionEngine {
         return {
           transaction,
           success: false,
-          errors: ['Transaction blocked due to fraud detection']
+          errors: ['Transaction blocked due to fraud detection'],
+          warnings: warnings.length > 0 ? warnings : undefined
         };
       }
     }
@@ -127,6 +129,7 @@ export class TransactionEngine {
     // Basic validation
     if (!context.buyer || !context.seller || !context.product) {
       errors.push('Missing required transaction participants');
+      return { isValid: false, errors };
     }
 
     if (context.buyer.id === context.seller.id) {
@@ -135,6 +138,11 @@ export class TransactionEngine {
 
     if (context.quantity <= 0) {
       errors.push('Quantity must be positive');
+    }
+
+    // Price validation - allow zero for free products
+    if (context.product.price.base < 0) {
+      errors.push('Product price cannot be negative');
     }
 
     // Availability check
@@ -151,7 +159,7 @@ export class TransactionEngine {
       errors.push('All entities must have dimensional coordinates');
     }
 
-    return { valid: errors.length === 0, errors };
+    return { isValid: errors.length === 0, errors };
   }
 
   private calculateTrustMetrics(context: TransactionContext): TrustMetrics {
@@ -253,16 +261,19 @@ export class TransactionEngine {
 
   private generateSecurityElements(
     context: TransactionContext,
-    transactionId: string
+    transactionId: string,
+    timestamp: number,
+    pricing: TransactionDimension['pricing']
   ): TransactionDimension['security'] {
-    // Create hash of transaction data
+    // Create hash of transaction data including pricing
     const data = JSON.stringify({
       id: transactionId,
       buyer: context.buyer.id,
       seller: context.seller.id,
       product: context.product.id,
       quantity: context.quantity,
-      timestamp: Date.now()
+      timestamp: timestamp,
+      pricing: pricing.final // Include final price in hash
     });
 
     const hash = crypto.createHash('sha256').update(data).digest('hex');
@@ -309,7 +320,15 @@ export class TransactionEngine {
     // Check for price manipulation
     const expectedPrice = context.product.price.base * context.quantity;
     const actualPrice = transaction.pricing.final;
-    const priceDeviation = Math.abs(actualPrice - expectedPrice) / expectedPrice;
+    
+    // Handle zero price products
+    let priceDeviation = 0;
+    if (expectedPrice > 0) {
+      priceDeviation = Math.abs(actualPrice - expectedPrice) / expectedPrice;
+    } else {
+      // For zero-price products, only flag if final price is unexpectedly high
+      priceDeviation = actualPrice > 10 ? 1 : 0; // Flag if final price > 10 for zero-base product
+    }
 
     if (priceDeviation > 0.5) {
       suspicious = true;
@@ -383,17 +402,31 @@ export class TransactionEngine {
     const transaction = this.transactions.get(transactionId);
     if (!transaction) return false;
 
-    // Reconstruct the hash and compare
+    // Reconstruct the hash using the same format as creation
     const data = JSON.stringify({
       id: transactionId,
       buyer: transaction.buyer.id,
       seller: transaction.seller.id,
       product: transaction.product.id,
-      quantity: transaction.product.quantity,
-      timestamp: transaction.timestamp.getTime()
+      quantity: transaction.product.quantity, // Quantity is stored in product
+      timestamp: transaction.timestamp.getTime(),
+      pricing: transaction.pricing.final // Include pricing in verification
     });
 
     const expectedHash = crypto.createHash('sha256').update(data).digest('hex');
-    return transaction.security.hash === expectedHash;
+    
+    // Debug output
+    // console.log('Verification data:', data);
+    // console.log('Expected hash:', expectedHash);
+    // console.log('Actual hash:', transaction.security.hash);
+    
+    // Also verify signature
+    const expectedSignature = crypto
+      .createHmac('sha256', 'marketplace_secret_key')
+      .update(data)
+      .digest('hex');
+    
+    return transaction.security.hash === expectedHash && 
+           transaction.security.signature === expectedSignature;
   }
 }

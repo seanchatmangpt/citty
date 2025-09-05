@@ -162,8 +162,23 @@ const searchResults = ref<MarketplaceItemUnion[]>([])
 const searchLoading = ref(false)
 const searchInput = ref<HTMLInputElement>()
 
-// Mock recent searches (in real app, this would be from localStorage or user data)
-const recentSearches = ref(['vue template', 'auth plugin', 'docker workflow'])
+// Recent searches from localStorage
+const recentSearches = ref<string[]>([])
+
+// Load recent searches from localStorage
+onMounted(() => {
+  if (process.client) {
+    const stored = localStorage.getItem('recent-searches')
+    if (stored) {
+      try {
+        recentSearches.value = JSON.parse(stored).slice(0, 5) // Keep only last 5
+      } catch (e) {
+        console.warn('Failed to parse stored searches:', e)
+        recentSearches.value = []
+      }
+    }
+  }
+})
 
 // Quick filter options
 const quickFilters = [
@@ -226,14 +241,34 @@ const performSearch = async (query: string) => {
   
   searchLoading.value = true
   try {
-    // Mock search - replace with actual API call
+    // Real API call to dimensional search endpoint
     const response = await $fetch('/api/marketplace/search', {
-      query: { query, limit: 10 }
+      query: { 
+        q: query.trim(), 
+        limit: 10,
+        sortBy: 'downloads',
+        sortOrder: 'desc'
+      }
     })
+    
     searchResults.value = response.items || []
-  } catch (error) {
+    
+    // Track search activity if WebSocket is available
+    const { trackSearchQuery } = useWebSocket({ autoConnect: false })
+    trackSearchQuery(query, { modal: true, resultsCount: searchResults.value.length })
+    
+  } catch (error: any) {
     console.error('Search error:', error)
     searchResults.value = []
+    
+    // Show user-friendly error message
+    if (error.statusCode === 400) {
+      // Handle validation errors gracefully
+      console.warn('Invalid search parameters:', error.data)
+    } else if (error.statusCode >= 500) {
+      // Server error - could show a toast notification
+      console.error('Server error during search:', error.message)
+    }
   } finally {
     searchLoading.value = false
   }
@@ -242,14 +277,26 @@ const performSearch = async (query: string) => {
 const handleSearch = () => {
   if (!searchQuery.value.trim()) return
   
-  // Add to recent searches
-  if (!recentSearches.value.includes(searchQuery.value)) {
-    recentSearches.value.unshift(searchQuery.value)
+  const query = searchQuery.value.trim()
+  
+  // Add to recent searches and persist to localStorage
+  if (!recentSearches.value.includes(query)) {
+    recentSearches.value.unshift(query)
     recentSearches.value = recentSearches.value.slice(0, 5)
+    
+    // Save to localStorage
+    if (process.client) {
+      try {
+        localStorage.setItem('recent-searches', JSON.stringify(recentSearches.value))
+      } catch (e) {
+        console.warn('Failed to save recent searches:', e)
+      }
+    }
   }
   
-  // Navigate to search results
-  router.push(`/marketplace?q=${encodeURIComponent(searchQuery.value)}`)
+  // Navigate to search results with proper query encoding
+  const searchParams = new URLSearchParams({ q: query })
+  router.push(`/marketplace?${searchParams.toString()}`)
   emit('update:open', false)
 }
 

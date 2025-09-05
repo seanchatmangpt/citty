@@ -1,0 +1,172 @@
+---
+to: src/commands/{{ name | kebabCase }}.ts
+---
+import { defineCommand } from 'citty';
+import { z } from 'zod';
+import { consola } from 'consola';
+import type { CommandDef } from 'citty';
+{% if ontology.imports %}
+{% for import in ontology.imports %}
+import {{ import.statement }};
+{% endfor %}
+{% endif %}
+
+/**
+ * Schema for {{ name | kebabCase }} command arguments
+ */
+const {{ name | camelCase }}Schema = z.object({
+  {% for arg in arguments %}
+  {{ arg.name }}: z.{{ arg.type }}()
+    {%- if arg.optional %}.optional(){% endif %}
+    {%- if arg.default %}.default({{ arg.default | stringify }}){% endif %}
+    {%- if arg.description %}.describe('{{ arg.description }}'){% endif %},
+  {% endfor %}
+  {% if hasFlags %}
+  // Common flags
+  verbose: z.boolean().default(false).describe('Enable verbose output'),
+  force: z.boolean().default(false).describe('Force operation without confirmation'),
+  {% endif %}
+});
+
+export type {{ name | pascalCase }}Args = z.infer<typeof {{ name | camelCase }}Schema>;
+
+/**
+ * {{ description }}
+ * 
+ * @example
+ * ```bash
+ * citty {{ name | kebabCase }}{% for arg in arguments %} --{{ arg.name }} "{{ arg.example }}"{% endfor %}
+ * ```
+ */
+export default defineCommand({
+  meta: {
+    name: '{{ name | kebabCase }}',
+    description: '{{ description }}',
+    version: '{{ version || "1.0.0" }}',
+    {% if category %}category: '{{ category }}',{% endif %}
+    {% if tags %}tags: {{ tags | stringify }},{% endif %}
+  },
+  args: {
+    {% for arg in arguments %}
+    {{ arg.name }}: {
+      type: '{{ arg.type }}',
+      {% if arg.alias %}alias: '{{ arg.alias }}',{% endif %}
+      description: '{{ arg.description }}',
+      {% if arg.required %}required: true,{% endif %}
+      {% if arg.default %}default: {{ arg.default | stringify }},{% endif %}
+      {% if arg.choices %}choices: {{ arg.choices | stringify }},{% endif %}
+    },
+    {% endfor %}
+    {% if hasFlags %}
+    verbose: {
+      type: 'boolean',
+      alias: 'v',
+      description: 'Enable verbose output',
+      default: false,
+    },
+    force: {
+      type: 'boolean',
+      alias: 'f',
+      description: 'Force operation without confirmation',
+      default: false,
+    },
+    {% endif %}
+  },
+  async run({ args, cmd }) {
+    try {
+      // Validate arguments
+      const validatedArgs = {{ name | camelCase }}Schema.parse(args);
+      
+      {% if hasVerboseLogging %}
+      if (validatedArgs.verbose) {
+        consola.level = 4; // Debug level
+        consola.debug('Command arguments:', validatedArgs);
+      }
+      {% endif %}
+
+      consola.start('{{ actionText || ("Running " + name) }}...');
+
+      {% if ontology.context %}
+      // Initialize ontology context
+      const context = {
+        command: '{{ name | kebabCase }}',
+        timestamp: new Date().toISOString(),
+        args: validatedArgs,
+        {% for key, value in ontology.context %}
+        {{ key }}: {{ value | stringify }},
+        {% endfor %}
+      };
+      {% endif %}
+
+      {% if hasPreHooks %}
+      // Pre-execution hooks
+      {% for hook in preHooks %}
+      await {{ hook.name }}(validatedArgs, context);
+      {% endfor %}
+      {% endif %}
+
+      // Main command implementation
+      await execute{{ name | pascalCase }}(validatedArgs{% if ontology.context %}, context{% endif %});
+
+      {% if hasPostHooks %}
+      // Post-execution hooks
+      {% for hook in postHooks %}
+      await {{ hook.name }}(validatedArgs, context);
+      {% endfor %}
+      {% endif %}
+
+      consola.success('{{ successMessage || (name + " completed successfully") }}');
+
+    } catch (error) {
+      {% if hasErrorHandling %}
+      if (error instanceof z.ZodError) {
+        consola.error('Invalid arguments:');
+        error.errors.forEach(err => {
+          consola.error(`  ${err.path.join('.')}: ${err.message}`);
+        });
+        process.exit(1);
+      }
+      
+      if (error instanceof {{ errorType || "Error" }}) {
+        consola.error('{{ errorPrefix || "Command failed" }}:', error.message);
+        if (args.verbose) {
+          consola.debug('Stack trace:', error.stack);
+        }
+        process.exit(1);
+      }
+      {% endif %}
+
+      consola.error('Unexpected error:', error);
+      process.exit(1);
+    }
+  }
+}) satisfies CommandDef;
+
+/**
+ * Core implementation for {{ name | kebabCase }} command
+ */
+async function execute{{ name | pascalCase }}(
+  args: {{ name | pascalCase }}Args{% if ontology.context %},
+  context: Record<string, unknown>{% endif %}
+): Promise<void> {
+  {% if implementation %}
+  {{ implementation | safe }}
+  {% else %}
+  // TODO: Implement {{ name | kebabCase }} functionality
+  {% for arg in arguments %}
+  consola.info('{{ arg.name | capitalize }}:', args.{{ arg.name }});
+  {% endfor %}
+  
+  // Core logic here
+  {% if isAsync %}
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  {% endif %}
+  {% endif %}
+}
+
+{% if exports %}
+// Additional exports
+{% for export in exports %}
+export {{ export.statement }};
+{% endfor %}
+{% endif %}

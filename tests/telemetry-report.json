@@ -1,0 +1,16 @@
+{
+  "totalDuration": 25907.39575,
+  "templateRenders": 0,
+  "averageRenderTime": 0,
+  "cacheHitRate": 0,
+  "fileWrites": 0,
+  "memoryUsage": {
+    "rss": 226000896,
+    "heapTotal": 27213824,
+    "heapUsed": 18611256,
+    "external": 4920510,
+    "arrayBuffers": 82791
+  },
+  "errors": [],
+  "metrics": []
+}

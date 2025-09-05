@@ -472,43 +472,171 @@ export class MultiProviderAI extends EventEmitter {
   }
 
   private async executeOllamaRequest(client: any, request: AIRequest): Promise<any> {
-    // Mock Ollama request - in production, use actual Ollama client
-    await this.delay(Math.random() * 1000 + 500); // Simulate processing time
-    
-    return {
-      content: `[Ollama Response] ${request.prompt.substring(0, 100)}... (processed locally)`,
-      model: request.model || 'llama2',
-      tokens: Math.floor(request.prompt.length / 4) + Math.floor(Math.random() * 500)
+    // Real Ollama API integration
+    const requestBody = {
+      model: request.model || 'llama3.1',
+      prompt: request.systemPrompt ? `${request.systemPrompt}\n\n${request.prompt}` : request.prompt,
+      stream: false,
+      options: {
+        temperature: request.temperature || 0.7,
+        num_predict: request.maxTokens || 2048,
+        top_k: 40,
+        top_p: 0.9
+      }
     };
+    
+    try {
+      const response = await fetch(`${client.endpoint}/api/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(client.timeout || 60000)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      return {
+        content: data.response || '',
+        model: requestBody.model,
+        tokens: data.eval_count || 0,
+        metadata: {
+          eval_duration: data.eval_duration,
+          total_duration: data.total_duration,
+          load_duration: data.load_duration,
+          prompt_eval_count: data.prompt_eval_count
+        }
+      };
+      
+    } catch (error) {
+      throw new Error(`Ollama execution failed: ${error.message}`);
+    }
   }
 
   private async executeOpenAIRequest(client: any, request: AIRequest): Promise<any> {
-    // Mock OpenAI request - in production, use actual OpenAI client
-    await this.delay(Math.random() * 2000 + 1000);
+    // Real OpenAI API integration
+    if (!client.apiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
     
-    return {
-      content: `[OpenAI Response] ${request.prompt.substring(0, 100)}... (processed via OpenAI)`,
-      model: request.model || 'gpt-3.5-turbo',
-      usage: {
-        prompt_tokens: Math.floor(request.prompt.length / 4),
-        completion_tokens: Math.floor(Math.random() * 500),
-        total_tokens: Math.floor(request.prompt.length / 4) + Math.floor(Math.random() * 500)
-      }
+    const messages = [];
+    if (request.systemPrompt) {
+      messages.push({ role: 'system', content: request.systemPrompt });
+    }
+    messages.push({ role: 'user', content: request.prompt });
+    
+    const requestBody = {
+      model: request.model || 'gpt-4o',
+      messages: messages,
+      temperature: request.temperature || 0.7,
+      max_tokens: request.maxTokens || 4096,
+      top_p: 1.0,
+      frequency_penalty: 0,
+      presence_penalty: 0
     };
+    
+    try {
+      const response = await fetch(`${client.endpoint}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${client.apiKey}`
+        },
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(60000)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`OpenAI API error: ${response.status} ${errorData.error?.message || response.statusText}`);
+      }
+      
+      const data = await response.json();
+      const choice = data.choices[0];
+      
+      return {
+        content: choice?.message?.content || '',
+        model: data.model,
+        usage: data.usage,
+        metadata: {
+          id: data.id,
+          finish_reason: choice?.finish_reason,
+          system_fingerprint: data.system_fingerprint
+        }
+      };
+      
+    } catch (error) {
+      throw new Error(`OpenAI execution failed: ${error.message}`);
+    }
   }
 
   private async executeAnthropicRequest(client: any, request: AIRequest): Promise<any> {
-    // Mock Anthropic request - in production, use actual Anthropic client
-    await this.delay(Math.random() * 1500 + 800);
+    // Real Anthropic API integration
+    if (!client.apiKey) {
+      throw new Error('Anthropic API key not configured');
+    }
     
-    return {
-      content: `[Claude Response] ${request.prompt.substring(0, 100)}... (processed via Anthropic)`,
-      model: request.model || 'claude-3-sonnet-20240229',
-      usage: {
-        input_tokens: Math.floor(request.prompt.length / 4),
-        output_tokens: Math.floor(Math.random() * 500)
-      }
+    let prompt = request.prompt;
+    if (request.systemPrompt) {
+      prompt = `${request.systemPrompt}\n\nHuman: ${request.prompt}\n\nAssistant:`;
+    }
+    
+    const requestBody = {
+      model: request.model || 'claude-3-5-sonnet-20241022',
+      max_tokens: request.maxTokens || 4096,
+      temperature: request.temperature || 0.7,
+      messages: [
+        {
+          role: 'user',
+          content: request.prompt
+        }
+      ],
+      ...(request.systemPrompt && {
+        system: request.systemPrompt
+      })
     };
+    
+    try {
+      const response = await fetch(`${client.endpoint}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${client.apiKey}`,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(60000)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Anthropic API error: ${response.status} ${errorData.error?.message || response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      return {
+        content: data.content[0]?.text || '',
+        model: data.model,
+        usage: data.usage,
+        metadata: {
+          id: data.id,
+          type: data.type,
+          role: data.role,
+          stop_reason: data.stop_reason,
+          stop_sequence: data.stop_sequence
+        }
+      };
+      
+    } catch (error) {
+      throw new Error(`Anthropic execution failed: ${error.message}`);
+    }
   }
 
   private async executeGenericRequest(client: any, request: AIRequest): Promise<any> {

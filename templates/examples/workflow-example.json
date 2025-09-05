@@ -1,0 +1,177 @@
+{
+  "name": "cicd-pipeline",
+  "description": "Comprehensive CI/CD pipeline for building, testing, and deploying applications with multi-environment support",
+  "version": "1.3.0",
+  "category": "CI/CD",
+  "tags": ["build", "test", "deploy", "automation"],
+  "parallel": false,
+  "retries": 3,
+  "timeout": 1800000,
+  "continueOnError": false,
+  "configuration": [
+    {
+      "name": "environment",
+      "type": "string",
+      "description": "Target deployment environment",
+      "default": "staging"
+    },
+    {
+      "name": "buildConfig",
+      "type": "string", 
+      "description": "Build configuration file path",
+      "default": "./build.config.json"
+    },
+    {
+      "name": "testSuites",
+      "type": "array",
+      "description": "Test suites to execute",
+      "default": ["unit", "integration"]
+    },
+    {
+      "name": "deployStrategy",
+      "type": "string",
+      "description": "Deployment strategy",
+      "default": "rolling"
+    },
+    {
+      "name": "notifications",
+      "type": "boolean",
+      "description": "Send notifications on completion",
+      "default": true
+    }
+  ],
+  "dependencies": ["docker", "kubectl", "helm"],
+  "prerequisites": [
+    {
+      "name": "dockerRunning",
+      "check": "await checkDockerStatus()",
+      "message": "Docker daemon must be running"
+    },
+    {
+      "name": "kubernetesAccess", 
+      "check": "await validateKubeConfig()",
+      "message": "Valid Kubernetes configuration required"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "prepare",
+      "name": "Prepare Environment",
+      "description": "Set up build environment and validate prerequisites",
+      "actionText": "Preparing build environment",
+      "successMessage": "Environment prepared",
+      "timeout": 120000,
+      "critical": true,
+      "validation": "if (!config.buildConfig) throw new Error('Build config required');",
+      "setup": "await setupBuildEnvironment(config);",
+      "implementation": "const envInfo = await prepareEnvironment({\n  config: config.buildConfig,\n  environment: config.environment\n});\nstate.environmentInfo = envInfo;",
+      "postValidation": "if (!state.environmentInfo?.ready) throw new Error('Environment not ready');"
+    },
+    {
+      "id": "build",
+      "name": "Build Application", 
+      "description": "Compile and bundle application artifacts",
+      "dependsOn": ["prepare"],
+      "actionText": "Building application",
+      "successMessage": "Build completed",
+      "timeout": 600000,
+      "retries": 2,
+      "implementation": "const buildResult = await buildApplication({\n  config: config.buildConfig,\n  environment: config.environment,\n  version: context.metadata.executionId\n});\nstate.buildArtifacts = buildResult.artifacts;",
+      "cleanup": "await cleanupBuildFiles();"
+    },
+    {
+      "id": "test",
+      "name": "Run Test Suites",
+      "description": "Execute comprehensive test suites with coverage reporting", 
+      "dependsOn": ["build"],
+      "actionText": "Running test suites",
+      "successMessage": "All tests passed",
+      "timeout": 900000,
+      "implementation": "const testResults = await runTestSuites({\n  suites: config.testSuites,\n  artifacts: state.buildArtifacts,\n  coverage: true\n});\nstate.testResults = testResults;",
+      "rollback": "await publishTestResults(state.testResults, { failed: true });"
+    },
+    {
+      "id": "security-scan",
+      "name": "Security Scanning",
+      "description": "Perform security vulnerability scanning",
+      "dependsOn": ["build"],
+      "actionText": "Scanning for security vulnerabilities", 
+      "successMessage": "Security scan completed",
+      "timeout": 300000,
+      "implementation": "const scanResults = await performSecurityScan({\n  artifacts: state.buildArtifacts,\n  severityThreshold: 'medium'\n});\nstate.securityResults = scanResults;"
+    },
+    {
+      "id": "deploy",
+      "name": "Deploy to Environment",
+      "description": "Deploy application using specified strategy",
+      "dependsOn": ["test", "security-scan"],
+      "condition": "state.testResults?.passed && state.securityResults?.clean",
+      "actionText": "Deploying application",
+      "successMessage": "Deployment completed",
+      "timeout": 1200000,
+      "critical": true,
+      "implementation": "const deployResult = await deployApplication({\n  artifacts: state.buildArtifacts,\n  environment: config.environment,\n  strategy: config.deployStrategy,\n  version: context.metadata.executionId\n});\nstate.deploymentInfo = deployResult;",
+      "rollback": "await rollbackDeployment(state.deploymentInfo);"
+    },
+    {
+      "id": "verify",
+      "name": "Verify Deployment",
+      "description": "Run post-deployment verification checks",
+      "dependsOn": ["deploy"],
+      "actionText": "Verifying deployment",
+      "successMessage": "Deployment verified",
+      "timeout": 180000,
+      "implementation": "const verificationResults = await verifyDeployment({\n  deployment: state.deploymentInfo,\n  healthChecks: true,\n  smokeTests: true\n});\nstate.verificationResults = verificationResults;"
+    }
+  ],
+  "hooks": {
+    "beforeStart": "logger.info('Starting CI/CD pipeline for environment:', config.environment);\nawait notifyPipelineStart(config);",
+    "afterComplete": "await generatePipelineReport(context);\nif (config.notifications) {\n  await notifyPipelineComplete(context, state);\n}",
+    "onError": "logger.error('Pipeline failed at task:', context.currentTask);\nif (config.notifications) {\n  await notifyPipelineFailure(context, error);\n}",
+    "onTaskComplete": "logger.info(`Task ${taskId} completed in ${result.metadata?.executionTime}ms`);\nawait updatePipelineStatus(taskId, result);"
+  },
+  "metrics": [
+    {
+      "name": "totalBuildTime",
+      "type": "duration",
+      "description": "Total pipeline execution time",
+      "unit": "milliseconds",
+      "calculate": "Date.now() - context.startTime"
+    },
+    {
+      "name": "testCoverage", 
+      "type": "percentage",
+      "description": "Code coverage percentage",
+      "calculate": "state.testResults?.coverage || 0"
+    },
+    {
+      "name": "artifactSize",
+      "type": "bytes",
+      "description": "Total size of build artifacts",
+      "unit": "bytes", 
+      "calculate": "state.buildArtifacts?.reduce((sum, a) => sum + a.size, 0) || 0"
+    }
+  ],
+  "ontology": {
+    "imports": [
+      {
+        "statement": "{ PipelineConfig } from '../types/pipeline'"
+      },
+      {
+        "statement": "{ deployApplication, rollbackDeployment } from '../services/deployment'"
+      }
+    ],
+    "context": {
+      "platform": "kubernetes",
+      "registry": "docker.io"
+    }
+  },
+  "utilities": [
+    {
+      "implementation": "/**\n * Setup build environment with required tools\n */\nasync function setupBuildEnvironment(config: PipelineConfig): Promise<void> {\n  // Install dependencies, validate tools, etc.\n}"
+    },
+    {
+      "implementation": "/**\n * Generate comprehensive pipeline report\n */\nasync function generatePipelineReport(context: WorkflowContext): Promise<string> {\n  // Generate HTML/PDF report with metrics, logs, etc.\n  return reportPath;\n}"
+    }
+  ]
+}

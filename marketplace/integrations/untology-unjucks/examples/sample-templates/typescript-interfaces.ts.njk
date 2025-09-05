@@ -1,0 +1,112 @@
+/**
+ * TypeScript Interfaces Generated from Ontology
+ * Source: {{ ontology.metadata.source }}
+ * Generated: {{ now() }}
+ * Total Classes: {{ filter('http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://www.w3.org/2002/07/owl#Class') | length }}
+ */
+
+{% set classes = filter('http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://www.w3.org/2002/07/owl#Class') %}
+
+// Base interface for all ontology entities
+export interface OntologyEntity {
+  readonly id: string;
+  readonly type: string;
+  readonly label?: string;
+  readonly comment?: string;
+}
+
+{% for classTriple in classes %}
+{% set classUri = classTriple.subject %}
+{% set className = classUri | localName | pascalCase %}
+{% set properties = classUri | properties %}
+{% set superClasses = classUri | superClasses %}
+
+/**
+ * {{ classUri | label | default(className) }}
+ * {{ classUri | comment | default("Generated interface for " + className) }}
+ * 
+ * @ontology {{ classUri }}
+{% if superClasses.length > 0 %}
+ * @extends {{ superClasses | first | localName | pascalCase }}
+{% endif %}
+ */
+export interface {{ className }} {% if superClasses.length > 0 %}extends {{ superClasses | first | localName | pascalCase }} {% else %}extends OntologyEntity {% endif %}{
+{% for property in properties %}
+{% set propName = property.property | localName | camelCase %}
+{% set propType = property.range | map('localName') | join(' | ') | default('string') %}
+  /** {{ property.property | comment | default('Property: ' + propName) }} */
+  {{ propName }}{% if not property.required %}?{% endif %}: {{ propType | replace('string', 'string') | replace('integer', 'number') | replace('boolean', 'boolean') | replace('date', 'Date') }};
+{% endfor %}
+}
+
+{% endfor %}
+
+// Type union of all classes
+export type AnyOntologyClass = {% for classTriple in classes %}{{ classTriple.subject | localName | pascalCase }}{% if not loop.last %} | {% endif %}{% endfor %};
+
+// Type guards
+{% for classTriple in classes %}
+{% set className = classTriple.subject | localName | pascalCase %}
+export function is{{ className }}(entity: OntologyEntity): entity is {{ className }} {
+  return entity.type === '{{ classTriple.subject }}';
+}
+
+{% endfor %}
+
+// Factory functions
+export class OntologyFactory {
+{% for classTriple in classes %}
+{% set classUri = classTriple.subject %}
+{% set className = classUri | localName | pascalCase %}
+{% set properties = classUri | properties %}
+  
+  /**
+   * Create a new {{ className }} instance
+   * @param data - Partial data for the {{ className }}
+   * @returns Complete {{ className }} object with defaults
+   */
+  static create{{ className }}(data: Partial<{{ className }}>): {{ className }} {
+    return {
+      id: data.id || `{{ classUri | localName | kebabCase }}-${Date.now()}`,
+      type: '{{ classUri }}',
+      label: data.label,
+      comment: data.comment,
+{% for property in properties %}
+      {{ property.property | localName | camelCase }}: data.{{ property.property | localName | camelCase }},
+{% endfor %}
+      ...data,
+    };
+  }
+{% endfor %}
+}
+
+// Validation schemas (for use with libraries like Joi or Yup)
+export const ValidationSchemas = {
+{% for classTriple in classes %}
+{% set className = classTriple.subject | localName | pascalCase %}
+{% set properties = classUri | properties %}
+  {{ className | camelCase }}: {
+    id: 'required|string',
+    type: 'required|string',
+{% for property in properties %}
+    {{ property.property | localName | camelCase }}: '{{ property.required | default(false) | ternary("required", "optional") }}|{{ property.range | first | localName | default('string') }}',
+{% endfor %}
+  },
+{% endfor %}
+};
+
+// Default export
+export default {
+  types: {
+{% for classTriple in classes %}
+    {{ classTriple.subject | localName | pascalCase }}: '{{ classTriple.subject }}',
+{% endfor %}
+  },
+  factory: OntologyFactory,
+  guards: {
+{% for classTriple in classes %}
+    is{{ classTriple.subject | localName | pascalCase }},
+{% endfor %}
+  },
+  schemas: ValidationSchemas,
+};

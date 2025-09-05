@@ -1,0 +1,288 @@
+{
+  "name": "imageProcessor",
+  "description": "Advanced image processing task with multiple transformation pipelines, format conversion, and optimization capabilities",
+  "id": "image-processor-v2",
+  "version": "2.1.0",
+  "category": "Media Processing",
+  "tags": ["images", "processing", "optimization", "conversion"],
+  "since": "2.0.0",
+  "timeout": 300000,
+  "retries": 2,
+  "priority": 5,
+  "critical": false,
+  "features": [
+    "Multi-format support (JPEG, PNG, WebP, AVIF)",
+    "Advanced transformations (resize, crop, rotate, filters)",
+    "Smart optimization with quality preservation", 
+    "Batch processing capabilities",
+    "Metadata extraction and preservation",
+    "Progressive enhancement support"
+  ],
+  "inputs": [
+    {
+      "name": "inputPath",
+      "type": "string",
+      "description": "Path to input image file or directory",
+      "example": "./images/photo.jpg"
+    },
+    {
+      "name": "outputPath", 
+      "type": "string",
+      "description": "Output path for processed images",
+      "example": "./processed/photo-optimized.webp"
+    },
+    {
+      "name": "transformations",
+      "type": "array",
+      "description": "Array of transformation operations to apply",
+      "example": [
+        { "type": "resize", "width": 1200, "height": 800 },
+        { "type": "optimize", "quality": 85 }
+      ]
+    },
+    {
+      "name": "format",
+      "type": "string", 
+      "description": "Target output format",
+      "optional": true,
+      "default": "webp"
+    },
+    {
+      "name": "quality",
+      "type": "number",
+      "description": "Output quality (0-100)",
+      "optional": true,
+      "default": 80,
+      "validation": [
+        {
+          "method": "min",
+          "params": [0]
+        },
+        {
+          "method": "max", 
+          "params": [100]
+        }
+      ]
+    },
+    {
+      "name": "preserveMetadata",
+      "type": "boolean",
+      "description": "Preserve original image metadata",
+      "optional": true,
+      "default": false
+    }
+  ],
+  "outputs": [
+    {
+      "name": "processedImages",
+      "type": "array",
+      "description": "Array of processed image file paths"
+    },
+    {
+      "name": "metadata",
+      "type": "object", 
+      "description": "Processing metadata and statistics"
+    },
+    {
+      "name": "optimizationReport",
+      "type": "object",
+      "description": "Size reduction and quality metrics"
+    }
+  ],
+  "schemas": [
+    {
+      "name": "transformation",
+      "type": "object",
+      "description": "Image transformation operation",
+      "fields": [
+        {
+          "name": "type",
+          "type": "string",
+          "description": "Transformation type"
+        },
+        {
+          "name": "width", 
+          "type": "number",
+          "optional": true,
+          "description": "Target width in pixels"
+        },
+        {
+          "name": "height",
+          "type": "number", 
+          "optional": true,
+          "description": "Target height in pixels"
+        },
+        {
+          "name": "quality",
+          "type": "number",
+          "optional": true,
+          "description": "Quality setting (0-100)",
+          "validation": [
+            {
+              "method": "min",
+              "params": [0]
+            },
+            {
+              "method": "max",
+              "params": [100] 
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "processingResult",
+      "type": "object",
+      "description": "Result of image processing operation",
+      "fields": [
+        {
+          "name": "inputPath",
+          "type": "string",
+          "description": "Original image path"
+        },
+        {
+          "name": "outputPath",
+          "type": "string", 
+          "description": "Processed image path"
+        },
+        {
+          "name": "originalSize",
+          "type": "number",
+          "description": "Original file size in bytes"
+        },
+        {
+          "name": "processedSize",
+          "type": "number",
+          "description": "Processed file size in bytes"
+        },
+        {
+          "name": "compressionRatio",
+          "type": "number",
+          "description": "Size reduction ratio"
+        }
+      ]
+    }
+  ],
+  "enums": [
+    {
+      "name": "imageFormat",
+      "values": [
+        { "key": "JPEG", "value": "jpeg", "comment": "Joint Photographic Experts Group" },
+        { "key": "PNG", "value": "png", "comment": "Portable Network Graphics" },
+        { "key": "WEBP", "value": "webp", "comment": "Google WebP format" },
+        { "key": "AVIF", "value": "avif", "comment": "AV1 Image File Format" }
+      ]
+    },
+    {
+      "name": "transformationType",
+      "values": [
+        { "key": "RESIZE", "value": "resize" },
+        { "key": "CROP", "value": "crop" },
+        { "key": "ROTATE", "value": "rotate" },
+        { "key": "OPTIMIZE", "value": "optimize" },
+        { "key": "FILTER", "value": "filter" }
+      ]
+    }
+  ],
+  "arrays": [
+    {
+      "name": "transformationList",
+      "itemSchema": "transformationSchema",
+      "min": 1,
+      "max": 10,
+      "description": "List of transformations to apply"
+    },
+    {
+      "name": "processingResults",
+      "itemSchema": "processingResultSchema", 
+      "description": "Results from batch processing"
+    }
+  ],
+  "configuration": [
+    {
+      "name": "tempDirectory",
+      "type": "string",
+      "description": "Temporary directory for processing",
+      "default": "/tmp/image-processor"
+    },
+    {
+      "name": "maxConcurrency",
+      "type": "number",
+      "description": "Maximum concurrent processing operations",
+      "default": 4
+    },
+    {
+      "name": "enableProgressTracking",
+      "type": "boolean",
+      "description": "Enable detailed progress tracking",
+      "default": true
+    }
+  ],
+  "dependencies": ["sharp", "fs-extra"],
+  "resources": {
+    "memory": 512,
+    "cpu": 2,
+    "disk": 1024,
+    "network": false
+  },
+  "prerequisites": [
+    {
+      "check": "await checkSharpInstallation()",
+      "message": "Sharp image processing library must be installed"
+    },
+    {
+      "check": "await checkDiskSpace(input.outputPath, 500)",
+      "message": "Insufficient disk space for image processing"
+    }
+  ],
+  "customValidation": "// Validate input path exists\nif (!await fs.pathExists(input.inputPath)) {\n  throw new Error(`Input path does not exist: ${input.inputPath}`);\n}\n\n// Validate transformations array\nif (!Array.isArray(input.transformations) || input.transformations.length === 0) {\n  throw new Error('At least one transformation is required');\n}",
+  "preExecution": "// Setup temporary directory\nawait fs.ensureDir(config.tempDirectory);\n\n// Initialize progress tracking\nif (config.enableProgressTracking) {\n  context.progressTracker = new ProgressTracker();\n}",
+  "postExecution": "// Cleanup temporary files\nawait fs.remove(config.tempDirectory);\n\n// Generate optimization report\nconst report = generateOptimizationReport(result);\nresult.optimizationReport = report;",
+  "cleanup": "// Emergency cleanup\ntry {\n  await fs.remove(config.tempDirectory);\n  if (context.progressTracker) {\n    context.progressTracker.stop();\n  }\n} catch (error) {\n  logger.warn('Cleanup failed:', error.message);\n}",
+  "skeleton": "const { inputPath, outputPath, transformations, format, quality } = input;\n\n// Check if input is file or directory\nconst stats = await fs.stat(inputPath);\nconst isDirectory = stats.isDirectory();\n\nlet imagePaths: string[];\nif (isDirectory) {\n  // Process all images in directory\n  imagePaths = await findImageFiles(inputPath);\n} else {\n  // Process single image\n  imagePaths = [inputPath];\n}\n\nconst results = [];\nthis.updateProgress(10, 'Processing images...');\n\nfor (let i = 0; i < imagePaths.length; i++) {\n  const imagePath = imagePaths[i];\n  \n  // Process individual image\n  const result = await processImage({\n    inputPath: imagePath,\n    outputPath: isDirectory ? path.join(outputPath, path.basename(imagePath)) : outputPath,\n    transformations,\n    format,\n    quality\n  });\n  \n  results.push(result);\n  \n  // Update progress\n  const progress = 10 + ((i + 1) / imagePaths.length) * 80;\n  this.updateProgress(progress, `Processed ${i + 1}/${imagePaths.length} images`);\n}\n\nreturn {\n  processedImages: results.map(r => r.outputPath),\n  metadata: {\n    totalImages: results.length,\n    totalOriginalSize: results.reduce((sum, r) => sum + r.originalSize, 0),\n    totalProcessedSize: results.reduce((sum, r) => sum + r.processedSize, 0),\n    avgCompressionRatio: results.reduce((sum, r) => sum + r.compressionRatio, 0) / results.length\n  }\n};",
+  "rollback": "// Remove any created files\nfor (const outputPath of state.createdFiles || []) {\n  try {\n    await fs.remove(outputPath);\n    logger.debug('Removed file:', outputPath);\n  } catch (error) {\n    logger.warn('Failed to remove file:', outputPath, error.message);\n  }\n}",
+  "estimateDuration": "// Estimate based on file size and transformation count\nconst stats = await fs.stat(input.inputPath);\nconst baseTime = stats.isDirectory() ? 5000 : 2000; // ms\nconst transformationTime = input.transformations.length * 500;\nreturn baseTime + transformationTime;",
+  "hasRollback": true,
+  "hasEstimation": true,
+  "errorHandling": "if (error instanceof SharpError) {\n  return {\n    success: false,\n    error: {\n      message: 'Image processing failed: ' + error.message,\n      code: 'IMAGE_PROCESSING_ERROR',\n      details: { inputPath: input.inputPath, transformation: error.transformation }\n    }\n  };\n}\n\nif (error.code === 'ENOSPC') {\n  return {\n    success: false,\n    error: {\n      message: 'Insufficient disk space for image processing',\n      code: 'DISK_SPACE_ERROR'\n    }\n  };\n}",
+  "customMetadata": "taskVersion: '2.1.0',\nprocessingEngine: 'sharp',\nsupportedFormats: ['jpeg', 'png', 'webp', 'avif'],\ntotalTransformations: input.transformations.length",
+  "metrics": [
+    {
+      "name": "imagesProcessed",
+      "calculate": "result.processedImages?.length || 0"
+    },
+    {
+      "name": "totalSizeReduction", 
+      "calculate": "result.metadata?.totalOriginalSize - result.metadata?.totalProcessedSize"
+    },
+    {
+      "name": "avgProcessingTime",
+      "calculate": "executionTime / (result.processedImages?.length || 1)"
+    }
+  ],
+  "utilities": [
+    {
+      "implementation": "/**\n * Find all image files in directory\n */\nasync function findImageFiles(directory: string): Promise<string[]> {\n  const files = await fs.readdir(directory);\n  const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.avif'];\n  \n  return files\n    .filter(file => imageExtensions.some(ext => file.toLowerCase().endsWith(ext)))\n    .map(file => path.join(directory, file));\n}"
+    },
+    {
+      "implementation": "/**\n * Process single image with transformations\n */\nasync function processImage(options: ProcessImageOptions): Promise<ProcessingResult> {\n  const { inputPath, outputPath, transformations, format, quality } = options;\n  \n  let pipeline = sharp(inputPath);\n  \n  // Apply transformations\n  for (const transform of transformations) {\n    switch (transform.type) {\n      case 'resize':\n        pipeline = pipeline.resize(transform.width, transform.height);\n        break;\n      case 'crop':\n        pipeline = pipeline.extract(transform);\n        break;\n      case 'rotate':\n        pipeline = pipeline.rotate(transform.angle);\n        break;\n      // Add more transformation types\n    }\n  }\n  \n  // Set output format and quality\n  pipeline = pipeline.toFormat(format as keyof sharp.FormatEnum, { quality });\n  \n  // Write to output\n  await pipeline.toFile(outputPath);\n  \n  // Return processing result\n  const originalSize = (await fs.stat(inputPath)).size;\n  const processedSize = (await fs.stat(outputPath)).size;\n  \n  return {\n    inputPath,\n    outputPath,\n    originalSize,\n    processedSize,\n    compressionRatio: originalSize / processedSize\n  };\n}"
+    }
+  ],
+  "ontology": {
+    "imports": [
+      {
+        "statement": "sharp from 'sharp'"
+      },
+      {
+        "statement": "fs from 'fs-extra'"
+      },
+      {
+        "statement": "path from 'path'"
+      }
+    ],
+    "context": {
+      "processingEngine": "sharp",
+      "supportedFormats": ["jpeg", "png", "webp", "avif"]
+    }
+  }
+}

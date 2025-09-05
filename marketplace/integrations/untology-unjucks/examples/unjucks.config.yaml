@@ -1,0 +1,49 @@
+name: "Example Ontology Code Generation"
+
+ontologies:
+  - path: "./examples/basic-ontology.ttl"
+    format: "turtle"
+    namespace: "http://example.org/vocab#"
+
+templates:
+  - path: "./examples/templates/typescript-interface.njk"
+    output: "generated/types.ts"
+    context:
+      includeMetadata: true
+      generateFactories: true
+  
+  - path: "./examples/templates/json-schema.njk"
+    output: "generated/schema.json"
+    context:
+      strict: true
+      includeExamples: false
+  
+  - path: "./examples/templates/sql-schema.njk"
+    output: "generated/schema.sql"
+    context:
+      database: "mysql"
+      includeViews: true
+      includeProcedures: true
+
+output:
+  directory: "./examples/generated"
+  clean: true
+
+hiveQueen:
+  enabled: true
+  workers: 4
+  parallelism: "templates"
+
+validation:
+  strict: false
+  schema: null
+
+watch:
+  enabled: true
+  debounce: 500
+  ignore:
+    - "node_modules/**"
+    - ".git/**"
+    - "**/*.log"
+    - "**/.*"
+    - "generated/**"

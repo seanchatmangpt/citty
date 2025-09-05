@@ -690,23 +690,465 @@ async function performCustomValidation(type: string, target: string, framework: 
 function calculateComplianceScore(results: any, required: string[]): number { return 85; }
 function determineComplianceStatus(score: number, results: any): string { return score >= 80 ? 'compliant' : 'non-compliant'; }
 function identifyComplianceGaps(required: string[], completed: string[]): string[] { return required.filter(r => !completed.includes(r)); }
-function generateComplianceRecommendations(results: any, standard: string): string[] { return []; }
+function generateComplianceRecommendations(results: any, standard: string): string[] {
+  const recommendations: string[] = [];
+  
+  if (!results || typeof results !== 'object') {
+    return ['No validation results available', 'Run compliance validation first'];
+  }
+  
+  // Generate recommendations based on standard type
+  switch (standard.toLowerCase()) {
+    case 'iso27001':
+      recommendations.push('Implement information security management system');
+      recommendations.push('Conduct regular security risk assessments');
+      recommendations.push('Establish incident response procedures');
+      break;
+    case 'soc2':
+      recommendations.push('Document security policies and procedures');
+      recommendations.push('Implement access controls and monitoring');
+      recommendations.push('Establish audit logging and review processes');
+      break;
+    case 'gdpr':
+      recommendations.push('Implement data privacy impact assessments');
+      recommendations.push('Establish data breach notification procedures');
+      recommendations.push('Document data processing activities');
+      break;
+    case 'hipaa':
+      recommendations.push('Implement physical and technical safeguards');
+      recommendations.push('Establish minimum necessary access controls');
+      recommendations.push('Document security training programs');
+      break;
+    default:
+      recommendations.push('Review compliance requirements for your industry');
+      recommendations.push('Implement baseline security controls');
+      recommendations.push('Establish regular compliance monitoring');
+  }
+  
+  return recommendations;
+}
 function assessCertificationReadiness(results: any, standard: string): any { return {}; }
 
 // Remediation functions
-function extractValidationIssues(results: any): any[] { return []; }
+function extractValidationIssues(results: any): any[] {
+  const issues: any[] = [];
+  
+  if (!results || typeof results !== 'object') {
+    return [];
+  }
+  
+  // Extract issues from nested validation results
+  const extractFromSection = (section: any, sectionName: string) => {
+    if (section && typeof section === 'object') {
+      if (section.issues && Array.isArray(section.issues)) {
+        section.issues.forEach((issue: any) => {
+          issues.push({
+            ...issue,
+            section: sectionName,
+            severity: issue.severity || 'medium',
+            category: issue.category || 'general'
+          });
+        });
+      }
+      
+      if (section.errors && Array.isArray(section.errors)) {
+        section.errors.forEach((error: any) => {
+          issues.push({
+            type: 'error',
+            message: error.message || error,
+            section: sectionName,
+            severity: 'high',
+            category: 'error'
+          });
+        });
+      }
+    }
+  };
+  
+  // Process different validation sections
+  Object.keys(results).forEach(key => {
+    if (results[key] && typeof results[key] === 'object') {
+      extractFromSection(results[key], key);
+    }
+  });
+  
+  return issues;
+}
 function prioritizeIssues(issues: any[], scores: any): any[] { return issues; }
-async function generateRemediationActions(issues: any[]): Promise<any[]> { return []; }
+async function generateRemediationActions(issues: any[]): Promise<any[]> {
+  if (!Array.isArray(issues) || issues.length === 0) {
+    return [];
+  }
+  
+  const actions: any[] = [];
+  
+  for (const issue of issues) {
+    const action: any = {
+      id: `action-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      issue: issue.message || issue.type || 'Unknown issue',
+      severity: issue.severity || 'medium',
+      category: issue.category || 'general',
+      section: issue.section || 'unknown',
+      estimatedEffort: calculateEffortForIssue(issue),
+      priority: calculatePriorityForIssue(issue)
+    };
+    
+    // Generate specific remediation steps based on issue type
+    switch (issue.category) {
+      case 'security':
+        action.steps = [
+          'Review security configuration',
+          'Apply security patches or updates',
+          'Test security controls',
+          'Document security changes'
+        ];
+        action.resources = ['Security team', 'System administrator'];
+        break;
+      case 'performance':
+        action.steps = [
+          'Analyze performance bottlenecks',
+          'Optimize resource usage',
+          'Test performance improvements',
+          'Monitor performance metrics'
+        ];
+        action.resources = ['Performance engineer', 'DevOps team'];
+        break;
+      case 'compliance':
+        action.steps = [
+          'Review compliance requirements',
+          'Implement necessary controls',
+          'Document compliance measures',
+          'Schedule regular compliance reviews'
+        ];
+        action.resources = ['Compliance officer', 'Legal team'];
+        break;
+      default:
+        action.steps = [
+          'Investigate issue root cause',
+          'Develop remediation plan',
+          'Implement solution',
+          'Verify issue resolution'
+        ];
+        action.resources = ['Technical team', 'Project manager'];
+    }
+    
+    actions.push(action);
+  }
+  
+  return actions.sort((a, b) => {
+    const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+    return (priorityOrder[b.priority as keyof typeof priorityOrder] || 0) - 
+           (priorityOrder[a.priority as keyof typeof priorityOrder] || 0);
+  });
+}
+
+function calculateEffortForIssue(issue: any): string {
+  const severity = issue.severity || 'medium';
+  const category = issue.category || 'general';
+  
+  const effortMatrix: Record<string, Record<string, string>> = {
+    critical: { security: '2-3 days', performance: '1-2 days', compliance: '3-5 days', general: '2-3 days' },
+    high: { security: '1-2 days', performance: '4-8 hours', compliance: '2-3 days', general: '1-2 days' },
+    medium: { security: '4-8 hours', performance: '2-4 hours', compliance: '1-2 days', general: '4-8 hours' },
+    low: { security: '2-4 hours', performance: '1-2 hours', compliance: '4-8 hours', general: '2-4 hours' }
+  };
+  
+  return effortMatrix[severity]?.[category] || effortMatrix[severity]?.general || '4-8 hours';
+}
+
+function calculatePriorityForIssue(issue: any): string {
+  const severity = issue.severity || 'medium';
+  const section = issue.section || 'unknown';
+  
+  // Security issues get higher priority
+  if (issue.category === 'security' || section.includes('security')) {
+    return severity === 'low' ? 'medium' : 'critical';
+  }
+  
+  // Compliance issues are important
+  if (issue.category === 'compliance' || section.includes('compliance')) {
+    return severity === 'low' ? 'medium' : 'high';
+  }
+  
+  return severity;
+}
 function createRemediationTimeline(actions: any[]): any { return {}; }
 function calculateRemediationResources(actions: any[]): any { return {}; }
 function calculateTotalEffort(actions: any[]): string { return '2-4 weeks'; }
-function identifyQuickWins(actions: any[]): any[] { return []; }
+function identifyQuickWins(actions: any[]): any[] {
+  if (!Array.isArray(actions) || actions.length === 0) {
+    return [];
+  }
+  
+  return actions.filter(action => {
+    const effort = action.estimatedEffort || '';
+    const priority = action.priority || 'medium';
+    
+    // Quick wins are low effort, high impact actions
+    const isLowEffort = effort.includes('hour') || effort.includes('1 day') || effort.includes('1-2 hours');
+    const isHighImpact = priority === 'high' || priority === 'critical';
+    const isMediumEffort = effort.includes('4-8 hours') || effort.includes('half day');
+    const isMediumImpact = priority === 'medium';
+    
+    return (isLowEffort && (isHighImpact || isMediumImpact)) || 
+           (isMediumEffort && isHighImpact);
+  }).sort((a, b) => {
+    // Sort by impact first, then by effort (ascending)
+    const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+    const priorityDiff = (priorityOrder[b.priority as keyof typeof priorityOrder] || 0) - 
+                        (priorityOrder[a.priority as keyof typeof priorityOrder] || 0);
+    
+    if (priorityDiff !== 0) return priorityDiff;
+    
+    // If same priority, prefer lower effort
+    const effortOrder = {
+      '1-2 hours': 1, '2-4 hours': 2, '4-8 hours': 3, 
+      '1 day': 4, '1-2 days': 5, '2-3 days': 6
+    };
+    
+    const getEffortScore = (effort: string) => {
+      for (const [key, score] of Object.entries(effortOrder)) {
+        if (effort.includes(key)) return score;
+      }
+      return 5; // default
+    };
+    
+    return getEffortScore(a.estimatedEffort) - getEffortScore(b.estimatedEffort);
+  });
+}
 function generateRemediationSummary(actions: any[], timeline: any): string { return 'Remediation plan ready'; }
 
 // Continuous monitoring functions
-async function createValidationMonitors(target: string, framework: any): Promise<any[]> { return []; }
+async function createValidationMonitors(target: string, framework: any): Promise<any[]> {
+  const monitors: any[] = [];
+  
+  if (!target || typeof target !== 'string') {
+    return monitors;
+  }
+  
+  const monitorId = (name: string) => `monitor-${target.replace(/[^a-zA-Z0-9]/g, '-')}-${name}-${Date.now()}`;
+  
+  try {
+    // Create different types of monitors based on target type
+    if (target.startsWith('http') || target.includes('.com') || target.includes('.net')) {
+      // Web application monitors
+      monitors.push({
+        id: monitorId('availability'),
+        name: 'Availability Monitor',
+        type: 'http',
+        target,
+        interval: '1m',
+        timeout: '30s',
+        checks: ['response_time', 'status_code', 'ssl_cert'],
+        thresholds: {
+          response_time: '< 5s',
+          status_code: '200-299',
+          ssl_cert_days: '> 30'
+        }
+      });
+      
+      monitors.push({
+        id: monitorId('security'),
+        name: 'Security Headers Monitor',
+        type: 'security',
+        target,
+        interval: '1h',
+        checks: ['security_headers', 'ssl_config', 'certificate_transparency'],
+        alerts: {
+          missing_headers: 'warning',
+          weak_ssl: 'critical',
+          cert_expiry: 'warning'
+        }
+      });
+    }
+    
+    if (target.includes('localhost') || target.includes('127.0.0.1') || !target.startsWith('http')) {
+      // Local/system monitors
+      monitors.push({
+        id: monitorId('system'),
+        name: 'System Health Monitor',
+        type: 'system',
+        target,
+        interval: '30s',
+        checks: ['cpu_usage', 'memory_usage', 'disk_space', 'process_count'],
+        thresholds: {
+          cpu_usage: '< 80%',
+          memory_usage: '< 85%',
+          disk_space: '> 10%'
+        }
+      });
+    }
+    
+    // Framework-specific monitors
+    if (framework && typeof framework === 'object') {
+      if (framework.type === 'api' || framework.name?.toLowerCase().includes('api')) {
+        monitors.push({
+          id: monitorId('api'),
+          name: 'API Performance Monitor',
+          type: 'api',
+          target,
+          interval: '5m',
+          checks: ['endpoint_health', 'response_time', 'error_rate', 'throughput'],
+          thresholds: {
+            response_time: '< 1s',
+            error_rate: '< 5%',
+            throughput: '> 100 req/min'
+          }
+        });
+      }
+      
+      if (framework.type === 'database' || framework.name?.toLowerCase().includes('db')) {
+        monitors.push({
+          id: monitorId('database'),
+          name: 'Database Monitor',
+          type: 'database',
+          target,
+          interval: '2m',
+          checks: ['connection_health', 'query_performance', 'deadlocks', 'disk_usage'],
+          thresholds: {
+            connection_time: '< 1s',
+            query_time: '< 5s',
+            deadlocks: '0'
+          }
+        });
+      }
+    }
+    
+    // Add default compliance monitor if none exist
+    if (monitors.length === 0) {
+      monitors.push({
+        id: monitorId('basic'),
+        name: 'Basic Validation Monitor',
+        type: 'validation',
+        target,
+        interval: '1h',
+        checks: ['basic_health', 'configuration', 'logs'],
+        description: 'Basic monitoring for validation compliance'
+      });
+    }
+    
+    return monitors;
+    
+  } catch (error) {
+    console.warn(`Failed to create monitors for ${target}:`, error);
+    return [];
+  }
+}
 async function createValidationSchedule(target: string): Promise<any> { return { frequency: 'daily', nextRun: new Date() }; }
-async function setupValidationAlerts(target: string): Promise<any[]> { return []; }
+async function setupValidationAlerts(target: string): Promise<any[]> {
+  const alerts: any[] = [];
+  
+  if (!target || typeof target !== 'string') {
+    return alerts;
+  }
+  
+  const alertId = (name: string) => `alert-${target.replace(/[^a-zA-Z0-9]/g, '-')}-${name}-${Date.now()}`;
+  
+  try {
+    // Critical system alerts
+    alerts.push({
+      id: alertId('critical-failure'),
+      name: 'Critical System Failure',
+      severity: 'critical',
+      condition: 'system_down OR response_time > 30s OR error_rate > 50%',
+      notification: {
+        channels: ['email', 'sms', 'slack'],
+        immediate: true,
+        escalation: '5m'
+      },
+      description: 'Immediate alert for critical system failures'
+    });
+    
+    // Security alerts
+    alerts.push({
+      id: alertId('security-incident'),
+      name: 'Security Incident Detected',
+      severity: 'high',
+      condition: 'security_violation OR unauthorized_access OR malware_detected',
+      notification: {
+        channels: ['email', 'security-team'],
+        immediate: true,
+        escalation: '10m'
+      },
+      description: 'Alert for potential security incidents'
+    });
+    
+    // Performance degradation alerts
+    alerts.push({
+      id: alertId('performance-degradation'),
+      name: 'Performance Degradation',
+      severity: 'medium',
+      condition: 'response_time > 5s OR cpu_usage > 80% OR memory_usage > 85%',
+      notification: {
+        channels: ['email', 'performance-team'],
+        throttle: '15m',
+        escalation: '30m'
+      },
+      description: 'Alert for performance issues that may impact users'
+    });
+    
+    // Compliance violations
+    alerts.push({
+      id: alertId('compliance-violation'),
+      name: 'Compliance Violation',
+      severity: 'high',
+      condition: 'compliance_check_failed OR audit_requirement_violated',
+      notification: {
+        channels: ['email', 'compliance-team'],
+        immediate: true,
+        escalation: '1h'
+      },
+      description: 'Alert for compliance and regulatory violations'
+    });
+    
+    // Certificate expiration
+    alerts.push({
+      id: alertId('cert-expiration'),
+      name: 'Certificate Expiration Warning',
+      severity: 'medium',
+      condition: 'ssl_cert_days < 30',
+      notification: {
+        channels: ['email'],
+        throttle: '24h'
+      },
+      description: 'Warning for upcoming SSL certificate expiration'
+    });
+    
+    // Resource exhaustion
+    alerts.push({
+      id: alertId('resource-exhaustion'),
+      name: 'Resource Exhaustion Warning',
+      severity: 'medium',
+      condition: 'disk_space < 10% OR memory_usage > 90% OR connection_pool_exhausted',
+      notification: {
+        channels: ['email', 'ops-team'],
+        throttle: '30m',
+        escalation: '2h'
+      },
+      description: 'Warning for potential resource exhaustion'
+    });
+    
+    // Data integrity alerts
+    alerts.push({
+      id: alertId('data-integrity'),
+      name: 'Data Integrity Issue',
+      severity: 'high',
+      condition: 'data_corruption_detected OR backup_failed OR sync_error',
+      notification: {
+        channels: ['email', 'data-team'],
+        immediate: true,
+        escalation: '15m'
+      },
+      description: 'Alert for data integrity and backup issues'
+    });
+    
+    return alerts;
+    
+  } catch (error) {
+    console.warn(`Failed to setup alerts for ${target}:`, error);
+    return [];
+  }
+}
 async function createValidationDashboard(target: string): Promise<any> { return { url: 'http://localhost:3000/validation' }; }
 
 // Export functions

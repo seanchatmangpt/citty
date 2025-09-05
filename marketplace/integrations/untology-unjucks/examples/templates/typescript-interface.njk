@@ -1,0 +1,120 @@
+/**
+ * Auto-generated TypeScript interfaces from ontology
+ * Generated on {{ now() }} by Untology-Unjucks Pipeline
+ * Source: {{ ontology.metadata.source }}
+ */
+
+{% set classes = [] %}
+{% for triple in ontology.triples %}
+  {% if triple.predicate == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' and (triple.object == 'http://www.w3.org/2002/07/owl#Class' or triple.object == 'http://www.w3.org/2000/01/rdf-schema#Class') %}
+    {% set classes = (classes.push(triple.subject), classes) %}
+  {% endif %}
+{% endfor %}
+
+{% for classUri in classes | unique | sortBy('length') %}
+{% set className = classUri | localName | pascalCase %}
+{% set properties = classUri | properties %}
+{% set dataProps = classUri | dataProperties %}
+{% set objProps = classUri | objectProperties %}
+
+/**
+ * {{ classUri | label }}
+ * {{ classUri | comment or 'No description available' }}
+ */
+export interface {{ className }} {
+  /** The unique identifier for this {{ className | lower }} */
+  id: string;
+  
+  /** RDF type information */
+  type: '{{ classUri }}';
+  
+  {% for prop in dataProps %}
+  {% set propName = prop.property | localName | camelCase %}
+  {% set propType = 'string' %}
+  {% if prop.range %}
+    {% for rangeType in prop.range %}
+      {% if rangeType.includes('integer') %}
+        {% set propType = 'number' %}
+      {% elif rangeType.includes('boolean') %}
+        {% set propType = 'boolean' %}
+      {% elif rangeType.includes('dateTime') %}
+        {% set propType = 'Date' %}
+      {% elif rangeType.includes('decimal') or rangeType.includes('float') or rangeType.includes('double') %}
+        {% set propType = 'number' %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+  
+  /** {{ prop.property | label or propName }} */
+  {{ propName }}?: {{ propType }};
+  {% endfor %}
+  
+  {% for prop in objProps %}
+  {% set propName = prop.property | localName | camelCase %}
+  {% set relatedClass = 'any' %}
+  {% if prop.range %}
+    {% for rangeType in prop.range %}
+      {% set relatedClass = rangeType | localName | pascalCase %}
+    {% endfor %}
+  {% endif %}
+  
+  /** {{ prop.property | label or propName }} - References {{ relatedClass }} */
+  {{ propName }}?: {{ relatedClass }} | {{ relatedClass }}[] | string | string[];
+  {% endfor %}
+}
+
+{% endfor %}
+
+// Union type of all classes
+export type OntologyEntity = {{ classes | map('localName') | map('pascalCase') | join(' | ') }};
+
+// Type guards
+{% for classUri in classes %}
+{% set className = classUri | localName | pascalCase %}
+export function is{{ className }}(entity: any): entity is {{ className }} {
+  return entity && entity.type === '{{ classUri }}';
+}
+
+{% endfor %}
+
+// Factory functions
+{% for classUri in classes %}
+{% set className = classUri | localName | pascalCase %}
+export function create{{ className }}(data: Partial<{{ className }}>): {{ className }} {
+  return {
+    id: data.id || uuid(),
+    type: '{{ classUri }}',
+    ...data
+  };
+}
+
+{% endfor %}
+
+// Constants
+export const ONTOLOGY_CLASSES = {
+  {% for classUri in classes %}
+  {{ classUri | localName | snakeCase | upper }}: '{{ classUri }}',
+  {% endfor %}
+} as const;
+
+export const ONTOLOGY_PROPERTIES = {
+  {% set allProps = [] %}
+  {% for classUri in classes %}
+    {% set properties = classUri | properties %}
+    {% for prop in properties %}
+      {% set allProps = (allProps.push(prop.property), allProps) %}
+    {% endfor %}
+  {% endfor %}
+  {% for propUri in allProps | unique %}
+  {{ propUri | localName | snakeCase | upper }}: '{{ propUri }}',
+  {% endfor %}
+} as const;
+
+// Metadata
+export const ONTOLOGY_METADATA = {
+  source: '{{ ontology.metadata.source }}',
+  timestamp: '{{ ontology.metadata.timestamp }}',
+  classes: {{ classes.length }},
+  properties: {{ allProps | unique | length }},
+  triples: {{ ontology.triples.length }}
+} as const;

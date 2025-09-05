@@ -1,0 +1,35 @@
+# Development Untology → Unjucks Configuration
+# Optimized for fast iteration and developer productivity
+
+name: dev-ontology-pipeline
+
+ontologies:
+  - path: ./dev-ontologies/sample.ttl
+    format: turtle
+
+templates:
+  - path: ./dev-templates/**/*.njk
+    output: "{{ template.name | replace('.njk', '.txt') }}"
+
+output:
+  directory: ./dev-output
+  clean: true
+
+# Lightweight configuration for development
+hiveQueen:
+  enabled: true
+  workers: 2 # Light load for development
+  parallelism: templates
+
+# Fast feedback with file watching
+watch:
+  enabled: true
+  debounce: 300 # Quick response
+  ignore:
+    - node_modules/**
+    - .git/**
+    - dev-output/**
+
+# Relaxed validation for development
+validation:
+  strict: false

@@ -1,0 +1,245 @@
+---
+to: config/workflows/{{ name | kebabCase }}.yaml
+---
+# {{ name | titleCase }} Workflow Configuration
+# {{ description }}
+
+name: {{ name | kebabCase }}
+version: {{ version || "1.0.0" }}
+description: {{ description }}
+{% if category %}category: {{ category }}{% endif %}
+{% if tags %}
+tags:
+  {% for tag in tags %}
+  - {{ tag }}
+  {% endfor %}
+{% endif %}
+
+# Execution settings
+execution:
+  parallel: {{ parallel || false }}
+  retries: {{ retries || 3 }}
+  timeout: {{ timeout || 30000 }}
+  continueOnError: {{ continueOnError || false }}
+  {% if maxConcurrency %}maxConcurrency: {{ maxConcurrency }}{% endif %}
+
+# Default configuration values
+defaults:
+  {% for config in configuration %}
+  {{ config.name }}: {{ config.default | yamlValue }}
+  {% endfor %}
+
+# Environment-specific overrides
+environments:
+  development:
+    {% for config in configuration %}
+    {% if config.devOverride %}
+    {{ config.name }}: {{ config.devOverride | yamlValue }}
+    {% endif %}
+    {% endfor %}
+    
+  staging:
+    {% for config in configuration %}
+    {% if config.stagingOverride %}
+    {{ config.name }}: {{ config.stagingOverride | yamlValue }}
+    {% endif %}
+    {% endfor %}
+    
+  production:
+    {% for config in configuration %}
+    {% if config.prodOverride %}
+    {{ config.name }}: {{ config.prodOverride | yamlValue }}
+    {% endif %}
+    {% endfor %}
+
+# Task configurations
+tasks:
+  {% for task in tasks %}
+  {{ task.id }}:
+    name: {{ task.name }}
+    description: {{ task.description }}
+    {% if task.timeout %}timeout: {{ task.timeout }}{% endif %}
+    {% if task.retries %}retries: {{ task.retries }}{% endif %}
+    {% if task.critical %}critical: {{ task.critical }}{% endif %}
+    {% if task.dependsOn %}
+    dependsOn:
+      {% for dep in task.dependsOn %}
+      - {{ dep }}
+      {% endfor %}
+    {% endif %}
+    {% if task.parameters %}
+    parameters:
+      {% for param in task.parameters %}
+      {{ param.name }}:
+        type: {{ param.type }}
+        {% if param.required %}required: true{% endif %}
+        {% if param.default %}default: {{ param.default | yamlValue }}{% endif %}
+        {% if param.description %}description: {{ param.description }}{% endif %}
+        {% if param.validation %}
+        validation:
+          {% for rule in param.validation %}
+          {{ rule.type }}: {{ rule.value | yamlValue }}
+          {% endfor %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+    {% if task.environment %}
+    environment:
+      {% for key, value in task.environment %}
+      {{ key }}: {{ value | yamlValue }}
+      {% endfor %}
+    {% endif %}
+    {% if task.resources %}
+    resources:
+      {% if task.resources.memory %}memory: {{ task.resources.memory }}{% endif %}
+      {% if task.resources.cpu %}cpu: {{ task.resources.cpu }}{% endif %}
+      {% if task.resources.disk %}disk: {{ task.resources.disk }}{% endif %}
+    {% endif %}
+  {% endfor %}
+
+{% if hooks %}
+# Workflow hooks
+hooks:
+  {% if hooks.beforeStart %}
+  beforeStart:
+    enabled: true
+    {% if hooks.beforeStart.script %}script: {{ hooks.beforeStart.script }}{% endif %}
+    {% if hooks.beforeStart.command %}command: {{ hooks.beforeStart.command }}{% endif %}
+  {% endif %}
+  
+  {% if hooks.afterComplete %}
+  afterComplete:
+    enabled: true
+    {% if hooks.afterComplete.script %}script: {{ hooks.afterComplete.script }}{% endif %}
+    {% if hooks.afterComplete.command %}command: {{ hooks.afterComplete.command }}{% endif %}
+  {% endif %}
+  
+  {% if hooks.onError %}
+  onError:
+    enabled: true
+    {% if hooks.onError.script %}script: {{ hooks.onError.script }}{% endif %}
+    {% if hooks.onError.command %}command: {{ hooks.onError.command }}{% endif %}
+    {% if hooks.onError.notify %}
+    notify:
+      {% for notification in hooks.onError.notify %}
+      - type: {{ notification.type }}
+        {% for key, value in notification %}
+        {% if key != "type" %}
+        {{ key }}: {{ value | yamlValue }}
+        {% endif %}
+        {% endfor %}
+      {% endfor %}
+    {% endif %}
+  {% endif %}
+{% endif %}
+
+{% if notifications %}
+# Notification settings
+notifications:
+  {% for notification in notifications %}
+  {{ notification.name }}:
+    type: {{ notification.type }}
+    enabled: {{ notification.enabled || true }}
+    {% if notification.webhook %}
+    webhook:
+      url: {{ notification.webhook.url }}
+      {% if notification.webhook.headers %}
+      headers:
+        {% for key, value in notification.webhook.headers %}
+        {{ key }}: {{ value }}
+        {% endfor %}
+      {% endif %}
+    {% endif %}
+    {% if notification.email %}
+    email:
+      {% for key, value in notification.email %}
+      {{ key }}: {{ value | yamlValue }}
+      {% endfor %}
+    {% endif %}
+    {% if notification.slack %}
+    slack:
+      {% for key, value in notification.slack %}
+      {{ key }}: {{ value | yamlValue }}
+      {% endfor %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+{% if monitoring %}
+# Monitoring and metrics
+monitoring:
+  enabled: {{ monitoring.enabled || true }}
+  {% if monitoring.metrics %}
+  metrics:
+    {% for metric in monitoring.metrics %}
+    {{ metric.name }}:
+      type: {{ metric.type }}
+      {% if metric.threshold %}threshold: {{ metric.threshold }}{% endif %}
+      {% if metric.unit %}unit: {{ metric.unit }}{% endif %}
+      {% if metric.description %}description: {{ metric.description }}{% endif %}
+    {% endfor %}
+  {% endif %}
+  {% if monitoring.healthChecks %}
+  healthChecks:
+    {% for check in monitoring.healthChecks %}
+    {{ check.name }}:
+      interval: {{ check.interval || 30 }}
+      timeout: {{ check.timeout || 5 }}
+      {% if check.command %}command: {{ check.command }}{% endif %}
+      {% if check.url %}url: {{ check.url }}{% endif %}
+    {% endfor %}
+  {% endif %}
+{% endif %}
+
+{% if scheduling %}
+# Scheduling configuration
+scheduling:
+  {% if scheduling.cron %}
+  cron: {{ scheduling.cron }}
+  {% endif %}
+  {% if scheduling.interval %}
+  interval: {{ scheduling.interval }}
+  {% endif %}
+  {% if scheduling.triggers %}
+  triggers:
+    {% for trigger in scheduling.triggers %}
+    - type: {{ trigger.type }}
+      {% for key, value in trigger %}
+      {% if key != "type" %}
+      {{ key }}: {{ value | yamlValue }}
+      {% endif %}
+      {% endfor %}
+    {% endfor %}
+  {% endif %}
+{% endif %}
+
+{% if security %}
+# Security settings
+security:
+  {% if security.authentication %}
+  authentication:
+    {% for key, value in security.authentication %}
+    {{ key }}: {{ value | yamlValue }}
+    {% endfor %}
+  {% endif %}
+  {% if security.authorization %}
+  authorization:
+    {% for key, value in security.authorization %}
+    {{ key }}: {{ value | yamlValue }}
+    {% endfor %}
+  {% endif %}
+  {% if security.secrets %}
+  secrets:
+    {% for secret in security.secrets %}
+    {{ secret.name }}:
+      type: {{ secret.type }}
+      {% if secret.source %}source: {{ secret.source }}{% endif %}
+      {% if secret.key %}key: {{ secret.key }}{% endif %}
+    {% endfor %}
+  {% endif %}
+{% endif %}
+
+{% if customConfig %}
+# Custom configuration
+{{ customConfig | yaml | safe }}
+{% endif %}
