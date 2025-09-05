@@ -43,3 +43,7 @@ export {
   CLIMetrics
 } from "./otel/instrumentation";
 export type { TelemetryConfig } from "./otel/instrumentation";
+
+// Export Citty Pro features
+export * from "./pro";
+export type * from "./types/citty-pro";
