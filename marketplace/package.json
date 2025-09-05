@@ -1,0 +1,81 @@
+{
+  "name": "marketplace-n-dimensional-system",
+  "version": "1.0.0",
+  "description": "N-Dimensional Marketplace System with Comprehensive Test Suite",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest --watch",
+    "test:unit": "vitest run tests/unit/",
+    "test:integration": "vitest run tests/integration/",
+    "test:e2e": "vitest run tests/e2e/",
+    "test:performance": "VITEST_PERFORMANCE=true vitest run tests/performance/",
+    "test:ci": "vitest run --coverage --reporter=junit --reporter=json --reporter=verbose",
+    "benchmark": "vitest bench",
+    "lint": "eslint src/ api/ workflows/ components/ tests/ --ext .ts",
+    "lint:fix": "eslint src/ api/ workflows/ components/ tests/ --ext .ts --fix",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist coverage test-results.json test-report.html",
+    "posttest": "npm run test:coverage"
+  },
+  "dependencies": {
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^8.0.0",
+    "@types/express": "^5.0.3",
+    "@types/joi": "^17.2.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^20.10.0",
+    "@types/node-cache": "^4.2.5",
+    "@types/socket.io": "^3.0.2",
+    "@types/supertest": "^6.0.3",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "@vitest/coverage-v8": "^1.0.0",
+    "@vitest/ui": "^1.0.0",
+    "eslint": "^8.55.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "express": "^5.1.0",
+    "fast-check": "^3.15.0",
+    "joi": "^18.0.1",
+    "jsonwebtoken": "^9.0.2",
+    "node-cache": "^5.1.2",
+    "prettier": "^3.1.0",
+    "socket.io": "^4.8.1",
+    "supertest": "^7.1.4",
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0"
+  },
+  "keywords": [
+    "marketplace",
+    "n-dimensional",
+    "search",
+    "transactions",
+    "workflows",
+    "testing",
+    "vitest",
+    "typescript"
+  ],
+  "author": "Marketplace Development Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marketplace/n-dimensional-system.git"
+  },
+  "bugs": {
+    "url": "https://github.com/marketplace/n-dimensional-system/issues"
+  },
+  "homepage": "https://github.com/marketplace/n-dimensional-system#readme"
+}

@@ -1,0 +1,1439 @@
+openapi: 3.0.3
+info:
+  title: HIVE QUEEN BDD Architecture API
+  description: |
+    The HIVE QUEEN (Hierarchical Intelligence Verification Engine - Quantum Understanding Expert Engine Network) 
+    BDD Architecture API provides comprehensive workflow orchestration, semantic validation, and enterprise-grade 
+    compliance systems for Fortune 500 scale deployments.
+    
+    ## Features
+    - **Quantum-Inspired Superposition Testing**: Advanced parallel test execution
+    - **Semantic-Driven Development**: Ontological schema validation with Zod
+    - **Enterprise-Grade Orchestration**: Multi-tenant SaaS with SOX/GDPR/HIPAA compliance
+    - **AI Integration**: LLM tool orchestration and multi-model consensus
+    - **Circuit Breaker Patterns**: Fault-tolerant distributed systems
+    
+    ## Security
+    All endpoints require authentication. Use Bearer tokens for API access.
+    Enterprise deployments support SAML/OAuth2 integration.
+    
+    ## Rate Limits
+    - Standard: 1000 requests/hour
+    - Enterprise: 10000 requests/hour
+    - Fortune 500: Unlimited with SLA guarantees
+  version: 2.1.0
+  contact:
+    name: HIVE QUEEN BDD Support
+    email: support@hive-queen.enterprise.com
+    url: https://hive-queen.enterprise.com/support
+  license:
+    name: Enterprise License
+    url: https://hive-queen.enterprise.com/license
+
+servers:
+  - url: https://api.hive-queen.enterprise.com/v2
+    description: Production Enterprise API
+  - url: https://staging-api.hive-queen.enterprise.com/v2
+    description: Staging Environment
+  - url: https://dev-api.hive-queen.enterprise.com/v2
+    description: Development Environment
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+  - OAuth2: [read, write, admin]
+
+paths:
+  /workflows:
+    get:
+      summary: List Workflows
+      description: Retrieve paginated list of workflows with filtering and sorting options
+      operationId: listWorkflows
+      tags:
+        - Workflows
+      parameters:
+        - name: tenant
+          in: query
+          description: Tenant ID for multi-tenant filtering
+          required: false
+          schema:
+            type: string
+            example: "enterprise-corp"
+        - name: status
+          in: query
+          description: Filter by workflow status
+          required: false
+          schema:
+            type: string
+            enum: [pending, running, completed, failed, cancelled]
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: sort
+          in: query
+          description: Sort order
+          required: false
+          schema:
+            type: string
+            enum: [created_asc, created_desc, name_asc, name_desc]
+            default: created_desc
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  workflows:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WorkflowSummary'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+              examples:
+                enterprise_workflows:
+                  summary: Enterprise workflow list
+                  value:
+                    workflows:
+                      - id: "wf-hr-onboarding-001"
+                        name: "Employee Onboarding Workflow"
+                        status: "completed"
+                        createdAt: "2024-01-15T10:30:00Z"
+                        completedAt: "2024-01-15T10:45:00Z"
+                        tenant: "enterprise-corp"
+                        compliance: ["SOX", "GDPR"]
+                      - id: "wf-finance-approval-002"
+                        name: "Financial Approval Workflow"
+                        status: "running"
+                        createdAt: "2024-01-15T11:00:00Z"
+                        tenant: "enterprise-corp"
+                        compliance: ["SOX", "PCI-DSS"]
+                    pagination:
+                      page: 1
+                      limit: 20
+                      total: 156
+                      hasNext: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      summary: Create Workflow
+      description: Create a new workflow with semantic validation and compliance framework integration
+      operationId: createWorkflow
+      tags:
+        - Workflows
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkflowCreateRequest'
+            examples:
+              hr_onboarding:
+                summary: HR Employee Onboarding
+                value:
+                  name: "Employee Onboarding Workflow"
+                  description: "Comprehensive employee onboarding with background checks and system provisioning"
+                  tenant: "enterprise-corp"
+                  compliance: ["SOX", "GDPR", "EEOC"]
+                  steps:
+                    - id: "background-check"
+                      taskId: "task-background-verification"
+                      timeout: 3600000
+                      retryPolicy:
+                        maxRetries: 3
+                        backoffStrategy: "exponential"
+                    - id: "document-verification"
+                      taskId: "task-document-validation"
+                      dependsOn: ["background-check"]
+                      timeout: 1800000
+                  aiIntegration:
+                    enabled: true
+                    models: ["gpt-4", "claude-3"]
+                    tools: ["hr-system", "identity-verification", "compliance-checker"]
+              financial_approval:
+                summary: Financial Transaction Approval
+                value:
+                  name: "Financial Approval Workflow"
+                  description: "SOX-compliant financial transaction approval with segregation of duties"
+                  tenant: "enterprise-corp"
+                  compliance: ["SOX", "PCI-DSS"]
+                  steps:
+                    - id: "segregation-check"
+                      taskId: "task-segregation-validation"
+                      critical: true
+                    - id: "authorization-check"
+                      taskId: "task-authorization-limits"
+                      dependsOn: ["segregation-check"]
+                      critical: true
+                    - id: "immutable-record"
+                      taskId: "task-blockchain-record"
+                      dependsOn: ["authorization-check"]
+                      auditRequired: true
+      responses:
+        '201':
+          description: Workflow created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowResponse'
+              example:
+                id: "wf-hr-onboarding-001"
+                name: "Employee Onboarding Workflow"
+                status: "pending"
+                createdAt: "2024-01-15T10:30:00Z"
+                tenant: "enterprise-corp"
+                compliance: ["SOX", "GDPR", "EEOC"]
+                steps:
+                  - id: "background-check"
+                    status: "pending"
+                    taskId: "task-background-verification"
+                  - id: "document-verification"
+                    status: "pending"
+                    taskId: "task-document-validation"
+                auditTrail:
+                  - event: "workflow_created"
+                    timestamp: "2024-01-15T10:30:00Z"
+                    userId: "user-admin-001"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /workflows/{workflowId}:
+    get:
+      summary: Get Workflow Details
+      description: Retrieve comprehensive workflow information including execution state and audit trail
+      operationId: getWorkflow
+      tags:
+        - Workflows
+      parameters:
+        - name: workflowId
+          in: path
+          required: true
+          description: Unique workflow identifier
+          schema:
+            type: string
+            example: "wf-hr-onboarding-001"
+      responses:
+        '200':
+          description: Workflow details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowResponse'
+              example:
+                id: "wf-hr-onboarding-001"
+                name: "Employee Onboarding Workflow"
+                status: "completed"
+                createdAt: "2024-01-15T10:30:00Z"
+                completedAt: "2024-01-15T10:45:00Z"
+                tenant: "enterprise-corp"
+                compliance: ["SOX", "GDPR", "EEOC"]
+                executionTime: 900000
+                steps:
+                  - id: "background-check"
+                    status: "completed"
+                    startTime: "2024-01-15T10:30:30Z"
+                    endTime: "2024-01-15T10:35:00Z"
+                    result:
+                      status: "CLEARED"
+                      referenceId: "bg-check-001"
+                  - id: "document-verification"
+                    status: "completed"
+                    startTime: "2024-01-15T10:35:30Z"
+                    endTime: "2024-01-15T10:42:00Z"
+                    result:
+                      documentsVerified: 5
+                      complianceScore: 0.98
+                auditTrail:
+                  - event: "workflow_created"
+                    timestamp: "2024-01-15T10:30:00Z"
+                    userId: "user-admin-001"
+                  - event: "step_started"
+                    timestamp: "2024-01-15T10:30:30Z"
+                    stepId: "background-check"
+                  - event: "workflow_completed"
+                    timestamp: "2024-01-15T10:45:00Z"
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    put:
+      summary: Update Workflow
+      description: Update workflow configuration with version control and backwards compatibility
+      operationId: updateWorkflow
+      tags:
+        - Workflows
+      parameters:
+        - name: workflowId
+          in: path
+          required: true
+          description: Unique workflow identifier
+          schema:
+            type: string
+            example: "wf-hr-onboarding-001"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkflowUpdateRequest'
+      responses:
+        '200':
+          description: Workflow updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Version conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /workflows/{workflowId}/execute:
+    post:
+      summary: Execute Workflow
+      description: |
+        Execute workflow with quantum-inspired parallel processing and real-time monitoring.
+        Supports synchronous and asynchronous execution modes.
+      operationId: executeWorkflow
+      tags:
+        - Workflow Execution
+      parameters:
+        - name: workflowId
+          in: path
+          required: true
+          description: Unique workflow identifier
+          schema:
+            type: string
+            example: "wf-hr-onboarding-001"
+        - name: async
+          in: query
+          description: Execute asynchronously
+          required: false
+          schema:
+            type: boolean
+            default: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                input:
+                  type: object
+                  description: Input data for workflow execution
+                  additionalProperties: true
+                context:
+                  $ref: '#/components/schemas/ExecutionContext'
+                options:
+                  type: object
+                  properties:
+                    priority:
+                      type: string
+                      enum: [low, medium, high, critical]
+                      default: medium
+                    timeout:
+                      type: integer
+                      description: Execution timeout in milliseconds
+                      minimum: 1000
+                      maximum: 3600000
+                    retryPolicy:
+                      $ref: '#/components/schemas/RetryPolicy'
+            examples:
+              employee_onboarding:
+                summary: Employee onboarding execution
+                value:
+                  input:
+                    candidateData:
+                      name: "John Doe"
+                      email: "john.doe@enterprise.com"
+                      position: "Senior Engineer"
+                      department: "ENGINEERING"
+                      startDate: "2024-02-01"
+                  context:
+                    userId: "user-hr-001"
+                    tenantId: "enterprise-corp"
+                    sessionId: "session-001"
+                  options:
+                    priority: "high"
+                    timeout: 900000
+      responses:
+        '200':
+          description: Workflow execution completed (synchronous)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowExecutionResult'
+        '202':
+          description: Workflow execution started (asynchronous)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  executionId:
+                    type: string
+                    example: "exec-001"
+                  status:
+                    type: string
+                    enum: [accepted]
+                  estimatedCompletion:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /tasks:
+    get:
+      summary: List Available Tasks
+      description: Retrieve catalog of available tasks with their schemas and capabilities
+      operationId: listTasks
+      tags:
+        - Tasks
+      parameters:
+        - name: category
+          in: query
+          description: Filter tasks by category
+          required: false
+          schema:
+            type: string
+            enum: [validation, ai, integration, compliance, processing]
+        - name: compliance
+          in: query
+          description: Filter by compliance framework
+          required: false
+          schema:
+            type: string
+            enum: [SOX, GDPR, HIPAA, PCI-DSS, ISO-27001]
+      responses:
+        '200':
+          description: Task catalog retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tasks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TaskDefinition'
+              example:
+                tasks:
+                  - id: "task-background-verification"
+                    name: "Background Check Verification"
+                    category: "validation"
+                    compliance: ["EEOC", "SOX"]
+                    inputSchema:
+                      type: "object"
+                      properties:
+                        ssn:
+                          type: "string"
+                          pattern: "^\\d{3}-\\d{2}-\\d{4}$"
+                        firstName:
+                          type: "string"
+                        lastName:
+                          type: "string"
+                    outputSchema:
+                      type: "object"
+                      properties:
+                        status:
+                          type: "string"
+                          enum: ["CLEARED", "FLAGGED", "PENDING"]
+                        referenceId:
+                          type: "string"
+                  - id: "task-ai-document-analysis"
+                    name: "AI Document Analysis"
+                    category: "ai"
+                    aiModels: ["gpt-4", "claude-3"]
+                    tools: ["document-reader", "compliance-checker"]
+
+  /tasks/{taskId}/execute:
+    post:
+      summary: Execute Task
+      description: Execute individual task with schema validation and audit logging
+      operationId: executeTask
+      tags:
+        - Tasks
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          description: Task identifier
+          schema:
+            type: string
+            example: "task-background-verification"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                input:
+                  type: object
+                  additionalProperties: true
+                context:
+                  $ref: '#/components/schemas/ExecutionContext'
+      responses:
+        '200':
+          description: Task executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskExecutionResult'
+
+  /ai/models:
+    get:
+      summary: List AI Models
+      description: Retrieve available AI models for workflow integration
+      operationId: listAiModels
+      tags:
+        - AI Integration
+      responses:
+        '200':
+          description: AI models retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  models:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AiModel'
+
+  /ai/consensus:
+    post:
+      summary: Multi-Model Consensus
+      description: Execute multi-model AI consensus for critical business decisions
+      operationId: executeConsensus
+      tags:
+        - AI Integration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                models:
+                  type: array
+                  items:
+                    type: string
+                  example: ["gpt-4", "claude-3", "llama-2"]
+                prompt:
+                  type: string
+                  example: "Analyze this business scenario and recommend action"
+                consensusThreshold:
+                  type: number
+                  minimum: 0.5
+                  maximum: 1.0
+                  default: 0.7
+                confidenceMinimum:
+                  type: number
+                  minimum: 0.0
+                  maximum: 1.0
+                  default: 0.8
+      responses:
+        '200':
+          description: Consensus analysis completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsensusResult'
+
+  /compliance/frameworks:
+    get:
+      summary: List Compliance Frameworks
+      description: Retrieve supported compliance frameworks and their requirements
+      operationId: listComplianceFrameworks
+      tags:
+        - Compliance
+      responses:
+        '200':
+          description: Compliance frameworks retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  frameworks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ComplianceFramework'
+
+  /compliance/audit:
+    post:
+      summary: Generate Compliance Audit Report
+      description: Generate comprehensive compliance audit report for specified timeframe
+      operationId: generateComplianceAudit
+      tags:
+        - Compliance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                framework:
+                  type: string
+                  enum: [SOX, GDPR, HIPAA, PCI-DSS, ISO-27001]
+                startDate:
+                  type: string
+                  format: date-time
+                endDate:
+                  type: string
+                  format: date-time
+                scope:
+                  type: array
+                  items:
+                    type: string
+                  example: ["workflows", "tasks", "data-access"]
+      responses:
+        '200':
+          description: Audit report generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceAuditReport'
+
+  /monitoring/metrics:
+    get:
+      summary: Get System Metrics
+      description: Retrieve real-time system performance and health metrics
+      operationId: getSystemMetrics
+      tags:
+        - Monitoring
+      parameters:
+        - name: timeframe
+          in: query
+          description: Metrics timeframe
+          required: false
+          schema:
+            type: string
+            enum: [1h, 24h, 7d, 30d]
+            default: 1h
+        - name: metrics
+          in: query
+          description: Specific metrics to retrieve
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [throughput, latency, error-rate, cpu, memory, uptime]
+      responses:
+        '200':
+          description: System metrics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemMetrics'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT Bearer token for API authentication
+    
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for service-to-service authentication
+    
+    OAuth2:
+      type: oauth2
+      description: OAuth2 authentication for enterprise SSO integration
+      flows:
+        authorizationCode:
+          authorizationUrl: https://auth.hive-queen.enterprise.com/oauth/authorize
+          tokenUrl: https://auth.hive-queen.enterprise.com/oauth/token
+          scopes:
+            read: Read access to workflows and tasks
+            write: Create and modify workflows
+            admin: Administrative access to all resources
+
+  schemas:
+    WorkflowSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique workflow identifier
+          example: "wf-hr-onboarding-001"
+        name:
+          type: string
+          description: Human-readable workflow name
+          example: "Employee Onboarding Workflow"
+        status:
+          type: string
+          enum: [pending, running, completed, failed, cancelled]
+          description: Current workflow status
+        createdAt:
+          type: string
+          format: date-time
+          description: Workflow creation timestamp
+        completedAt:
+          type: string
+          format: date-time
+          description: Workflow completion timestamp (if completed)
+        tenant:
+          type: string
+          description: Multi-tenant identifier
+          example: "enterprise-corp"
+        compliance:
+          type: array
+          items:
+            type: string
+            enum: [SOX, GDPR, HIPAA, PCI-DSS, ISO-27001, EEOC, CCPA]
+          description: Applied compliance frameworks
+
+    WorkflowCreateRequest:
+      type: object
+      required:
+        - name
+        - steps
+      properties:
+        name:
+          type: string
+          description: Workflow name
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          description: Workflow description
+          maxLength: 1000
+        tenant:
+          type: string
+          description: Tenant identifier for multi-tenant deployment
+        compliance:
+          type: array
+          items:
+            type: string
+            enum: [SOX, GDPR, HIPAA, PCI-DSS, ISO-27001, EEOC, CCPA]
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowStep'
+        aiIntegration:
+          $ref: '#/components/schemas/AiIntegration'
+        metadata:
+          type: object
+          additionalProperties: true
+
+    WorkflowUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 1000
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowStep'
+        version:
+          type: string
+          description: Current version for optimistic locking
+        aiIntegration:
+          $ref: '#/components/schemas/AiIntegration'
+
+    WorkflowResponse:
+      allOf:
+        - $ref: '#/components/schemas/WorkflowSummary'
+        - type: object
+          properties:
+            description:
+              type: string
+            steps:
+              type: array
+              items:
+                $ref: '#/components/schemas/WorkflowStepStatus'
+            aiIntegration:
+              $ref: '#/components/schemas/AiIntegration'
+            executionTime:
+              type: integer
+              description: Total execution time in milliseconds
+            auditTrail:
+              type: array
+              items:
+                $ref: '#/components/schemas/AuditEvent'
+            version:
+              type: string
+              description: Current workflow version
+            metadata:
+              type: object
+              additionalProperties: true
+
+    WorkflowStep:
+      type: object
+      required:
+        - id
+        - taskId
+      properties:
+        id:
+          type: string
+          description: Unique step identifier within workflow
+        taskId:
+          type: string
+          description: Reference to task definition
+        dependsOn:
+          type: array
+          items:
+            type: string
+          description: Step dependencies (must complete before this step)
+        timeout:
+          type: integer
+          description: Step timeout in milliseconds
+          minimum: 1000
+          maximum: 3600000
+        retryPolicy:
+          $ref: '#/components/schemas/RetryPolicy'
+        critical:
+          type: boolean
+          description: Whether step failure should fail entire workflow
+          default: false
+        auditRequired:
+          type: boolean
+          description: Whether step requires audit logging
+          default: false
+
+    WorkflowStepStatus:
+      allOf:
+        - $ref: '#/components/schemas/WorkflowStep'
+        - type: object
+          properties:
+            status:
+              type: string
+              enum: [pending, running, completed, failed, skipped, cancelled]
+            startTime:
+              type: string
+              format: date-time
+            endTime:
+              type: string
+              format: date-time
+            result:
+              type: object
+              additionalProperties: true
+            error:
+              type: string
+              description: Error message if step failed
+
+    AiIntegration:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          default: false
+        models:
+          type: array
+          items:
+            type: string
+          example: ["gpt-4", "claude-3"]
+        tools:
+          type: array
+          items:
+            type: string
+          example: ["hr-system", "compliance-checker"]
+        consensusThreshold:
+          type: number
+          minimum: 0.5
+          maximum: 1.0
+          default: 0.7
+
+    ExecutionContext:
+      type: object
+      properties:
+        userId:
+          type: string
+          description: User executing the workflow
+        tenantId:
+          type: string
+          description: Tenant context
+        sessionId:
+          type: string
+          description: Session identifier
+        ipAddress:
+          type: string
+          description: Client IP address
+        userAgent:
+          type: string
+          description: Client user agent
+        timestamp:
+          type: string
+          format: date-time
+          description: Execution start time
+
+    RetryPolicy:
+      type: object
+      properties:
+        maxRetries:
+          type: integer
+          minimum: 0
+          maximum: 10
+          default: 3
+        backoffStrategy:
+          type: string
+          enum: [fixed, linear, exponential]
+          default: exponential
+        initialDelay:
+          type: integer
+          description: Initial delay in milliseconds
+          minimum: 100
+          default: 1000
+        maxDelay:
+          type: integer
+          description: Maximum delay in milliseconds
+          minimum: 1000
+          default: 30000
+
+    WorkflowExecutionResult:
+      type: object
+      properties:
+        executionId:
+          type: string
+          description: Unique execution identifier
+        workflowId:
+          type: string
+          description: Executed workflow identifier
+        status:
+          type: string
+          enum: [completed, failed, cancelled]
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        executionTime:
+          type: integer
+          description: Total execution time in milliseconds
+        result:
+          type: object
+          additionalProperties: true
+          description: Workflow execution result
+        stepResults:
+          type: array
+          items:
+            type: object
+            properties:
+              stepId:
+                type: string
+              status:
+                type: string
+                enum: [completed, failed, skipped]
+              result:
+                type: object
+                additionalProperties: true
+              error:
+                type: string
+        auditTrail:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEvent'
+        metrics:
+          $ref: '#/components/schemas/ExecutionMetrics'
+
+    TaskDefinition:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique task identifier
+        name:
+          type: string
+          description: Human-readable task name
+        category:
+          type: string
+          enum: [validation, ai, integration, compliance, processing]
+        description:
+          type: string
+          description: Task description
+        compliance:
+          type: array
+          items:
+            type: string
+            enum: [SOX, GDPR, HIPAA, PCI-DSS, ISO-27001]
+        inputSchema:
+          type: object
+          description: JSON Schema for task input validation
+        outputSchema:
+          type: object
+          description: JSON Schema for task output
+        timeout:
+          type: integer
+          description: Default timeout in milliseconds
+        aiModels:
+          type: array
+          items:
+            type: string
+          description: Required AI models (if AI task)
+        tools:
+          type: array
+          items:
+            type: string
+          description: Available tools (if AI task)
+
+    TaskExecutionResult:
+      type: object
+      properties:
+        taskId:
+          type: string
+        executionId:
+          type: string
+        status:
+          type: string
+          enum: [completed, failed]
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        executionTime:
+          type: integer
+        result:
+          type: object
+          additionalProperties: true
+        error:
+          type: string
+        auditTrail:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEvent'
+
+    AiModel:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "gpt-4"
+        name:
+          type: string
+          example: "GPT-4"
+        provider:
+          type: string
+          example: "OpenAI"
+        capabilities:
+          type: array
+          items:
+            type: string
+          example: ["text-generation", "function-calling", "reasoning"]
+        maxTokens:
+          type: integer
+          example: 8192
+        costPerToken:
+          type: number
+          description: Cost per token in USD
+        available:
+          type: boolean
+          description: Whether model is currently available
+
+    ConsensusResult:
+      type: object
+      properties:
+        recommendation:
+          type: string
+          description: Consensus recommendation
+        consensusScore:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Level of consensus among models
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Weighted confidence score
+        decision:
+          type: string
+          enum: [APPROVE, REVIEW_REQUIRED, REJECT]
+        risks:
+          type: array
+          items:
+            type: string
+          description: Identified risks
+        modelAnalyses:
+          type: array
+          items:
+            type: object
+            properties:
+              model:
+                type: string
+              recommendation:
+                type: string
+              confidence:
+                type: number
+              reasoning:
+                type: string
+
+    ComplianceFramework:
+      type: object
+      properties:
+        id:
+          type: string
+          enum: [SOX, GDPR, HIPAA, PCI-DSS, ISO-27001, EEOC, CCPA]
+        name:
+          type: string
+        description:
+          type: string
+        requirements:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              description:
+                type: string
+              mandatory:
+                type: boolean
+        auditFrequency:
+          type: string
+          enum: [quarterly, annually, continuous]
+        dataRetentionPeriod:
+          type: integer
+          description: Data retention period in days
+
+    ComplianceAuditReport:
+      type: object
+      properties:
+        reportId:
+          type: string
+        framework:
+          type: string
+        generatedAt:
+          type: string
+          format: date-time
+        period:
+          type: object
+          properties:
+            startDate:
+              type: string
+              format: date-time
+            endDate:
+              type: string
+              format: date-time
+        summary:
+          type: object
+          properties:
+            totalRequirements:
+              type: integer
+            compliantRequirements:
+              type: integer
+            complianceScore:
+              type: number
+              minimum: 0
+              maximum: 1
+            riskLevel:
+              type: string
+              enum: [low, medium, high, critical]
+        findings:
+          type: array
+          items:
+            type: object
+            properties:
+              requirementId:
+                type: string
+              status:
+                type: string
+                enum: [compliant, non-compliant, partial]
+              severity:
+                type: string
+                enum: [low, medium, high, critical]
+              description:
+                type: string
+              remediation:
+                type: string
+        recommendations:
+          type: array
+          items:
+            type: string
+
+    SystemMetrics:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        timeframe:
+          type: string
+        metrics:
+          type: object
+          properties:
+            throughput:
+              type: object
+              properties:
+                workflowsPerSecond:
+                  type: number
+                tasksPerSecond:
+                  type: number
+                requestsPerSecond:
+                  type: number
+            latency:
+              type: object
+              properties:
+                p50:
+                  type: number
+                  description: 50th percentile latency in milliseconds
+                p95:
+                  type: number
+                  description: 95th percentile latency in milliseconds
+                p99:
+                  type: number
+                  description: 99th percentile latency in milliseconds
+            errorRate:
+              type: number
+              minimum: 0
+              maximum: 1
+              description: Error rate as percentage
+            system:
+              type: object
+              properties:
+                cpuUtilization:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                memoryUtilization:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                uptime:
+                  type: number
+                  description: Uptime percentage
+            compliance:
+              type: object
+              properties:
+                auditEvents:
+                  type: integer
+                complianceViolations:
+                  type: integer
+                dataRetentionCompliance:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+
+    ExecutionMetrics:
+      type: object
+      properties:
+        totalSteps:
+          type: integer
+        successfulSteps:
+          type: integer
+        failedSteps:
+          type: integer
+        averageStepTime:
+          type: number
+          description: Average step execution time in milliseconds
+        resourceUtilization:
+          type: object
+          properties:
+            cpu:
+              type: number
+            memory:
+              type: number
+            network:
+              type: number
+        aiModelUsage:
+          type: array
+          items:
+            type: object
+            properties:
+              model:
+                type: string
+              tokensUsed:
+                type: integer
+              cost:
+                type: number
+
+    AuditEvent:
+      type: object
+      properties:
+        id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        event:
+          type: string
+          description: Event type
+        userId:
+          type: string
+          description: User who triggered the event
+        resourceId:
+          type: string
+          description: Resource affected by the event
+        details:
+          type: object
+          additionalProperties: true
+        complianceFramework:
+          type: string
+          enum: [SOX, GDPR, HIPAA, PCI-DSS, ISO-27001]
+        severity:
+          type: string
+          enum: [info, warning, error, critical]
+        source:
+          type: object
+          properties:
+            ipAddress:
+              type: string
+            userAgent:
+              type: string
+            sessionId:
+              type: string
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+        total:
+          type: integer
+          minimum: 0
+        hasNext:
+          type: boolean
+        hasPrevious:
+          type: boolean
+
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          additionalProperties: true
+          description: Additional error details
+        timestamp:
+          type: string
+          format: date-time
+        traceId:
+          type: string
+          description: Request trace identifier for debugging
+
+  responses:
+    BadRequest:
+      description: Bad Request - Invalid input parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: "INVALID_INPUT"
+            message: "Validation failed for workflow creation request"
+            details:
+              errors:
+                - field: "steps[0].taskId"
+                  message: "Task ID is required"
+                - field: "compliance"
+                  message: "At least one compliance framework must be specified"
+            timestamp: "2024-01-15T10:30:00Z"
+            traceId: "trace-001"
+
+    Unauthorized:
+      description: Unauthorized - Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: "AUTHENTICATION_REQUIRED"
+            message: "Valid authentication token required"
+            timestamp: "2024-01-15T10:30:00Z"
+            traceId: "trace-002"
+
+    Forbidden:
+      description: Forbidden - Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: "INSUFFICIENT_PERMISSIONS"
+            message: "User does not have permission to access this resource"
+            details:
+              requiredPermissions: ["workflow:create"]
+              userPermissions: ["workflow:read"]
+            timestamp: "2024-01-15T10:30:00Z"
+            traceId: "trace-003"
+
+    NotFound:
+      description: Not Found - Resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: "RESOURCE_NOT_FOUND"
+            message: "Workflow with ID 'wf-invalid-001' not found"
+            timestamp: "2024-01-15T10:30:00Z"
+            traceId: "trace-004"
+
+tags:
+  - name: Workflows
+    description: Workflow management and orchestration
+  - name: Workflow Execution
+    description: Workflow execution and monitoring
+  - name: Tasks
+    description: Individual task management and execution
+  - name: AI Integration
+    description: AI model integration and multi-model consensus
+  - name: Compliance
+    description: Compliance framework management and auditing
+  - name: Monitoring
+    description: System monitoring and performance metrics
+
+externalDocs:
+  description: HIVE QUEEN BDD Architecture Documentation
+  url: https://hive-queen.enterprise.com/docs

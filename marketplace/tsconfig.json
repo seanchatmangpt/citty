@@ -1,0 +1,62 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "lib": ["ES2022", "DOM"],
+    "allowJs": false,
+    "declaration": true,
+    "declarationMap": true,
+    "outDir": "./dist",
+    "rootDir": "./",
+    "removeComments": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "noImplicitThis": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": false,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "useDefineForClassFields": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "types": ["node", "vitest/globals"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"],
+      "@types/*": ["./types/*"],
+      "@src/*": ["./src/*"],
+      "@api/*": ["./api/*"],
+      "@workflows/*": ["./workflows/*"],
+      "@components/*": ["./components/*"],
+      "@tests/*": ["./tests/*"]
+    }
+  },
+  "include": [
+    "./**/*.ts",
+    "./**/*.vue"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "coverage",
+    "test-results.json",
+    "test-report.html",
+    "../src/**/*",
+    "../**/*"
+  ],
+  "ts-node": {
+    "esm": true,
+    "compilerOptions": {
+      "module": "ESNext",
+      "target": "ES2022"
+    }
+  }
+}

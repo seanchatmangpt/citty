@@ -1,0 +1,28 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    curl
+
+# Install pnpm
+RUN npm install -g pnpm
+
+# Copy package files
+COPY package.json pnpm-lock.yaml ./
+
+# Install dependencies
+RUN pnpm install
+
+# Copy source code
+COPY . .
+
+# Create test directories
+RUN mkdir -p test-results coverage logs
+
+# Run tests
+CMD ["pnpm", "test"]

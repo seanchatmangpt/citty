@@ -1,0 +1,35 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    curl
+
+# Install pnpm
+RUN npm install -g pnpm
+
+# Copy package files
+COPY package.json pnpm-lock.yaml ./
+
+# Install dependencies
+RUN pnpm install
+
+# Copy source code
+COPY . .
+
+# Create necessary directories
+RUN mkdir -p logs models
+
+# Expose ports
+EXPOSE 3001 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:3001/health || exit 1
+
+# Start development server
+CMD ["pnpm", "dev"]

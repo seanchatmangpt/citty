@@ -1,0 +1,186 @@
+# AI Test Orchestration Development Environment
+version: '3.8'
+
+services:
+  # Redis for caching and job queues
+  redis:
+    image: redis:7-alpine
+    container_name: ai-orchestration-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # PostgreSQL for metrics and audit data
+  postgres:
+    image: postgres:15-alpine
+    container_name: ai-orchestration-db
+    environment:
+      POSTGRES_DB: ai_orchestration
+      POSTGRES_USER: orchestrator
+      POSTGRES_PASSWORD: orchestrator_pass
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orchestrator -d ai_orchestration"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Selenium Hub for browser testing
+  selenium-hub:
+    image: selenium/hub:4.15.0
+    container_name: ai-orchestration-selenium-hub
+    ports:
+      - "4444:4444"
+      - "4443:4443"
+      - "4442:4442"
+    environment:
+      GRID_MAX_SESSION: 16
+      GRID_BROWSER_TIMEOUT: 300
+      GRID_TIMEOUT: 300
+
+  # Chrome nodes for parallel browser testing
+  chrome-node:
+    image: selenium/node-chrome:4.15.0
+    shm_size: 2gb
+    depends_on:
+      - selenium-hub
+    environment:
+      HUB_HOST: selenium-hub
+      HUB_PORT: 4444
+      NODE_MAX_INSTANCES: 4
+      NODE_MAX_SESSION: 4
+    scale: 2
+
+  # Firefox nodes for cross-browser testing
+  firefox-node:
+    image: selenium/node-firefox:4.15.0
+    shm_size: 2gb
+    depends_on:
+      - selenium-hub
+    environment:
+      HUB_HOST: selenium-hub
+      HUB_PORT: 4444
+      NODE_MAX_INSTANCES: 2
+      NODE_MAX_SESSION: 2
+    scale: 1
+
+  # Grafana for metrics visualization
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: ai-orchestration-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: false
+      GF_SERVER_ROOT_URL: http://localhost:3000
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./config/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./config/grafana/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - postgres
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: ai-orchestration-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+
+  # AI Orchestration System (development)
+  ai-orchestration:
+    build: 
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: ai-orchestration-app
+    ports:
+      - "3001:3001"  # Dashboard port
+      - "8080:8080"  # Swarm coordination port
+    environment:
+      NODE_ENV: development
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://orchestrator:orchestrator_pass@postgres:5432/ai_orchestration
+      SELENIUM_HUB_URL: http://selenium-hub:4444
+      LOG_LEVEL: debug
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      DASHBOARD_PORT: 3001
+      SWARM_PORT: 8080
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./logs:/app/logs
+      - ./models:/app/models
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      selenium-hub:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Test runner service for CI/CD
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: ai-orchestration-tests
+    environment:
+      NODE_ENV: test
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://orchestrator:orchestrator_pass@postgres:5432/ai_orchestration
+      SELENIUM_HUB_URL: http://selenium-hub:4444
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./test-results:/app/test-results
+      - ./coverage:/app/coverage
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    command: ["pnpm", "test:ci"]
+    profiles: ["test"]
+
+volumes:
+  redis_data:
+    driver: local
+  postgres_data:
+    driver: local
+  grafana_data:
+    driver: local
+  prometheus_data:
+    driver: local
+
+networks:
+  default:
+    name: ai-orchestration-network
+    driver: bridge

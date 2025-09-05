@@ -1,0 +1,1120 @@
+openapi: 3.0.0
+info:
+  title: Marketplace API
+  version: 1.0.0
+  description: Comprehensive RESTful API for marketplace operations with real-time capabilities
+  contact:
+    name: Marketplace API Support
+    email: support@marketplace.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3001
+    description: Development server
+  - url: https://api.marketplace.com
+    description: Production server
+
+tags:
+  - name: Items
+    description: Marketplace items CRUD operations
+  - name: Search
+    description: Multi-dimensional search with filters
+  - name: Recommendations
+    description: ML-powered recommendation system
+  - name: Transactions
+    description: Transaction management and processing
+  - name: Auctions
+    description: Real-time bidding and auction system
+  - name: Analytics
+    description: Business intelligence and reporting
+  - name: Workflows
+    description: Automated process execution with citty-pro
+
+security:
+  - bearerAuth: []
+
+paths:
+  # Health Check
+  /health:
+    get:
+      tags: [System]
+      summary: Health check endpoint
+      operationId: healthCheck
+      security: []
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  timestamp:
+                    type: string
+                    format: date-time
+                  uptime:
+                    type: number
+                  version:
+                    type: string
+
+  # Items Endpoints
+  /api/items:
+    get:
+      tags: [Items]
+      summary: List marketplace items
+      operationId: getItems
+      security: []
+      parameters:
+        - name: q
+          in: query
+          description: Search query
+          schema:
+            type: string
+        - name: category
+          in: query
+          description: Item category
+          schema:
+            type: string
+        - name: minPrice
+          in: query
+          description: Minimum price
+          schema:
+            type: number
+        - name: maxPrice
+          in: query
+          description: Maximum price
+          schema:
+            type: number
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Item'
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+                      facets:
+                        $ref: '#/components/schemas/SearchFacets'
+
+    post:
+      tags: [Items]
+      summary: Create new marketplace item
+      operationId: createItem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateItemRequest'
+      responses:
+        '201':
+          description: Item created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      item:
+                        $ref: '#/components/schemas/Item'
+                  message:
+                    type: string
+                    example: Item created successfully
+
+  /api/items/{id}:
+    get:
+      tags: [Items]
+      summary: Get item details
+      operationId: getItem
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Item details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      item:
+                        $ref: '#/components/schemas/Item'
+
+    put:
+      tags: [Items]
+      summary: Update item
+      operationId: updateItem
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateItemRequest'
+      responses:
+        '200':
+          description: Item updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      item:
+                        $ref: '#/components/schemas/Item'
+
+    delete:
+      tags: [Items]
+      summary: Delete item
+      operationId: deleteItem
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Item deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+
+  # Search Endpoints
+  /api/search:
+    get:
+      tags: [Search]
+      summary: Multi-dimensional search
+      operationId: search
+      security: []
+      parameters:
+        - name: q
+          in: query
+          description: Search query
+          schema:
+            type: string
+        - name: category
+          in: query
+          description: Filter by category
+          schema:
+            type: string
+        - name: tags
+          in: query
+          description: Filter by tags
+          schema:
+            type: array
+            items:
+              type: string
+        - name: sortBy
+          in: query
+          description: Sort by field
+          schema:
+            type: string
+            enum: [price, date, relevance, popularity]
+            default: relevance
+        - name: sortOrder
+          in: query
+          description: Sort order
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/SearchResults'
+
+  # Recommendations Endpoints
+  /api/recommendations:
+    get:
+      tags: [Recommendations]
+      summary: Get personalized recommendations
+      operationId: getRecommendations
+      security: []
+      parameters:
+        - name: userId
+          in: query
+          description: User ID for personalization
+          schema:
+            type: string
+        - name: itemId
+          in: query
+          description: Item ID for similar items
+          schema:
+            type: string
+        - name: type
+          in: query
+          description: Recommendation type
+          schema:
+            type: string
+            enum: [collaborative, content-based, hybrid]
+            default: hybrid
+        - name: limit
+          in: query
+          description: Number of recommendations
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+      responses:
+        '200':
+          description: Personalized recommendations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      recommendations:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Recommendation'
+
+  # Auctions Endpoints
+  /api/auctions:
+    get:
+      tags: [Auctions]
+      summary: List active auctions
+      operationId: getAuctions
+      security: []
+      responses:
+        '200':
+          description: List of active auctions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      auctions:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Auction'
+
+    post:
+      tags: [Auctions]
+      summary: Create new auction
+      operationId: createAuction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAuctionRequest'
+      responses:
+        '201':
+          description: Auction created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      auction:
+                        $ref: '#/components/schemas/Auction'
+
+  /api/auctions/{id}/bid:
+    post:
+      tags: [Auctions]
+      summary: Place bid on auction
+      operationId: placeBid
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceBidRequest'
+      responses:
+        '200':
+          description: Bid placed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      bid:
+                        $ref: '#/components/schemas/Bid'
+                      auction:
+                        $ref: '#/components/schemas/Auction'
+
+  # Analytics Endpoints (Admin only)
+  /api/analytics/overview:
+    get:
+      tags: [Analytics]
+      summary: Get analytics overview
+      operationId: getAnalyticsOverview
+      parameters:
+        - name: period
+          in: query
+          description: Time period for analytics
+          schema:
+            type: string
+            default: '30d'
+      responses:
+        '200':
+          description: Analytics overview
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      overview:
+                        $ref: '#/components/schemas/AnalyticsOverview'
+
+  # Workflows Endpoints
+  /api/workflows:
+    get:
+      tags: [Workflows]
+      summary: List workflows
+      operationId: getWorkflows
+      responses:
+        '200':
+          description: List of workflows
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      workflows:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Workflow'
+
+    post:
+      tags: [Workflows]
+      summary: Create new workflow
+      operationId: createWorkflow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWorkflowRequest'
+      responses:
+        '201':
+          description: Workflow created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      workflow:
+                        $ref: '#/components/schemas/Workflow'
+
+  /api/workflows/{id}/execute:
+    post:
+      tags: [Workflows]
+      summary: Execute workflow
+      operationId: executeWorkflow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                variables:
+                  type: object
+                  additionalProperties: true
+                waitForCompletion:
+                  type: boolean
+                  default: false
+      responses:
+        '202':
+          description: Workflow execution started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      execution:
+                        $ref: '#/components/schemas/WorkflowExecution'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Item:
+      type: object
+      properties:
+        id:
+          type: string
+          example: item-123
+        title:
+          type: string
+          example: Vintage Leather Jacket
+        description:
+          type: string
+          example: Authentic vintage leather jacket in excellent condition
+        price:
+          type: number
+          format: float
+          example: 89.99
+        category:
+          type: string
+          example: clothing
+        tags:
+          type: array
+          items:
+            type: string
+          example: [vintage, leather, jacket]
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+        condition:
+          type: string
+          enum: [new, like-new, good, fair, poor]
+        location:
+          type: object
+          properties:
+            country:
+              type: string
+            state:
+              type: string
+            city:
+              type: string
+            zipCode:
+              type: string
+        isActive:
+          type: boolean
+        sellerId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        views:
+          type: integer
+        favorites:
+          type: integer
+
+    CreateItemRequest:
+      type: object
+      required: [title, description, price, category, condition]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          minLength: 10
+          maxLength: 5000
+        price:
+          type: number
+          format: float
+          minimum: 0
+        category:
+          type: string
+          minLength: 1
+          maxLength: 50
+        tags:
+          type: array
+          items:
+            type: string
+            maxLength: 30
+          maxItems: 20
+        condition:
+          type: string
+          enum: [new, like-new, good, fair, poor]
+        location:
+          type: object
+          required: [country]
+          properties:
+            country:
+              type: string
+            state:
+              type: string
+            city:
+              type: string
+            zipCode:
+              type: string
+
+    UpdateItemRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          minLength: 10
+          maxLength: 5000
+        price:
+          type: number
+          format: float
+          minimum: 0
+        category:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        condition:
+          type: string
+          enum: [new, like-new, good, fair, poor]
+        isActive:
+          type: boolean
+
+    SearchResults:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Item'
+        facets:
+          $ref: '#/components/schemas/SearchFacets'
+        suggestions:
+          type: array
+          items:
+            type: string
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        searchTime:
+          type: number
+          description: Search execution time in milliseconds
+
+    SearchFacets:
+      type: object
+      properties:
+        categories:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              count:
+                type: integer
+        tags:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              count:
+                type: integer
+        conditions:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              count:
+                type: integer
+        priceRange:
+          type: object
+          properties:
+            min:
+              type: number
+            max:
+              type: number
+
+    Recommendation:
+      type: object
+      properties:
+        itemId:
+          type: string
+        score:
+          type: number
+          format: float
+        type:
+          type: string
+          enum: [collaborative, content-based, hybrid]
+        item:
+          $ref: '#/components/schemas/Item'
+        reason:
+          type: string
+        sources:
+          type: array
+          items:
+            type: string
+
+    Auction:
+      type: object
+      properties:
+        id:
+          type: string
+        itemId:
+          type: string
+        title:
+          type: string
+        currentPrice:
+          type: number
+          format: float
+        startPrice:
+          type: number
+          format: float
+        reservePrice:
+          type: number
+          format: float
+        bidIncrement:
+          type: number
+          format: float
+        highestBidder:
+          type: string
+        totalBids:
+          type: integer
+        endTime:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [scheduled, active, ended, cancelled, sold]
+        timeRemaining:
+          type: integer
+          description: Time remaining in milliseconds
+        watcherCount:
+          type: integer
+
+    CreateAuctionRequest:
+      type: object
+      required: [itemId, startPrice, duration]
+      properties:
+        itemId:
+          type: string
+        startPrice:
+          type: number
+          format: float
+          minimum: 0
+        reservePrice:
+          type: number
+          format: float
+          minimum: 0
+        bidIncrement:
+          type: number
+          format: float
+          minimum: 0.01
+          default: 1.00
+        duration:
+          type: integer
+          description: Duration in seconds
+          minimum: 3600
+          maximum: 2592000
+        autoExtend:
+          type: boolean
+          default: false
+        buyItNowPrice:
+          type: number
+          format: float
+          minimum: 0
+
+    Bid:
+      type: object
+      properties:
+        id:
+          type: string
+        auctionId:
+          type: string
+        bidderId:
+          type: string
+        amount:
+          type: number
+          format: float
+        maxBid:
+          type: number
+          format: float
+        timestamp:
+          type: string
+          format: date-time
+        isWinning:
+          type: boolean
+        isAutoBid:
+          type: boolean
+
+    PlaceBidRequest:
+      type: object
+      required: [amount]
+      properties:
+        amount:
+          type: number
+          format: float
+          minimum: 0
+        maxBid:
+          type: number
+          format: float
+          minimum: 0
+
+    AnalyticsOverview:
+      type: object
+      properties:
+        summary:
+          type: object
+          properties:
+            totalSales:
+              type: integer
+            totalRevenue:
+              type: number
+              format: float
+            activeUsers:
+              type: integer
+            totalItems:
+              type: integer
+        trends:
+          type: object
+          properties:
+            salesGrowth:
+              type: number
+              format: float
+            revenueGrowth:
+              type: number
+              format: float
+        topCategories:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              sales:
+                type: integer
+              revenue:
+                type: number
+                format: float
+
+    Workflow:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        ownerId:
+          type: string
+        triggers:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowTrigger'
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowStep'
+        isActive:
+          type: boolean
+        version:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        executionCount:
+          type: integer
+        successRate:
+          type: number
+          format: float
+
+    WorkflowTrigger:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [event, schedule, webhook, manual]
+        config:
+          type: object
+          properties:
+            event:
+              type: string
+            cron:
+              type: string
+            webhookUrl:
+              type: string
+              format: uri
+            conditions:
+              type: array
+
+    WorkflowStep:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          enum: [action, condition, loop, parallel, delay, citty-pro]
+        config:
+          type: object
+          properties:
+            action:
+              type: string
+            cittyProCommand:
+              type: string
+            cittyProArgs:
+              type: object
+              additionalProperties: true
+        onSuccess:
+          type: string
+        onFailure:
+          type: string
+        timeout:
+          type: integer
+        retryCount:
+          type: integer
+
+    CreateWorkflowRequest:
+      type: object
+      required: [name, triggers, steps]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        triggers:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowTrigger'
+          minItems: 1
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowStep'
+          minItems: 1
+        isActive:
+          type: boolean
+          default: true
+
+    WorkflowExecution:
+      type: object
+      properties:
+        id:
+          type: string
+        workflowId:
+          type: string
+        status:
+          type: string
+          enum: [running, completed, failed, cancelled, paused]
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        triggeredBy:
+          type: string
+        variables:
+          type: object
+          additionalProperties: true
+        error:
+          type: string
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+        total:
+          type: integer
+          minimum: 0
+        totalPages:
+          type: integer
+          minimum: 0
+        hasNext:
+          type: boolean
+        hasPrev:
+          type: boolean
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            message:
+              type: string
+              example: Resource not found
+            code:
+              type: integer
+              example: 404
+            timestamp:
+              type: string
+              format: date-time
+            path:
+              type: string
+              example: /api/items/invalid-id
+            method:
+              type: string
+              example: GET
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
