@@ -11,36 +11,60 @@ import { renderTemplate } from './renderer.js';
 import { loadOntologyContext, createSampleOntology } from './ontology.js';
 import type { CliOptions, TemplateContext } from './types.js';
 import { UnjucksError, TemplateNotFoundError, OntologyError, ContextError } from './types.js';
+import { EnhancedErrorHandler } from './utils/error-handler.js';
+import { ProgressIndicator } from './utils/progress-indicator.js';
+import { CommandSuggester } from './utils/command-suggester.js';
+import { CompletionGenerator } from './utils/completion-generator.js';
+import { EcosystemIntegration } from './utils/ecosystem-integration.js';
+import { HelpSystem } from './utils/help-system.js';
 
 /**
- * Main CLI command
+ * Enhanced main CLI command with production-quality help and error handling
  */
 const main = defineCommand({
   meta: {
     name: 'unjucks',
     version: '0.1.0',
-    description: 'Universal template system with ontology-driven context management'
+    description: '🚀 Universal template system with ontology-driven context management\n\n' +
+                'Build powerful templates with intelligent context management and semantic understanding.\n' +
+                'Integrates seamlessly with UnJS ecosystem tools like Nuxt, Nitro, and more.'
   },
   args: {
     generator: {
       type: 'positional',
-      description: 'Generator name',
+      description: 'Generator to use (e.g., component, api, page)\n' +
+                  'Examples:\n' +
+                  '  • component - React/Vue components\n' +
+                  '  • api - REST/GraphQL endpoints\n' +
+                  '  • page - Full page templates',
+      valueHint: 'generator-name',
       required: false
     },
     action: {
       type: 'positional',
-      description: 'Action name', 
+      description: 'Action to perform (e.g., create, update, delete)\n' +
+                  'Examples:\n' +
+                  '  • create - Generate new files\n' +
+                  '  • update - Modify existing files\n' +
+                  '  • scaffold - Create project structure',
+      valueHint: 'action-name',
       required: false
     },
     output: {
       type: 'string',
       alias: 'o',
-      description: 'Output file path'
+      description: 'Output file path or directory\n' +
+                  'Examples:\n' +
+                  '  • ./src/components/Button.tsx\n' +
+                  '  • ./api/users/ (directory)\n' +
+                  '  • - (stdout)',
+      valueHint: 'path'
     },
     dryRun: {
       type: 'boolean',
       alias: 'd',
-      description: 'Preview output without writing files',
+      description: '🔍 Preview output without writing files (safe mode)\n' +
+                  'Perfect for testing templates before committing changes',
       default: false
     },
     diff: {
@@ -60,7 +84,8 @@ const main = defineCommand({
     interactive: {
       type: 'boolean',
       alias: 'i',
-      description: 'Interactive mode with prompts',
+      description: '💬 Interactive mode with guided prompts\n' +
+                  'Helps you build templates step-by-step with contextual guidance',
       default: false
     },
     list: {
@@ -78,7 +103,26 @@ const main = defineCommand({
     verbose: {
       type: 'boolean',
       alias: 'v',
-      description: 'Verbose output',
+      description: '📝 Detailed logging and debug information\n' +
+                  'Shows template resolution, context loading, and performance metrics',
+      default: false
+    },
+    completion: {
+      type: 'string',
+      description: '🔧 Generate shell completion scripts\n' +
+                  'Supports: bash, zsh, fish, powershell\n' +
+                  'Usage: eval "$(unjucks --completion=bash)"',
+      valueHint: 'shell',
+      options: ['bash', 'zsh', 'fish', 'powershell']
+    },
+    tips: {
+      type: 'boolean',
+      description: '💡 Show helpful tips and ecosystem integration hints',
+      default: false
+    },
+    examples: {
+      type: 'boolean',
+      description: '📚 Show usage examples and common patterns',
       default: false
     }
   },

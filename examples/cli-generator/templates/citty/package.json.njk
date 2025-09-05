@@ -1,0 +1,96 @@
+{
+  "name": "{{ name }}",
+  "version": "{{ version }}",
+  "description": "{{ description }}",
+  "type": "module",
+  {% if features.includes('typescript') %}
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  {% else %}
+  "main": "./src/index.js",
+  {% endif %}
+  "bin": {
+    "{{ name }}": {% if features.includes('bundling') %}"./dist/cli.mjs"{% else %}"./src/cli.js"{% endif %}
+  },
+  "files": [
+    {% if features.includes('bundling') %}"dist"{% else %}"src"{% endif %}
+  ],
+  "scripts": {
+    {% if features.includes('bundling') %}
+    "build": "unbuild",
+    "dev": "unbuild --stub",
+    {% endif %}
+    {% if features.includes('typescript') %}
+    "typecheck": "tsc --noEmit",
+    {% endif %}
+    {% if features.includes('testing') %}
+    "test": "vitest",
+    "test:ci": "vitest run",
+    {% endif %}
+    {% if features.includes('linting') %}
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    {% endif %}
+    "start": {% if features.includes('bundling') %}"node ./dist/cli.mjs"{% else %}"node ./src/cli.js"{% endif %},
+    "prepublishOnly": {% if features.includes('bundling') %}"pnpm run build"{% else %}"echo 'No build step'"{% endif %}
+  },
+  "dependencies": {
+    {% if framework === 'citty' %}
+    "citty": "^0.1.6",
+    {% elif framework === 'commander' %}
+    "commander": "^11.0.0",
+    {% elif framework === 'yargs' %}
+    "yargs": "^17.7.2",
+    "@types/yargs": "^17.0.24",
+    {% endif %}
+    {% if integrations.includes('consola') %}
+    "consola": "^3.2.3",
+    {% endif %}
+    {% if integrations.includes('defu') %}
+    "defu": "^6.1.4",
+    {% endif %}
+    {% if integrations.includes('pathe') %}
+    "pathe": "^1.1.2",
+    {% endif %}
+    {% if integrations.includes('scule') %}
+    "scule": "^1.3.0",
+    {% endif %}
+    {% if integrations.includes('ofetch') %}
+    "ofetch": "^1.3.3",
+    {% endif %}
+    {% if integrations.includes('unctx') %}
+    "unctx": "^2.3.1",
+    {% endif %}
+    "chalk": "^5.3.0"
+  },
+  "devDependencies": {
+    {% if features.includes('typescript') %}
+    "@types/node": "^20.10.6",
+    "typescript": "^5.3.3",
+    {% endif %}
+    {% if features.includes('bundling') %}
+    "unbuild": "^2.0.0",
+    {% endif %}
+    {% if features.includes('testing') %}
+    "vitest": "^1.1.3",
+    {% endif %}
+    {% if features.includes('linting') %}
+    "eslint": "^8.56.0",
+    {% if features.includes('typescript') %}
+    "@typescript-eslint/eslint-plugin": "^6.18.1",
+    "@typescript-eslint/parser": "^6.18.1",
+    {% endif %}
+    {% endif %}
+    "@unjs/unjucks": "^0.1.0"
+  },
+  "keywords": [
+    "cli",
+    "tool",
+    {% for integration in integrations %}
+    "{{ integration }}",
+    {% endfor %}
+    "unjs"
+  ],
+  "author": "{{ author }}",
+  "license": "{{ license | default('MIT') }}"
+}

@@ -1,0 +1,58 @@
+# Development files
+src/
+test/
+tests/
+*.test.ts
+*.spec.ts
+coverage/
+.nyc_output/
+
+# Build artifacts
+*.tsbuildinfo
+tsconfig.json
+tsconfig.*.json
+build.config.ts
+unbuild.config.ts
+
+# Development tools
+.vscode/
+.idea/
+.eslintrc*
+.prettierrc*
+eslint.config.*
+prettier.config.*
+vitest.config.*
+
+# Git and CI
+.git/
+.github/
+.gitignore
+.gitattributes
+
+# Package manager
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+.pnpm-debug.log
+.npmrc
+
+# Documentation development
+docs/
+playground/
+examples/*/node_modules/
+examples/*/dist/
+benchmarks/
+
+# Environment and config
+.env*
+.DS_Store
+*.log
+node_modules/
+
+# Keep only production files
+!dist/
+!templates/
+!README.md
+!CHANGELOG.md
+!LICENSE
+!package.json

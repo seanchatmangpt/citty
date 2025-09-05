@@ -1,0 +1,67 @@
+{
+  "name": "unjucks-plugin-development",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Plugin development example for UnJucks ecosystem",
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.ts"
+    },
+    "./markdown": {
+      "import": "./dist/plugins/markdown.mjs",
+      "types": "./dist/plugins/markdown.d.ts"
+    },
+    "./i18n": {
+      "import": "./dist/plugins/i18n.mjs", 
+      "types": "./dist/plugins/i18n.d.ts"
+    },
+    "./cache": {
+      "import": "./dist/plugins/cache.mjs",
+      "types": "./dist/plugins/cache.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "plugins"
+  ],
+  "scripts": {
+    "build": "unbuild",
+    "dev": "unbuild --stub",
+    "test": "vitest",
+    "test:ci": "vitest run",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "demo": "node ./demo/plugin-demo.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@unjs/unjucks": "workspace:*",
+    "marked": "^12.0.2",
+    "highlight.js": "^11.9.0",
+    "gray-matter": "^4.0.3",
+    "lru-cache": "^10.2.0",
+    "yaml": "^2.8.1",
+    "defu": "^6.1.4",
+    "ofetch": "^1.3.3",
+    "scule": "^1.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "@types/marked": "^12.0.0",
+    "typescript": "^5.3.3",
+    "unbuild": "^2.0.0",
+    "vitest": "^1.1.3"
+  },
+  "keywords": [
+    "unjucks",
+    "plugin",
+    "template",
+    "markdown",
+    "i18n",
+    "cache"
+  ]
+}

@@ -30,11 +30,12 @@
     "release": "pnpm test && changelogen --release && npm publish"
   },
   "dependencies": {
-    "n3": "^1.26.0",
-    "unctx": "^2.3.1",
     "defu": "^6.1.4",
+    "n3": "^1.26.0",
     "ofetch": "^1.4.1",
-    "pathe": "^1.1.2"
+    "ollama-ai-provider": "^1.2.0",
+    "pathe": "^1.1.2",
+    "unctx": "^2.3.1"
   },
   "devDependencies": {
     "@types/node": "^22.13.10",

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Documentation - Generated with UnJucks</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    .json-schema {
+      background: #1f2937;
+      color: #e5e7eb;
+      border-radius: 0.5rem;
+      padding: 1rem;
+      font-family: 'Courier New', monospace;
+    }
+  </style>
+</head>
+<body class="bg-gray-50">
+  <div class="max-w-6xl mx-auto py-8 px-4">
+    <header class="mb-8">
+      <h1 class="text-4xl font-bold text-gray-900 mb-2">API Documentation</h1>
+      <p class="text-gray-600">Generated with UnJucks Ontology System</p>
+      <div class="mt-4 text-sm text-gray-500">
+        <span>Version: {{ version }}</span> | 
+        <span>Generated: {{ timestamp | date('F j, Y g:i A') }}</span>
+      </div>
+    </header>
+
+    <div class="space-y-8">
+      {% for entityName, entity in ontology.entities %}
+      <section class="bg-white rounded-lg shadow-lg p-6">
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">{{ entityName }}</h2>
+        
+        <!-- Entity Properties -->
+        <div class="mb-6">
+          <h3 class="text-lg font-semibold text-gray-800 mb-3">Properties</h3>
+          <div class="grid gap-4">
+            {% for propName, prop in entity.properties %}
+            <div class="border border-gray-200 rounded-lg p-4">
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="font-medium text-gray-900">{{ propName }}</h4>
+                <div class="flex gap-2">
+                  <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">{{ prop.type }}</span>
+                  {% if prop.required %}
+                  <span class="px-2 py-1 bg-red-100 text-red-800 text-xs rounded">required</span>
+                  {% endif %}
+                  {% if prop.format %}
+                  <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">{{ prop.format }}</span>
+                  {% endif %}
+                </div>
+              </div>
+              
+              {% if prop.description %}
+              <p class="text-gray-600 text-sm mb-2">{{ prop.description }}</p>
+              {% endif %}
+              
+              <div class="text-xs text-gray-500 space-x-4">
+                {% if prop.enum %}
+                <span>Enum: {{ prop.enum | join(', ') }}</span>
+                {% endif %}
+                {% if prop.default %}
+                <span>Default: {{ prop.default }}</span>
+                {% endif %}
+                {% if prop.minLength or prop.maxLength %}
+                <span>Length: {{ prop.minLength | default(0) }}-{{ prop.maxLength | default('∞') }}</span>
+                {% endif %}
+                {% if prop.min or prop.max %}
+                <span>Range: {{ prop.min | default('-∞') }} to {{ prop.max | default('∞') }}</span>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- API Endpoints -->
+        {% if entity.endpoints %}
+        <div>
+          <h3 class="text-lg font-semibold text-gray-800 mb-3">Endpoints</h3>
+          {% for endpoint, config in entity.endpoints %}
+          <div class="border border-gray-200 rounded-lg p-4 mb-4">
+            <div class="flex items-center gap-3 mb-3">
+              {% set method = endpoint.split(' ')[0] %}
+              {% set path = endpoint.split(' ')[1] %}
+              <span class="px-3 py-1 rounded font-medium text-sm 
+                {% if method == 'GET' %}bg-green-100 text-green-800
+                {% elif method == 'POST' %}bg-blue-100 text-blue-800
+                {% elif method == 'PUT' %}bg-yellow-100 text-yellow-800
+                {% elif method == 'DELETE' %}bg-red-100 text-red-800
+                {% endif %}">{{ method }}</span>
+              <code class="text-gray-900 font-mono">{{ path }}</code>
+            </div>
+            
+            {% if config.description %}
+            <p class="text-gray-600 mb-4">{{ config.description }}</p>
+            {% endif %}
+
+            <!-- Parameters -->
+            {% if config.parameters %}
+            <div class="mb-4">
+              <h5 class="font-medium text-gray-800 mb-2">Parameters</h5>
+              <div class="json-schema">
+                <pre>{{ config.parameters | json(2) }}</pre>
+              </div>
+            </div>
+            {% endif %}
+
+            <!-- Request Body -->
+            {% if config.body %}
+            <div class="mb-4">
+              <h5 class="font-medium text-gray-800 mb-2">Request Body</h5>
+              <div class="json-schema">
+                <pre>{{ config.body | json(2) }}</pre>
+              </div>
+            </div>
+            {% endif %}
+
+            <!-- Responses -->
+            {% if config.responses %}
+            <div>
+              <h5 class="font-medium text-gray-800 mb-2">Responses</h5>
+              {% for status, response in config.responses %}
+              <div class="mb-2">
+                <span class="inline-block w-12 text-center px-2 py-1 rounded text-xs font-medium
+                  {% if status >= 200 and status < 300 %}bg-green-100 text-green-800
+                  {% elif status >= 400 %}bg-red-100 text-red-800
+                  {% else %}bg-gray-100 text-gray-800
+                  {% endif %}">{{ status }}</span>
+                <div class="mt-2 json-schema">
+                  <pre>{{ response | json(2) }}</pre>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </section>
+      {% endfor %}
+    </div>
+
+    <footer class="mt-12 text-center text-gray-500 text-sm">
+      <p>Documentation generated automatically from UnJucks ontology definitions</p>
+      <p class="mt-1">Powered by <a href="https://github.com/unjs/unjucks" class="text-blue-600 hover:text-blue-800">UnJucks</a></p>
+    </footer>
+  </div>
+</body>
+</html>

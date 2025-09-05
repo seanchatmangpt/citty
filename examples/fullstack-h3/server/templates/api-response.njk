@@ -1,0 +1,35 @@
+{
+  "success": {{ success | json }},
+  {% if data %}
+  "data": {% if data | length %}{{ data | json }}{% else %}null{% endif %},
+  {% endif %}
+  {% if message %}
+  "message": {{ message | json }},
+  {% endif %}
+  {% if errors %}
+  "errors": {{ errors | json }},
+  {% endif %}
+  "meta": {
+    "timestamp": {{ _context.metadata.timestamp | json }},
+    "requestId": {{ _context.metadata.requestId | json }},
+    "version": {{ _context.metadata.version | json }}
+    {% if _context.metadata.pagination %},
+    "pagination": {
+      "page": {{ _context.metadata.pagination.page }},
+      "limit": {{ _context.metadata.pagination.limit }},
+      "total": {{ _context.metadata.pagination.total }},
+      "totalPages": {{ _context.metadata.pagination.totalPages }}
+    }
+    {% endif %}
+    {% if _context.metadata.filters %},
+    "filters": {{ _context.metadata.filters | json }}
+    {% endif %}
+  }
+  {% if _context.ontology %},
+  "_schema": {
+    "entity": {{ _context.entity | json }},
+    "properties": {{ _context.ontology.properties | json }},
+    "relationships": {{ _context.ontology.relationships | default({}) | json }}
+  }
+  {% endif %}
+}

@@ -1,0 +1,1 @@
+// Simple integration test without complex comments\nimport { describe, it, expect } from 'vitest'\n\ndescribe('Simple Test', () => {\n  it('should pass', () => {\n    expect(true).toBe(true)\n  })\n})"

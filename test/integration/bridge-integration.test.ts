@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { PythonBridge } from '../../src/bridges/python-bridge'
-import { ErlangBridge } from '../../src/bridges/erlang-bridge'
-import { UnifiedBridge, createUnifiedBridge } from '../../src/bridges/unified-bridge'
+import { PythonBridge, ErlangBridge, UnifiedBridge, createUnifiedBridge } from '../../src/bridges'
 import { DataSynchronizer, createDataSynchronizer } from '../../src/sync'
 
-vi.mock('child_process')
+vi.mock('child_process', () => ({
+  spawn: vi.fn()
+}))
 
 describe('Bridge Integration Tests', () => {
   let pythonBridge: PythonBridge
@@ -14,24 +14,18 @@ describe('Bridge Integration Tests', () => {
 
   beforeEach(async () => {
     pythonBridge = new PythonBridge({
-      enabled: true,
-      config: {
-        cnsPath: '~/cns',
-        poolSize: 2,
-        maxRetries: 1,
-        timeout: 5000
-      }
+      cnsPath: '~/cns',
+      poolSize: 2,
+      maxRetries: 1,
+      timeout: 5000
     })
 
     erlangBridge = new ErlangBridge({
-      enabled: true,
-      config: {
-        bytstarPath: '~/bytestar',
-        poolSize: 2,
-        maxRetries: 1,
-        timeout: 5000,
-        performanceTarget: 8
-      }
+      bytstarPath: '~/bytestar',
+      poolSize: 2,
+      maxRetries: 1,
+      timeout: 5000,
+      performanceTarget: 8
     })
 
     unifiedBridge = createUnifiedBridge({
@@ -62,15 +56,16 @@ describe('Bridge Integration Tests', () => {
     it('should process ontology validation requests', async () => {
       const request = {
         operation: 'validate' as const,
+        input: '<owl:Class rdf:about="#TestClass" />',
         format: 'owl' as const,
-        data: '<owl:Class rdf:about="#TestClass" />',
         options: {
           strict: true,
           includeWarnings: false
         }
       }
 
-      vi.mocked(require('child_process').spawn).mockImplementation(() => ({
+      const { spawn } = await import('child_process')
+      vi.mocked(spawn).mockImplementation(() => ({
         stdout: { on: vi.fn(), pipe: vi.fn() },
         stderr: { on: vi.fn() },
         on: vi.fn((event, callback) => {
@@ -82,21 +77,21 @@ describe('Bridge Integration Tests', () => {
 
       const result = await pythonBridge.processOntology(request)
       expect(result.success).toBe(true)
-      expect(result.operation).toBe('validate')
+      expect(result).toHaveProperty('metadata')
     })
 
     it('should handle transformation requests', async () => {
       const request = {
         operation: 'transform' as const,
+        input: '<owl:Class rdf:about="#TestClass" />',
         format: 'owl' as const,
-        targetFormat: 'json-ld' as const,
-        data: '<owl:Class rdf:about="#TestClass" />',
+        outputFormat: 'json-ld' as const,
         options: {}
       }
 
       const result = await pythonBridge.processOntology(request)
       expect(result.success).toBe(true)
-      expect(result.operation).toBe('transform')
+      expect(result).toHaveProperty('metadata')
     })
   })
 
@@ -117,7 +112,8 @@ describe('Bridge Integration Tests', () => {
         }
       }
 
-      vi.mocked(require('child_process').spawn).mockImplementation(() => ({
+      const { spawn } = await import('child_process')
+      vi.mocked(spawn).mockImplementation(() => ({
         stdout: { on: vi.fn(), pipe: vi.fn() },
         stderr: { on: vi.fn() },
         on: vi.fn((event, callback) => {

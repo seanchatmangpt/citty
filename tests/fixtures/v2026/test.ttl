@@ -1,0 +1,17 @@
+
+        @prefix citty: <https://citty.pro/ontology#> .
+        @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+        
+        :deploy a citty:Command ;
+          citty:name "deploy" ;
+          citty:description "Deploy application to cloud" ;
+          citty:arguments [
+            citty:name "environment" ;
+            citty:type "string" ;
+            citty:required true
+          ] .
+        
+        :ci-workflow a citty:Workflow ;
+          citty:name "ci-pipeline" ;
+          citty:steps ( :build :test :deploy ) .
+      

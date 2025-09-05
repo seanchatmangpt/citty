@@ -1,53 +1,99 @@
 {
   "name": "@unjs/unjucks",
   "version": "0.1.0",
-  "description": "Universal template system with ontology-driven context management",
+  "description": "🧬 Universal template system with AI-powered ontology-driven context management for the UnJS ecosystem. Build semantic, type-safe templates with cognitive context understanding and multi-framework compatibility.",
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs",
       "types": "./dist/index.d.ts"
     },
     "./context": {
-      "import": "./dist/context.js",
+      "import": "./dist/context.mjs",
+      "require": "./dist/context.cjs",
       "types": "./dist/context.d.ts"
     },
     "./walker": {
-      "import": "./dist/walker.js",
+      "import": "./dist/walker.mjs",
+      "require": "./dist/walker.cjs",
       "types": "./dist/walker.d.ts"
     },
     "./renderer": {
-      "import": "./dist/renderer.js",
+      "import": "./dist/renderer.mjs",
+      "require": "./dist/renderer.cjs",
       "types": "./dist/renderer.d.ts"
     },
     "./ontology": {
-      "import": "./dist/ontology.js",
+      "import": "./dist/ontology.mjs",
+      "require": "./dist/ontology.cjs",
       "types": "./dist/ontology.d.ts"
     },
     "./cli": {
-      "import": "./dist/cli.js",
+      "import": "./dist/cli.mjs",
+      "require": "./dist/cli.cjs",
       "types": "./dist/cli.d.ts"
-    }
+    },
+    "./nuxt": {
+      "import": "./dist/integration/nuxt-module.mjs",
+      "require": "./dist/integration/nuxt-module.cjs",
+      "types": "./dist/integration/nuxt-module.d.ts"
+    },
+    "./nitro": {
+      "import": "./dist/integration/nitro-plugin.mjs",
+      "require": "./dist/integration/nitro-plugin.cjs",
+      "types": "./dist/integration/nitro-plugin.d.ts"
+    },
+    "./vite": {
+      "import": "./dist/integration/vite-plugin.mjs",
+      "require": "./dist/integration/vite-plugin.cjs",
+      "types": "./dist/integration/vite-plugin.d.ts"
+    },
+    "./h3": {
+      "import": "./dist/integration/h3-middleware.mjs",
+      "require": "./dist/integration/h3-middleware.cjs",
+      "types": "./dist/integration/h3-middleware.d.ts"
+    },
+    "./templates/*": "./templates/*",
+    "./package.json": "./package.json"
   },
   "bin": {
-    "unjucks": "./dist/cli.js"
+    "unjucks": "./dist/cli.mjs"
   },
   "files": [
     "dist",
-    "templates"
+    "templates",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "unbuild",
     "dev": "unbuild --stub",
     "test": "vitest",
-    "test:ci": "vitest run",
+    "test:ci": "vitest run --coverage",
+    "test:watch": "vitest --watch",
+    "test:types": "vitest --typecheck",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "pnpm run build",
-    "release": "changelogen --release && npm publish && git push --follow-tags"
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "docs:build": "typedoc --out docs src/index.ts",
+    "docs:dev": "typedoc --watch --out docs src/index.ts",
+    "playground": "tsx src/playground/interactive-playground.ts",
+    "example:nuxt": "cd examples/nuxt && pnpm dev",
+    "example:nitro": "cd examples/nitro && pnpm dev",
+    "example:vite": "cd examples/vite && pnpm dev",
+    "benchmark": "tsx src/benchmarks/performance.ts",
+    "validate:ecosystem": "pnpm run build && pnpm run test:ci && pnpm run typecheck && pnpm run lint",
+    "changelog": "changelogen",
+    "prepublishOnly": "pnpm run validate:ecosystem",
+    "release": "changelogen --release && pnpm publish && git push --follow-tags",
+    "release:beta": "changelogen --prerelease beta && pnpm publish --tag beta",
+    "postinstall": "node -e \"console.log('🧬 unjucks: Universal template system ready! Try: npx unjucks --help');\""
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
@@ -55,7 +101,7 @@
     "citty": "^0.1.6",
     "cli-table3": "^0.6.3",
     "colorette": "^2.0.20",
-    "consola": "^3.2.3",
+    "consola": "^3.4.2",
     "defu": "^6.1.4",
     "fast-glob": "^3.3.2",
     "gray-matter": "^4.0.3",
@@ -63,7 +109,7 @@
     "n3": "^1.17.3",
     "nunjucks": "^3.2.4",
     "ofetch": "^1.3.3",
-    "ohash": "^1.1.3",
+    "ohash": "^1.1.6",
     "ora": "^8.0.1",
     "p-queue": "^8.0.1",
     "pathe": "^1.1.2",
@@ -77,36 +123,97 @@
     "@faker-js/faker": "^10.0.0",
     "@types/node": "^20.10.6",
     "@types/nunjucks": "^3.2.6",
+    "@types/prompts": "^2.4.9",
     "@typescript-eslint/eslint-plugin": "^6.18.1",
     "@typescript-eslint/parser": "^6.18.1",
     "changelogen": "^0.5.5",
     "eslint": "^8.56.0",
     "fast-check": "^4.3.0",
     "hookable": "^5.5.3",
-    "typescript": "^5.3.3",
+    "typescript": "^5.9.2",
     "unbuild": "^2.0.0",
+    "undici": "^7.15.0",
     "vitest": "^1.1.3"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=16.14.0",
+    "npm": ">=8.0.0",
+    "pnpm": ">=7.0.0"
   },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
   "keywords": [
+    "unjs",
     "template",
     "nunjucks",
-    "generator",
     "ontology",
+    "semantic",
     "context",
+    "generator",
     "cli",
-    "unjs"
+    "ai",
+    "cognitive",
+    "nuxt",
+    "nitro",
+    "vite",
+    "h3",
+    "universal",
+    "typescript",
+    "rdf",
+    "knowledge-graph",
+    "template-engine",
+    "code-generation",
+    "meta-programming",
+    "framework-agnostic",
+    "build-tool",
+    "developer-tools",
+    "automation",
+    "scaffolding",
+    "boilerplate",
+    "intelligent",
+    "context-aware",
+    "type-safe"
   ],
-  "author": "UnJS Community",
+  "author": {
+    "name": "UnJS Community",
+    "url": "https://unjs.io"
+  },
+  "contributors": [
+    {
+      "name": "Pooya Parsa",
+      "email": "pooya@pi0.io",
+      "url": "https://github.com/pi0"
+    }
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/unjs/unjucks.git"
+    "url": "git+https://github.com/unjs/unjucks.git",
+    "directory": "."
   },
   "bugs": {
-    "url": "https://github.com/unjs/unjucks/issues"
+    "url": "https://github.com/unjs/unjucks/issues",
+    "email": "support@unjs.io"
   },
-  "homepage": "https://github.com/unjs/unjucks#readme"
+  "homepage": "https://unjs.io/packages/unjucks",
+  "funding": [
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/pi0"
+    },
+    {
+      "type": "opencollective",
+      "url": "https://opencollective.com/unjs"
+    }
+  ],
+  "sponsor": {
+    "url": "https://github.com/sponsors/unjs"
+  }
 }

@@ -1,0 +1,543 @@
+{
+  "timestamp": "2025-09-05T16:16:20.625Z",
+  "summary": {
+    "totalExamples": 82,
+    "validExamples": 8,
+    "successRate": 10
+  },
+  "results": [
+    {
+      "file": "/Users/sac/dev/citty/docs/ecosystem/README.md",
+      "examples": [
+        {
+          "language": "typescript",
+          "code": "// plugins/unjucks.client.ts\nimport { createUnJucks } from '@unjs/unjucks'\n\nexport default defineNuxtPlugin(() => {\n  const unjucks = createUnJucks({ /* config */ })\n  return { provide: { unjucks } }\n})",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// api/generate.post.ts\nimport { generateFromOntology } from '@unjs/unjucks'\n\nexport default defineEventHandler(async (event) => {\n  const { ontology, template } = await readBody(event)\n  return generateFromOntology(ontology, template)\n})",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "import { createUnJucksMiddleware } from '@unjs/unjucks/h3'\napp.use(createUnJucksMiddleware({ /* options */ }))",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        }
+      ],
+      "totalExamples": 3,
+      "validExamples": 0
+    },
+    {
+      "file": "/Users/sac/dev/citty/docs/ecosystem/advanced/plugins.md",
+      "examples": [
+        {
+          "language": "typescript",
+          "code": "// plugins/my-plugin.ts\nimport { definePlugin } from '@unjs/unjucks'\n\nexport default definePlugin({\n  name: 'my-plugin',\n  version: '1.0.0',\n  \n  setup(unjucks, options) {\n    // Plugin initialization\n    console.log('My plugin loaded!')\n    \n    // Add custom filter\n    unjucks.addFilter('myFilter', (value) => {\n      return `Custom: ${value}`\n    })\n    \n    // Register template format\n    unjucks.addTemplateFormat('my-format', {\n      compile: async (template) => {\n        // Compile logic\n        return (context) => processTemplate(template, context)\n      }\n    })\n    \n    // Add semantic feature\n    unjucks.addSemanticProcessor('myProcessor', async (ontology) => {\n      // Process ontology data\n      return processOntology(ontology)\n    })\n  },\n  \n  // Plugin configuration schema\n  options: {\n    enabled: { type: 'boolean', default: true },\n    apiKey: { type: 'string', required: false },\n    timeout: { type: 'number', default: 5000 }\n  }\n})",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// Register in UnJucks configuration\nimport { createUnJucks } from '@unjs/unjucks'\nimport myPlugin from './plugins/my-plugin'\n\nconst unjucks = createUnJucks({\n  plugins: [\n    myPlugin,\n    // Or with options\n    [myPlugin, { \n      enabled: true,\n      apiKey: 'your-api-key'\n    }]\n  ]\n})",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// plugins/pug-support.ts\nimport { definePlugin } from '@unjs/unjucks'\nimport pug from 'pug'\n\nexport default definePlugin({\n  name: 'unjucks-pug',\n  \n  setup(unjucks) {\n    unjucks.addTemplateFormat('pug', {\n      extensions: ['.pug', '.jade'],\n      \n      compile: async (template: string, options = {}) => {\n        const compiled = pug.compile(template, {\n          filename: options.filename,\n          pretty: options.pretty\n        })\n        \n        return (context: any) => {\n          try {\n            return compiled(context)\n          } catch (error) {\n            throw new Error(`Pug template error: ${error.message}`)\n          }\n        }\n      },\n      \n      // Syntax validation\n      validate: (template: string) => {\n        try {\n          pug.compile(template)\n          return { valid: true }\n        } catch (error) {\n          return { \n            valid: false, \n            error: error.message,\n            line: error.line\n          }\n        }\n      }\n    })\n  }\n})\n\n// Usage\nconst template = `\ndiv.container\n  h1= title\n  each item in items\n    .card\n      h3= item.name\n      p= item.description\n`\n\nconst result = await unjucks.render(template, { \n  title: 'My Items',\n  items: [...]\n})",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// plugins/ai-enhancement.ts\nimport { definePlugin } from '@unjs/unjucks'\nimport OpenAI from 'openai'\n\nexport default definePlugin({\n  name: 'ai-enhancement',\n  \n  setup(unjucks, options) {\n    const openai = new OpenAI({\n      apiKey: options.openaiKey\n    })\n    \n    // AI-powered content generation\n    unjucks.addSemanticFunction('aiGenerate', async (prompt: string, context: any) => {\n      const response = await openai.completions.create({\n        model: 'gpt-3.5-turbo',\n        prompt: `Generate content based on: ${prompt}\\nContext: ${JSON.stringify(context)}`,\n        max_tokens: options.maxTokens || 150\n      })\n      \n      return response.choices[0].text?.trim()\n    })\n    \n    // Smart code generation\n    unjucks.addSemanticFunction('generateCode', async (description: string, language: string) => {\n      const response = await openai.completions.create({\n        model: 'code-davinci-002',\n        prompt: `Generate ${language} code for: ${description}`,\n        max_tokens: 200,\n        temperature: 0.2\n      })\n      \n      return response.choices[0].text?.trim()\n    })\n    \n    // Content summarization\n    unjucks.addFilter('summarize', async (text: string, maxWords = 50) => {\n      const response = await openai.completions.create({\n        model: 'gpt-3.5-turbo',\n        prompt: `Summarize the following text in maximum ${maxWords} words:\\n\\n${text}`,\n        max_tokens: maxWords * 2\n      })\n      \n      return response.choices[0].text?.trim()\n    })\n    \n    // Language translation\n    unjucks.addFilter('translate', async (text: string, targetLang: string) => {\n      const response = await openai.completions.create({\n        model: 'gpt-3.5-turbo',\n        prompt: `Translate the following text to ${targetLang}:\\n\\n${text}`,\n        max_tokens: text.length * 2\n      })\n      \n      return response.choices[0].text?.trim()\n    })\n  },\n  \n  options: {\n    openaiKey: { type: 'string', required: true },\n    maxTokens: { type: 'number', default: 150 }\n  }\n})\n\n// Usage in templates\nconst template = `\n# {{ title }}\n\n{{ description | summarize(30) }}\n\n## Generated Code\n\\`\\`\\`{{ language }}\n{{ aiGenerate(\"Create a REST API endpoint for user management\", { framework: \"Express.js\" }) }}\n\\`\\`\\`\n\n## Translations\n**Spanish**: {{ description | translate(\"Spanish\") }}\n**French**: {{ description | translate(\"French\") }}\n`",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// plugins/database.ts\nimport { definePlugin } from '@unjs/unjucks'\nimport { createConnection } from 'mysql2/promise'\n\nexport default definePlugin({\n  name: 'database',\n  \n  async setup(unjucks, options) {\n    const connection = await createConnection({\n      host: options.host,\n      user: options.user,\n      password: options.password,\n      database: options.database\n    })\n    \n    // SQL query function\n    unjucks.addSemanticFunction('query', async (sql: string, params = []) => {\n      try {\n        const [results] = await connection.execute(sql, params)\n        return results\n      } catch (error) {\n        console.error('Database query error:', error)\n        return []\n      }\n    })\n    \n    // Cached queries for better performance\n    unjucks.addSemanticFunction('cachedQuery', async (sql: string, params = [], ttl = 300) => {\n      const cacheKey = `query:${createHash('md5').update(sql + JSON.stringify(params)).digest('hex')}`\n      \n      let result = unjucks.cache.get(cacheKey)\n      if (!result) {\n        const [results] = await connection.execute(sql, params)\n        result = results\n        unjucks.cache.set(cacheKey, result, ttl * 1000)\n      }\n      \n      return result\n    })\n    \n    // ORM-style helpers\n    unjucks.addSemanticFunction('findUsers', async (conditions = {}) => {\n      const whereClause = Object.keys(conditions)\n        .map(key => `${key} = ?`)\n        .join(' AND ')\n      \n      const sql = `SELECT * FROM users${whereClause ? ' WHERE ' + whereClause : ''}`\n      const [results] = await connection.execute(sql, Object.values(conditions))\n      return results\n    })\n    \n    // Cleanup on shutdown\n    unjucks.onDestroy(() => {\n      connection.end()\n    })\n  },\n  \n  options: {\n    host: { type: 'string', default: 'localhost' },\n    user: { type: 'string', required: true },\n    password: { type: 'string', required: true },\n    database: { type: 'string', required: true }\n  }\n})\n\n// Usage in templates\nconst template = `\n# User Directory\n\n{% set users = query(\"SELECT * FROM users WHERE active = 1 ORDER BY name\") %}\n\n{% for user in users %}\n## {{ user.name }}\n- Email: {{ user.email }}\n- Role: {{ user.role }}\n- Joined: {{ user.created_at | date(\"Y-m-d\") }}\n{% endfor %}\n\n## Statistics\n- Total Active Users: {{ query(\"SELECT COUNT(*) as count FROM users WHERE active = 1\")[0].count }}\n- Admin Users: {{ findUsers({ role: \"admin\" }) | length }}\n`",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// plugins/asset-optimizer.ts\nimport { definePlugin } from '@unjs/unjucks'\nimport sharp from 'sharp'\nimport { minify } from 'terser'\nimport postcss from 'postcss'\nimport autoprefixer from 'autoprefixer'\nimport cssnano from 'cssnano'\n\nexport default definePlugin({\n  name: 'asset-optimizer',\n  \n  setup(unjucks, options) {\n    // Image optimization filter\n    unjucks.addFilter('optimizeImage', async (imagePath: string, opts = {}) => {\n      const { width, height, format = 'webp', quality = 80 } = opts\n      \n      const optimized = sharp(imagePath)\n        .resize(width, height)\n        .format(format, { quality })\n        .toBuffer()\n      \n      const outputPath = imagePath.replace(/\\.[^.]+$/, `.${format}`)\n      await sharp(await optimized).toFile(outputPath)\n      \n      return outputPath\n    })\n    \n    // CSS optimization\n    unjucks.addFilter('optimizeCSS', async (css: string) => {\n      const result = await postcss([\n        autoprefixer(),\n        cssnano({ preset: 'default' })\n      ]).process(css, { from: undefined })\n      \n      return result.css\n    })\n    \n    // JavaScript minification\n    unjucks.addFilter('minifyJS', async (js: string) => {\n      const result = await minify(js, {\n        compress: true,\n        mangle: true,\n        format: {\n          comments: false\n        }\n      })\n      \n      return result.code || js\n    })\n    \n    // Bundle size analyzer\n    unjucks.addSemanticFunction('analyzeBundleSize', (assets: string[]) => {\n      const sizes = assets.map(asset => {\n        const stats = fs.statSync(asset)\n        return {\n          file: asset,\n          size: stats.size,\n          sizeFormatted: formatBytes(stats.size)\n        }\n      })\n      \n      const total = sizes.reduce((sum, { size }) => sum + size, 0)\n      \n      return {\n        files: sizes,\n        totalSize: total,\n        totalFormatted: formatBytes(total)\n      }\n    })\n  }\n})\n\n// Usage\nconst template = `\n<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    {{ cssContent | optimizeCSS | safe }}\n  </style>\n</head>\n<body>\n  <img src=\"{{ heroImage | optimizeImage({ width: 1200, height: 600 }) }}\" />\n  \n  <script>\n    {{ jsContent | minifyJS | safe }}\n  </script>\n  \n  <!-- Bundle analysis -->\n  {% set bundleInfo = analyzeBundleSize(assets) %}\n  <!-- Total bundle size: {{ bundleInfo.totalFormatted }} -->\n</body>\n</html>\n`",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// plugins/api-integration.ts\nimport { definePlugin } from '@unjs/unjucks'\nimport { $fetch } from 'ofetch'\n\nexport default definePlugin({\n  name: 'api-integration',\n  \n  setup(unjucks, options) {\n    // Generic API fetcher\n    unjucks.addSemanticFunction('fetchAPI', async (url: string, opts = {}) => {\n      try {\n        return await $fetch(url, {\n          headers: {\n            'Authorization': `Bearer ${options.apiKey}`,\n            ...opts.headers\n          },\n          timeout: options.timeout,\n          ...opts\n        })\n      } catch (error) {\n        console.error(`API fetch error for ${url}:`, error)\n        return opts.fallback || null\n      }\n    })\n    \n    // GitHub integration\n    unjucks.addSemanticFunction('githubRepo', async (repo: string) => {\n      return await $fetch(`https://api.github.com/repos/${repo}`, {\n        headers: {\n          'Authorization': `token ${options.githubToken}`,\n          'Accept': 'application/vnd.github.v3+json'\n        }\n      })\n    })\n    \n    // Weather API\n    unjucks.addSemanticFunction('weather', async (city: string) => {\n      return await $fetch(`https://api.openweathermap.org/data/2.5/weather`, {\n        query: {\n          q: city,\n          appid: options.weatherApiKey,\n          units: 'metric'\n        }\n      })\n    })\n    \n    // CMS content\n    unjucks.addSemanticFunction('cmsContent', async (slug: string) => {\n      return await $fetch(`${options.cmsUrl}/api/content/${slug}`, {\n        headers: {\n          'Authorization': `Bearer ${options.cmsToken}`\n        }\n      })\n    })\n    \n    // Cached API calls\n    unjucks.addSemanticFunction('cachedAPI', async (url: string, ttl = 300) => {\n      const cacheKey = `api:${url}`\n      \n      let result = unjucks.cache.get(cacheKey)\n      if (!result) {\n        result = await $fetch(url)\n        unjucks.cache.set(cacheKey, result, ttl * 1000)\n      }\n      \n      return result\n    })\n  },\n  \n  options: {\n    apiKey: { type: 'string' },\n    githubToken: { type: 'string' },\n    weatherApiKey: { type: 'string' },\n    cmsUrl: { type: 'string' },\n    cmsToken: { type: 'string' },\n    timeout: { type: 'number', default: 5000 }\n  }\n})\n\n// Usage\nconst template = `\n# Project Status Dashboard\n\n## Repository Information\n{% set repo = githubRepo(\"unjs/unjucks\") %}\n- **Stars**: {{ repo.stargazers_count }}\n- **Forks**: {{ repo.forks_count }}\n- **Issues**: {{ repo.open_issues_count }}\n- **Last Updated**: {{ repo.updated_at | date }}\n\n## Weather\n{% set weather = weather(\"San Francisco\") %}\nCurrent temperature in SF: {{ weather.main.temp }}°C\n\n## Latest Blog Posts\n{% set posts = fetchAPI(\"https://api.example.com/posts\", { query: { limit: 5 } }) %}\n{% for post in posts %}\n- [{{ post.title }}]({{ post.url }}) - {{ post.published_at | date }}\n{% endfor %}\n`",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// plugins/enhanced-markdown.ts\nimport { definePlugin } from '@unjs/unjucks'\nimport markdownPlugin from '@unjs/unjucks-markdown'\n\nexport default definePlugin({\n  name: 'enhanced-markdown',\n  depends: ['markdown'], // Requires markdown plugin\n  \n  setup(unjucks, options) {\n    // Extend existing markdown functionality\n    unjucks.extendPlugin('markdown', {\n      // Add syntax highlighting\n      highlight: (code: string, lang: string) => {\n        return highlightCode(code, lang)\n      },\n      \n      // Custom markdown extensions\n      extensions: [\n        'tables',\n        'strikethrough',\n        'tasklist',\n        'footnotes'\n      ],\n      \n      // Math formula support\n      math: {\n        enabled: true,\n        katexOptions: {\n          throwOnError: false,\n          displayMode: true\n        }\n      }\n    })\n    \n    // Add markdown-specific filters\n    unjucks.addFilter('mdToHtml', async (markdown: string) => {\n      return await unjucks.getPlugin('markdown').render(markdown)\n    })\n  }\n})",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// plugins/test-framework.ts\nimport { definePlugin } from '@unjs/unjucks'\nimport { describe, it, expect } from 'vitest'\n\nexport default definePlugin({\n  name: 'test-framework',\n  \n  setup(unjucks) {\n    // Template testing utilities\n    unjucks.addTestUtils({\n      async renderAndExpect(template: string, context: any, expected: string) {\n        const result = await unjucks.render(template, context)\n        expect(result.trim()).toBe(expected.trim())\n      },\n      \n      async expectSemanticQuery(query: string, expectedCount: number) {\n        const results = await unjucks.askGraph(query)\n        expect(results).toHaveLength(expectedCount)\n      },\n      \n      async expectFilterOutput(input: any, filterName: string, expected: any) {\n        const filter = unjucks.getFilter(filterName)\n        const result = await filter(input)\n        expect(result).toBe(expected)\n      }\n    })\n    \n    // Snapshot testing for templates\n    unjucks.addSemanticFunction('snapshot', (name: string, content: string) => {\n      const snapshotPath = `__snapshots__/${name}.snap`\n      \n      if (fs.existsSync(snapshotPath)) {\n        const existing = fs.readFileSync(snapshotPath, 'utf-8')\n        expect(content).toBe(existing)\n      } else {\n        fs.writeFileSync(snapshotPath, content)\n      }\n      \n      return content\n    })\n  }\n})\n\n// Usage in tests\ndescribe('Template Tests', () => {\n  const unjucks = createUnJucks({\n    plugins: ['test-framework']\n  })\n  \n  it('renders user card correctly', async () => {\n    await unjucks.renderAndExpect(\n      '{{ user.name }} - {{ user.email }}',\n      { user: { name: 'John', email: 'john@example.com' }},\n      'John - john@example.com'\n    )\n  })\n})",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// Advanced plugin with lifecycle hooks\nexport default definePlugin({\n  name: 'lifecycle-plugin',\n  \n  setup(unjucks, options) {\n    // Before template compilation\n    unjucks.hook('template:before-compile', (template, metadata) => {\n      console.log(`Compiling template: ${metadata.name}`)\n      \n      // Modify template before compilation\n      return template.replace(/\\{\\{debug\\}\\}/, `<!-- Debug: ${Date.now()} -->`)\n    })\n    \n    // After template compilation\n    unjucks.hook('template:after-compile', (compiledTemplate, metadata) => {\n      console.log(`Template compiled: ${metadata.name}`)\n      \n      // Add performance monitoring\n      const originalRender = compiledTemplate.render\n      compiledTemplate.render = function(context) {\n        const start = performance.now()\n        const result = originalRender.call(this, context)\n        const duration = performance.now() - start\n        \n        console.log(`Template ${metadata.name} rendered in ${duration.toFixed(2)}ms`)\n        return result\n      }\n      \n      return compiledTemplate\n    })\n    \n    // Before semantic query\n    unjucks.hook('semantic:before-query', (query, context) => {\n      console.log(`Semantic query: ${query}`)\n    })\n    \n    // After semantic query\n    unjucks.hook('semantic:after-query', (query, results, duration) => {\n      console.log(`Query \"${query}\" returned ${results.length} results in ${duration}ms`)\n    })\n    \n    // Error handling\n    unjucks.hook('error', (error, context) => {\n      console.error('UnJucks error:', error)\n      \n      // Send to error tracking service\n      if (options.sentryDsn) {\n        Sentry.captureException(error, { extra: context })\n      }\n    })\n  }\n})",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "json",
+          "code": "{\n  \"name\": \"@unjs/unjucks-plugin-myfeature\",\n  \"version\": \"1.0.0\",\n  \"description\": \"Custom feature plugin for UnJucks\",\n  \"main\": \"./dist/index.js\",\n  \"types\": \"./dist/index.d.ts\",\n  \"exports\": {\n    \".\": {\n      \"import\": \"./dist/index.mjs\",\n      \"require\": \"./dist/index.cjs\"\n    }\n  },\n  \"keywords\": [\n    \"unjucks\",\n    \"plugin\",\n    \"template\",\n    \"unjs\"\n  ],\n  \"peerDependencies\": {\n    \"@unjs/unjucks\": \"^1.0.0\"\n  },\n  \"files\": [\n    \"dist\"\n  ]\n}",
+          "valid": true
+        },
+        {
+          "language": "typescript",
+          "code": "// test/plugin.test.ts\nimport { describe, it, expect, beforeEach } from 'vitest'\nimport { createUnJucks } from '@unjs/unjucks'\nimport myPlugin from '../src'\n\ndescribe('My Plugin', () => {\n  let unjucks: any\n  \n  beforeEach(() => {\n    unjucks = createUnJucks({\n      plugins: [[myPlugin, { /* test options */ }]]\n    })\n  })\n  \n  it('adds custom filter', () => {\n    expect(unjucks.hasFilter('myFilter')).toBe(true)\n  })\n  \n  it('processes templates correctly', async () => {\n    const template = '{{ value | myFilter }}'\n    const result = await unjucks.render(template, { value: 'test' })\n    \n    expect(result).toBe('Custom: test')\n  })\n  \n  it('handles semantic queries', async () => {\n    const ontology = `@prefix : <http://test.org/> .`\n    const results = await unjucks.askGraph('test query')\n    \n    expect(Array.isArray(results)).toBe(true)\n  })\n})",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        }
+      ],
+      "totalExamples": 12,
+      "validExamples": 1
+    },
+    {
+      "file": "/Users/sac/dev/citty/docs/ecosystem/examples/cli-tools.md",
+      "examples": [
+        {
+          "language": "typescript",
+          "code": "// docker-cli-generator.ts\nimport { generateFromOntology } from '@unjs/unjucks'\n\nconst dockerOntology = `\n@prefix : <http://docker-cli.example.org/> .\n@prefix cli: <http://cli.example.org/> .\n\n:dockerCLI a cli:CLI ;\n  cli:name \"docker-helper\" ;\n  cli:description \"Advanced Docker management toolkit\" ;\n  cli:version \"1.0.0\" ;\n  cli:hasCommand :containers, :images, :networks, :volumes, :compose .\n\n# Container Management Commands\n:containers a cli:CommandGroup ;\n  cli:name \"containers\" ;\n  cli:description \"Container lifecycle management\" ;\n  cli:hasSubcommand :containerList, :containerStart, :containerStop, :containerLogs .\n\n:containerList a cli:Command ;\n  cli:name \"list\" ;\n  cli:alias \"ls\" ;\n  cli:description \"List all containers\" ;\n  cli:hasOption :listAll, :listFormat, :listFilter .\n\n:containerStart a cli:Command ;\n  cli:name \"start\" ;\n  cli:description \"Start one or more containers\" ;\n  cli:hasArgument :containerNames ;\n  cli:hasOption :interactive, :attach .\n\n:containerStop a cli:Command ;\n  cli:name \"stop\" ;\n  cli:description \"Stop running containers\" ;\n  cli:hasArgument :containerNames ;\n  cli:hasOption :timeout, :force .\n\n:containerLogs a cli:Command ;\n  cli:name \"logs\" ;\n  cli:description \"Fetch container logs\" ;\n  cli:hasArgument :containerName ;\n  cli:hasOption :follow, :tail, :since .\n\n# Image Management Commands\n:images a cli:CommandGroup ;\n  cli:name \"images\" ;\n  cli:description \"Docker image management\" ;\n  cli:hasSubcommand :imageList, :imageBuild, :imagePush, :imagePull .\n\n:imageBuild a cli:Command ;\n  cli:name \"build\" ;\n  cli:description \"Build image from Dockerfile\" ;\n  cli:hasArgument :buildContext ;\n  cli:hasOption :dockerfile, :tag, :noCache .\n\n# Options Definitions\n:listAll a cli:Option ;\n  cli:name \"all\" ;\n  cli:shortName \"a\" ;\n  cli:type \"boolean\" ;\n  cli:description \"Show all containers (default shows just running)\" .\n\n:listFormat a cli:Option ;\n  cli:name \"format\" ;\n  cli:shortName \"f\" ;\n  cli:type \"string\" ;\n  cli:description \"Pretty-print containers using a Go template\" .\n\n:interactive a cli:Option ;\n  cli:name \"interactive\" ;\n  cli:shortName \"i\" ;\n  cli:type \"boolean\" ;\n  cli:description \"Keep STDIN open even if not attached\" .\n\n:follow a cli:Option ;\n  cli:name \"follow\" ;\n  cli:shortName \"f\" ;\n  cli:type \"boolean\" ;\n  cli:description \"Follow log output\" .\n\n:tail a cli:Option ;\n  cli:name \"tail\" ;\n  cli:type \"string\" ;\n  cli:default \"all\" ;\n  cli:description \"Number of lines to show from the end of the logs\" .\n`\n\n// Generate complete CLI project\nconst result = await generateFromOntology(dockerOntology, 'citty-cli', {\n  context: {\n    framework: 'citty',\n    language: 'typescript',\n    packageManager: 'pnpm',\n    features: ['colored-output', 'progress-bars', 'config-file', 'auto-completion']\n  }\n})\n\n// Generated files:\n// - package.json\n// - src/cli.ts\n// - src/commands/containers.ts\n// - src/commands/images.ts\n// - src/utils/docker-api.ts\n// - README.md\n// - tests/",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// Generated: src/cli.ts\nimport { defineCommand, runMain } from 'citty'\nimport { consola } from 'consola'\n\nconst main = defineCommand({\n  meta: {\n    name: 'docker-helper',\n    version: '1.0.0',\n    description: 'Advanced Docker management toolkit'\n  },\n  subCommands: {\n    containers: () => import('./commands/containers').then(r => r.default),\n    images: () => import('./commands/images').then(r => r.default),\n    networks: () => import('./commands/networks').then(r => r.default),\n    volumes: () => import('./commands/volumes').then(r => r.default),\n    compose: () => import('./commands/compose').then(r => r.default)\n  },\n  setup(ctx) {\n    // Global CLI setup\n    consola.options.formatOptions.colors = true\n  }\n})\n\nif (import.meta.main) {\n  runMain(main)\n}\n\nexport default main",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "const apiTestOntology = `\n@prefix : <http://api-test-cli.example.org/> .\n@prefix cli: <http://cli.example.org/> .\n@prefix http: <http://www.w3.org/2011/http#> .\n\n:apiTestCLI a cli:CLI ;\n  cli:name \"api-tester\" ;\n  cli:description \"Modern API testing and validation toolkit\" ;\n  cli:version \"2.0.0\" ;\n  cli:hasCommand :request, :test, :mock, :schema, :benchmark .\n\n:request a cli:Command ;\n  cli:name \"request\" ;\n  cli:alias \"req\" ;\n  cli:description \"Make HTTP requests with advanced features\" ;\n  cli:hasArgument :url ;\n  cli:hasOption :method, :headers, :body, :auth, :timeout, :output .\n\n:test a cli:CommandGroup ;\n  cli:name \"test\" ;\n  cli:description \"API test suite management\" ;\n  cli:hasSubcommand :testRun, :testCreate, :testValidate .\n\n:testRun a cli:Command ;\n  cli:name \"run\" ;\n  cli:description \"Execute API test suites\" ;\n  cli:hasArgument :testFiles ;\n  cli:hasOption :environment, :reporter, :bail, :parallel .\n\n:testCreate a cli:Command ;\n  cli:name \"create\" ;\n  cli:description \"Create test suite from OpenAPI spec\" ;\n  cli:hasArgument :specFile ;\n  cli:hasOption :output, :coverage, :examples .\n\n:mock a cli:Command ;\n  cli:name \"mock\" ;\n  cli:description \"Start mock API server\" ;\n  cli:hasArgument :specFile ;\n  cli:hasOption :port, :host, :watch, :cors .\n\n:schema a cli:CommandGroup ;\n  cli:name \"schema\" ;\n  cli:description \"API schema operations\" ;\n  cli:hasSubcommand :schemaValidate, :schemaGenerate, :schemaDiff .\n\n:benchmark a cli:Command ;\n  cli:name \"benchmark\" ;\n  cli:alias \"perf\" ;\n  cli:description \"Performance testing and benchmarking\" ;\n  cli:hasArgument :targetUrl ;\n  cli:hasOption :duration, :connections, :requests, :load-pattern .\n\n# Advanced Options\n:method a cli:Option ;\n  cli:name \"method\" ;\n  cli:shortName \"X\" ;\n  cli:type \"enum\" ;\n  cli:values (\"GET\" \"POST\" \"PUT\" \"DELETE\" \"PATCH\" \"HEAD\" \"OPTIONS\") ;\n  cli:default \"GET\" ;\n  cli:description \"HTTP method to use\" .\n\n:headers a cli:Option ;\n  cli:name \"header\" ;\n  cli:shortName \"H\" ;\n  cli:type \"array\" ;\n  cli:description \"Custom headers (can be used multiple times)\" .\n\n:environment a cli:Option ;\n  cli:name \"env\" ;\n  cli:shortName \"e\" ;\n  cli:type \"string\" ;\n  cli:description \"Test environment configuration\" .\n\n:parallel a cli:Option ;\n  cli:name \"parallel\" ;\n  cli:shortName \"p\" ;\n  cli:type \"number\" ;\n  cli:default 1 ;\n  cli:description \"Number of parallel test workers\" .\n`\n\nconst result = await generateFromOntology(apiTestOntology, 'citty-cli-advanced', {\n  context: {\n    features: [\n      'json-schema-validation',\n      'openapi-integration',\n      'test-reporting',\n      'performance-metrics',\n      'environment-management',\n      'plugin-system'\n    ]\n  }\n})",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// citty-specific template with advanced features\nconst template = `\nimport { defineCommand, runMain } from 'citty'\nimport { consola } from 'consola'\nimport { resolve } from 'pathe'\n\n{{#each commands}}\nconst {{ name }}Command = defineCommand({\n  meta: {\n    name: '{{ name }}',\n    description: '{{ description }}'\n  },\n  args: {\n    {{#each arguments}}\n    {{ name }}: {\n      type: 'positional',\n      description: '{{ description }}'{{#if required}},\n      required: true{{/if}}\n    },\n    {{/each}}\n  },\n  options: {\n    {{#each options}}\n    {{ name }}: {\n      type: '{{ type }}',\n      {{#if shortName}}alias: '{{ shortName }}',{{/if}}\n      description: '{{ description }}'{{#if default}},\n      default: {{#if (eq type \"string\")}}'{{ default }}'{{else}}{{ default }}{{/if}}{{/if}}\n    },\n    {{/each}}\n  },\n  async run({ args, options }) {\n    // Implementation for {{ name }} command\n    consola.info('Executing {{ name }} command')\n    \n    {{#if hasSemanticLogic}}\n    // Semantic processing\n    const context = await buildSemanticContext(args, options)\n    const result = await processSemanticCommand('{{ name }}', context)\n    {{/if}}\n    \n    try {\n      {{#switch name}}\n        {{#case \"build\"}}\n        await buildProject(args, options)\n        {{/case}}\n        {{#case \"test\"}}\n        await runTests(args, options)\n        {{/case}}\n        {{#case \"deploy\"}}\n        await deployApplication(args, options)\n        {{/case}}\n        {{#default}}\n        await genericCommandHandler('{{ name }}', args, options)\n        {{/default}}\n      {{/switch}}\n    } catch (error) {\n      consola.error(\\`{{ name }} command failed:\\`, error.message)\n      process.exit(1)\n    }\n  }\n})\n{{/each}}\n\nconst main = defineCommand({\n  meta: {\n    name: '{{ cli.name }}',\n    version: '{{ cli.version }}',\n    description: '{{ cli.description }}'\n  },\n  subCommands: {\n    {{#each commands}}\n    {{ name }}: {{ name }}Command,\n    {{/each}}\n  },\n  setup(ctx) {\n    // Global setup\n    consola.options.formatOptions.colors = true\n    \n    {{#if features.configFile}}\n    // Load configuration\n    const config = loadConfig()\n    ctx.config = config\n    {{/if}}\n    \n    {{#if features.plugins}}\n    // Load plugins\n    await loadPlugins(ctx)\n    {{/if}}\n  }\n})\n\nif (import.meta.main) {\n  runMain(main)\n}\n\nexport default main\n`",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// Commander.js template generation\nconst commanderTemplate = `\nimport { Command } from 'commander'\nimport { version } from '../package.json'\n\nconst program = new Command()\n\nprogram\n  .name('{{ cli.name }}')\n  .description('{{ cli.description }}')\n  .version(version)\n\n{{#each commands}}\n{{#if isGroup}}\n// {{ name }} command group\nconst {{ name }}Command = new Command('{{ name }}')\n  .description('{{ description }}')\n\n{{#each subcommands}}\n{{ ../name }}Command\n  .command('{{ name }}')\n  .description('{{ description }}')\n  {{#each arguments}}\n  .argument('<{{ name }}>', '{{ description }}')\n  {{/each}}\n  {{#each options}}\n  .option('{{#if shortName}}-{{ shortName }}, {{/if}}--{{ name }}{{#if (ne type \"boolean\")}} <value>{{/if}}', '{{ description }}'{{#if default}}, {{ default }}{{/if}})\n  {{/each}}\n  .action(async ({{#each arguments}}{{ name }}{{#unless @last}}, {{/unless}}{{/each}}{{#if options}}, options{{/if}}) => {\n    const { {{ name }}Handler } = await import('./handlers/{{ ../name }}/{{ name }}')\n    await {{ name }}Handler({{#each arguments}}{{ name }}{{#unless @last}}, {{/unless}}{{/each}}{{#if options}}, options{{/if}})\n  })\n{{/each}}\n\nprogram.addCommand({{ name }}Command)\n{{else}}\n// {{ name }} command\nprogram\n  .command('{{ name }}')\n  .description('{{ description }}')\n  {{#each arguments}}\n  .argument('<{{ name }}>', '{{ description }}')\n  {{/each}}\n  {{#each options}}\n  .option('{{#if shortName}}-{{ shortName }}, {{/if}}--{{ name }}{{#if (ne type \"boolean\")}} <value>{{/if}}', '{{ description }}'{{#if default}}, {{ default }}{{/if}})\n  {{/each}}\n  .action(async ({{#each arguments}}{{ name }}{{#unless @last}}, {{/unless}}{{/each}}{{#if options}}, options{{/if}}) => {\n    const { {{ name }}Handler } = await import('./handlers/{{ name }}')\n    await {{ name }}Handler({{#each arguments}}{{ name }}{{#unless @last}}, {{/unless}}{{/each}}{{#if options}}, options{{/if}})\n  })\n{{/if}}\n{{/each}}\n\nprogram.parse()\n`",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "const interactiveOntology = `\n@prefix : <http://interactive-cli.example.org/> .\n@prefix cli: <http://cli.example.org/> .\n@prefix ui: <http://ui.example.org/> .\n\n:setupWizard a cli:InteractiveCommand ;\n  cli:name \"setup\" ;\n  cli:description \"Interactive setup wizard\" ;\n  cli:hasPrompt :projectName, :framework, :features, :deployment .\n\n:projectName a ui:Prompt ;\n  ui:type \"input\" ;\n  ui:message \"What's your project name?\" ;\n  ui:validate :validateProjectName .\n\n:framework a ui:Prompt ;\n  ui:type \"select\" ;\n  ui:message \"Choose your framework:\" ;\n  ui:choices (\"Next.js\" \"Nuxt\" \"SvelteKit\" \"Astro\" \"Vanilla\") .\n\n:features a ui:Prompt ;\n  ui:type \"multiselect\" ;\n  ui:message \"Select features to include:\" ;\n  ui:choices (\"TypeScript\" \"Tailwind CSS\" \"ESLint\" \"Prettier\" \"Vitest\" \"Storybook\") .\n\n:deployment a ui:Prompt ;\n  ui:type \"select\" ;\n  ui:message \"Where will you deploy?\" ;\n  ui:choices (\"Vercel\" \"Netlify\" \"Railway\" \"Docker\" \"Manual\") ;\n  ui:conditional :hasDeployment .\n`\n\n// Generated interactive CLI\nconst generatedInteractive = `\nimport prompts from 'prompts'\nimport { defineCommand } from 'citty'\nimport { consola } from 'consola'\n\nexport default defineCommand({\n  meta: {\n    name: 'setup',\n    description: 'Interactive setup wizard'\n  },\n  async run() {\n    consola.start('Starting interactive setup...')\n    \n    const response = await prompts([\n      {\n        type: 'text',\n        name: 'projectName',\n        message: 'What\\\\'s your project name?',\n        validate: (value) => {\n          if (!value) return 'Project name is required'\n          if (!/^[a-zA-Z0-9-_]+$/.test(value)) return 'Invalid project name format'\n          return true\n        }\n      },\n      {\n        type: 'select',\n        name: 'framework',\n        message: 'Choose your framework:',\n        choices: [\n          { title: 'Next.js', value: 'nextjs' },\n          { title: 'Nuxt', value: 'nuxt' },\n          { title: 'SvelteKit', value: 'sveltekit' },\n          { title: 'Astro', value: 'astro' },\n          { title: 'Vanilla', value: 'vanilla' }\n        ]\n      },\n      {\n        type: 'multiselect',\n        name: 'features',\n        message: 'Select features to include:',\n        choices: [\n          { title: 'TypeScript', value: 'typescript', selected: true },\n          { title: 'Tailwind CSS', value: 'tailwind' },\n          { title: 'ESLint', value: 'eslint', selected: true },\n          { title: 'Prettier', value: 'prettier', selected: true },\n          { title: 'Vitest', value: 'vitest' },\n          { title: 'Storybook', value: 'storybook' }\n        ]\n      },\n      {\n        type: 'select',\n        name: 'deployment',\n        message: 'Where will you deploy?',\n        choices: [\n          { title: 'Vercel', value: 'vercel' },\n          { title: 'Netlify', value: 'netlify' },\n          { title: 'Railway', value: 'railway' },\n          { title: 'Docker', value: 'docker' },\n          { title: 'Manual', value: 'manual' }\n        ]\n      }\n    ])\n    \n    if (!response.projectName) {\n      consola.error('Setup cancelled')\n      return\n    }\n    \n    consola.info('Setting up project with configuration:')\n    console.table(response)\n    \n    // Generate project based on responses\n    await generateProject(response)\n    \n    consola.success(\\`Project \\${response.projectName} created successfully!\\`)\n  }\n})\n`",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "const pluginSystemOntology = `\n@prefix : <http://plugin-cli.example.org/> .\n@prefix cli: <http://cli.example.org/> .\n\n:pluginCLI a cli:CLI ;\n  cli:name \"my-tool\" ;\n  cli:description \"Extensible CLI with plugin system\" ;\n  cli:hasCommand :plugin, :core ;\n  cli:supportsPlugins true .\n\n:plugin a cli:CommandGroup ;\n  cli:name \"plugin\" ;\n  cli:description \"Plugin management commands\" ;\n  cli:hasSubcommand :pluginList, :pluginInstall, :pluginUninstall, :pluginSearch .\n\n:pluginInstall a cli:Command ;\n  cli:name \"install\" ;\n  cli:description \"Install a plugin\" ;\n  cli:hasArgument :pluginName ;\n  cli:hasOption :global, :dev, :registry .\n\n:pluginList a cli:Command ;\n  cli:name \"list\" ;\n  cli:description \"List installed plugins\" ;\n  cli:hasOption :global, :format .\n`\n\n// Generated plugin system\nconst pluginCLI = `\nimport { defineCommand } from 'citty'\nimport { loadPlugins, installPlugin, listPlugins } from './plugin-manager'\n\nconst pluginCommand = defineCommand({\n  meta: {\n    name: 'plugin',\n    description: 'Plugin management commands'\n  },\n  subCommands: {\n    list: defineCommand({\n      meta: {\n        name: 'list',\n        description: 'List installed plugins'\n      },\n      options: {\n        global: {\n          type: 'boolean',\n          description: 'List global plugins'\n        },\n        format: {\n          type: 'string',\n          description: 'Output format (table, json, list)',\n          default: 'table'\n        }\n      },\n      async run({ options }) {\n        const plugins = await listPlugins({\n          global: options.global\n        })\n        \n        switch (options.format) {\n          case 'json':\n            console.log(JSON.stringify(plugins, null, 2))\n            break\n          case 'list':\n            plugins.forEach(p => console.log(p.name))\n            break\n          default:\n            console.table(plugins)\n        }\n      }\n    }),\n    \n    install: defineCommand({\n      meta: {\n        name: 'install',\n        description: 'Install a plugin'\n      },\n      args: {\n        pluginName: {\n          type: 'positional',\n          description: 'Plugin name to install',\n          required: true\n        }\n      },\n      options: {\n        global: {\n          type: 'boolean',\n          alias: 'g',\n          description: 'Install globally'\n        },\n        dev: {\n          type: 'boolean',\n          alias: 'D',\n          description: 'Install as dev dependency'\n        }\n      },\n      async run({ args, options }) {\n        await installPlugin(args.pluginName, {\n          global: options.global,\n          dev: options.dev\n        })\n      }\n    })\n  }\n})\n\nexport default pluginCommand\n`",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "const configOntology = `\n@prefix : <http://config-cli.example.org/> .\n@prefix cli: <http://cli.example.org/> .\n\n:configCLI a cli:CLI ;\n  cli:name \"config-manager\" ;\n  cli:description \"Configuration management CLI\" ;\n  cli:hasCommand :config ;\n  cli:hasConfigFile \".configrc\" ;\n  cli:supportsProfiles true .\n\n:config a cli:CommandGroup ;\n  cli:name \"config\" ;\n  cli:description \"Configuration management\" ;\n  cli:hasSubcommand :configGet, :configSet, :configList, :configProfile .\n\n:configSet a cli:Command ;\n  cli:name \"set\" ;\n  cli:description \"Set configuration value\" ;\n  cli:hasArgument :key, :value ;\n  cli:hasOption :profile, :global .\n\n:configProfile a cli:Command ;\n  cli:name \"profile\" ;\n  cli:description \"Manage configuration profiles\" ;\n  cli:hasSubcommand :profileList, :profileCreate, :profileSwitch .\n`\n\n// Generated configuration system\nconst configCLI = `\nimport { defineCommand } from 'citty'\nimport { loadConfig, saveConfig, createProfile } from './config-manager'\n\nexport default defineCommand({\n  meta: {\n    name: 'config',\n    description: 'Configuration management'\n  },\n  subCommands: {\n    set: defineCommand({\n      meta: {\n        name: 'set',\n        description: 'Set configuration value'\n      },\n      args: {\n        key: {\n          type: 'positional',\n          description: 'Configuration key',\n          required: true\n        },\n        value: {\n          type: 'positional', \n          description: 'Configuration value',\n          required: true\n        }\n      },\n      options: {\n        profile: {\n          type: 'string',\n          description: 'Configuration profile',\n          default: 'default'\n        },\n        global: {\n          type: 'boolean',\n          alias: 'g',\n          description: 'Set global configuration'\n        }\n      },\n      async run({ args, options }) {\n        const config = await loadConfig(options.profile, options.global)\n        \n        // Support nested keys like \"api.timeout\"\n        const keys = args.key.split('.')\n        let current = config\n        \n        for (let i = 0; i < keys.length - 1; i++) {\n          if (!current[keys[i]]) {\n            current[keys[i]] = {}\n          }\n          current = current[keys[i]]\n        }\n        \n        // Type conversion\n        let value = args.value\n        if (value === 'true') value = true\n        else if (value === 'false') value = false\n        else if (!isNaN(Number(value))) value = Number(value)\n        \n        current[keys[keys.length - 1]] = value\n        \n        await saveConfig(config, options.profile, options.global)\n        consola.success(\\`Set \\${args.key} = \\${value}\\`)\n      }\n    })\n  }\n})\n`",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "const migrationOntology = `\n@prefix : <http://migration-cli.example.org/> .\n@prefix cli: <http://cli.example.org/> .\n@prefix db: <http://database.example.org/> .\n\n:migrationCLI a cli:CLI ;\n  cli:name \"migrate\" ;\n  cli:description \"Database migration management tool\" ;\n  cli:hasCommand :create, :up, :down, :status, :seed .\n\n:create a cli:Command ;\n  cli:name \"create\" ;\n  cli:description \"Create a new migration\" ;\n  cli:hasArgument :migrationName ;\n  cli:hasOption :table, :type .\n\n:up a cli:Command ;\n  cli:name \"up\" ;\n  cli:description \"Run pending migrations\" ;\n  cli:hasOption :steps, :target, :dryRun .\n\n:down a cli:Command ;\n  cli:name \"down\" ;\n  cli:description \"Rollback migrations\" ;\n  cli:hasOption :steps, :target, :force .\n\n:status a cli:Command ;\n  cli:name \"status\" ;\n  cli:description \"Show migration status\" ;\n  cli:hasOption :format, :verbose .\n\n:seed a cli:Command ;\n  cli:name \"seed\" ;\n  cli:description \"Run database seeders\" ;\n  cli:hasArgument :seedFile ;\n  cli:hasOption :env, :force .\n`\n\n// Generated with semantic database understanding\nconst generatedMigrationCLI = await generateFromOntology(migrationOntology, 'citty-cli', {\n  context: {\n    database: {\n      type: 'postgresql',\n      migrations: './migrations',\n      seeds: './seeds'\n    },\n    features: ['transaction-support', 'rollback-safety', 'schema-validation']\n  }\n})",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "const apiDocsOntology = `\n@prefix : <http://api-docs-cli.example.org/> .\n@prefix cli: <http://cli.example.org/> .\n@prefix api: <http://api.example.org/> .\n\n:apiDocsCLI a cli:CLI ;\n  cli:name \"api-docs\" ;\n  cli:description \"API documentation generator and validator\" ;\n  cli:hasCommand :generate, :validate, :serve, :export .\n\n:generate a cli:Command ;\n  cli:name \"generate\" ;\n  cli:description \"Generate documentation from API spec\" ;\n  cli:hasArgument :specFile ;\n  cli:hasOption :output, :theme, :format, :includeExamples .\n\n:validate a cli:Command ;\n  cli:name \"validate\" ;\n  cli:description \"Validate API specification\" ;\n  cli:hasArgument :specFile ;\n  cli:hasOption :strict, :format, :rules .\n\n:serve a cli:Command ;\n  cli:name \"serve\" ;\n  cli:description \"Serve documentation with live reload\" ;\n  cli:hasArgument :specFile ;\n  cli:hasOption :port, :watch, :host .\n\n:export a cli:Command ;\n  cli:name \"export\" ;\n  cli:description \"Export documentation to various formats\" ;\n  cli:hasArgument :specFile ;\n  cli:hasOption :format, :output, :template .\n`",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// Well-structured command hierarchy\nconst bestPracticesOntology = `\n@prefix : <http://best-practices.example.org/> .\n\n# Group related commands\n:userManagement a cli:CommandGroup ;\n  cli:name \"user\" ;\n  cli:hasSubcommand :userCreate, :userList, :userDelete .\n\n# Consistent naming\n:userCreate a cli:Command ;\n  cli:name \"create\" ;  # not \"add\" or \"new\"\n  cli:alias \"c\" .      # short alias\n\n# Clear descriptions\n:userCreate cli:description \"Create a new user account with specified permissions\" .\n\n# Logical option grouping\n:userCreate cli:hasOption :userName, :userEmail, :userRole, :sendNotification .\n`",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// Generated with comprehensive error handling\nconst errorHandlingTemplate = `\nexport default defineCommand({\n  async run({ args, options }) {\n    try {\n      // Input validation\n      if (!args.filename) {\n        throw new Error('Filename is required')\n      }\n      \n      if (!fs.existsSync(args.filename)) {\n        throw new Error(\\`File not found: \\${args.filename}\\`)\n      }\n      \n      // Process command\n      const result = await processFile(args.filename, options)\n      \n      // Success output\n      consola.success(\\`Processed \\${args.filename} successfully\\`)\n      \n    } catch (error) {\n      // Structured error handling\n      if (error.code === 'ENOENT') {\n        consola.error('File not found:', error.path)\n      } else if (error.code === 'EACCES') {\n        consola.error('Permission denied:', error.path)\n      } else {\n        consola.error('Command failed:', error.message)\n      }\n      \n      // Exit with appropriate code\n      process.exit(1)\n    }\n  }\n})\n`",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// Generated CLI with rich user feedback\nconst progressTemplate = `\nimport { consola } from 'consola'\nimport ora from 'ora'\nimport cliProgress from 'cli-progress'\n\nexport default defineCommand({\n  async run({ args, options }) {\n    // Spinner for indeterminate tasks\n    const spinner = ora('Processing files...').start()\n    \n    try {\n      const files = await findFiles(args.pattern)\n      spinner.succeed(\\`Found \\${files.length} files\\`)\n      \n      // Progress bar for determinate tasks\n      const progressBar = new cliProgress.SingleBar({\n        format: 'Processing |{bar}| {percentage}% | {value}/{total} Files | ETA: {eta}s',\n        barCompleteChar: '\\\\u2588',\n        barIncompleteChar: '\\\\u2591',\n        hideCursor: true\n      })\n      \n      progressBar.start(files.length, 0)\n      \n      for (let i = 0; i < files.length; i++) {\n        await processFile(files[i])\n        progressBar.update(i + 1)\n      }\n      \n      progressBar.stop()\n      \n      consola.success(\\`Successfully processed \\${files.length} files\\`)\n      \n    } catch (error) {\n      spinner.fail('Processing failed')\n      throw error\n    }\n  }\n})\n`",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        }
+      ],
+      "totalExamples": 13,
+      "validExamples": 0
+    },
+    {
+      "file": "/Users/sac/dev/citty/docs/ecosystem/getting-started.md",
+      "examples": [
+        {
+          "language": "bash",
+          "code": "# Using pnpm (recommended for UnJS ecosystem)\npnpm add @unjs/unjucks\n\n# Using npm\nnpm install @unjs/unjucks\n\n# Using yarn\nyarn add @unjs/unjucks\n\n# Using bun\nbun add @unjs/unjucks",
+          "valid": true
+        },
+        {
+          "language": "typescript",
+          "code": "// hello.ts\nimport { createUnJucks, generateFromOntology } from '@unjs/unjucks'\n\nconst ontology = `\n@prefix : <http://example.org/> .\n:app a :Application ;\n  :name \"MyApp\" ;\n  :version \"1.0.0\" ;\n  :hasGreeting \"Hello, World!\" .\n`\n\nconst template = `\n# {{ app.name }} v{{ app.version }}\n\n{{ app.hasGreeting }}\n\nGenerated at: {{ timestamp }}\n`\n\nconst result = await generateFromOntology(ontology, template)\nconsole.log(result.content)",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "bash",
+          "code": "npx tsx hello.ts",
+          "valid": true
+        },
+        {
+          "language": "bash",
+          "code": "pnpm add @unjs/unjucks",
+          "valid": true
+        },
+        {
+          "language": "typescript",
+          "code": "// plugins/unjucks.client.ts\nimport { createUnJucks } from '@unjs/unjucks'\n\nexport default defineNuxtPlugin(() => {\n  const unjucks = createUnJucks({\n    // Global configuration\n    cache: true,\n    debug: process.dev\n  })\n\n  return {\n    provide: {\n      unjucks\n    }\n  }\n})",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// server/api/generate.post.ts\nimport { generateFromOntology } from '@unjs/unjucks'\n\nexport default defineEventHandler(async (event) => {\n  const { ontology, template, options } = await readBody(event)\n  \n  try {\n    const result = await generateFromOntology(ontology, template, {\n      cache: true,\n      context: {\n        timestamp: new Date().toISOString(),\n        environment: process.env.NODE_ENV\n      },\n      ...options\n    })\n    \n    return {\n      success: true,\n      ...result\n    }\n  } catch (error) {\n    throw createError({\n      statusCode: 400,\n      statusMessage: 'Generation failed',\n      data: error.message\n    })\n  }\n})",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// middleware/template-processor.ts\nimport { createUnJucksMiddleware } from '@unjs/unjucks/h3'\n\nexport default createUnJucksMiddleware({\n  // Process .ontology files automatically\n  extensions: ['.ontology', '.ont'],\n  \n  // Cache compiled templates\n  cache: {\n    enabled: true,\n    ttl: 5 * 60 * 1000 // 5 minutes\n  },\n  \n  // Custom context providers\n  contextProviders: [\n    // Add user context\n    async (event) => ({\n      user: await getCurrentUser(event),\n      session: await getSession(event)\n    }),\n    \n    // Add app context\n    () => ({\n      app: {\n        name: 'MyApp',\n        version: process.env.APP_VERSION\n      }\n    })\n  ]\n})",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "import { createUnJucks, askGraph } from '@unjs/unjucks'\n\n// Load your ontology\nconst unjucks = createUnJucks()\nawait unjucks.loadGraph(`\n@prefix : <http://example.org/> .\n:user1 a :User ; :name \"Alice\" ; :role \"admin\" .\n:user2 a :User ; :name \"Bob\" ; :role \"user\" .\n:cmd1 a :Command ; :name \"deploy\" ; :requiresRole \"admin\" .\n`)\n\n// Ask questions in natural language\nconst admins = await askGraph(\"list all users with admin role\")\nconst commands = await askGraph(\"which commands require admin role?\")\n\nconsole.log('Admins:', admins)\nconsole.log('Admin commands:', commands)",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "const ontology = `\n@prefix : <http://example.org/> .\n:myProject a :Project ;\n  :name \"WebApp\" ;\n  :hasComponent :frontend, :backend, :database .\n\n:frontend a :Component ;\n  :type \"React\" ;\n  :port 3000 .\n\n:backend a :Component ;\n  :type \"Express\" ;\n  :port 8000 ;\n  :connectsTo :database .\n\n:database a :Component ;\n  :type \"PostgreSQL\" ;\n  :port 5432 .\n`\n\nconst template = `\n# {{ project.name }} Architecture\n\n## Components\n{{#each components}}\n- **{{ name }}** ({{ type }})\n  - Port: {{ port }}\n  {{#if connectsTo}}\n  - Connects to: {{ connectsTo.join(', ') }}\n  {{/if}}\n{{/each}}\n\n## Docker Compose\nversion: '3.8'\nservices:\n{{#each components}}\n  {{ name | lower }}:\n    ports:\n      - \"{{ port }}:{{ port }}\"\n    {{#if connectsTo}}\n    depends_on:\n    {{#each connectsTo}}\n      - {{ . | lower }}\n    {{/each}}\n    {{/if}}\n{{/each}}\n`\n\nconst result = await generateFromOntology(ontology, template)\n// Automatically generates complete architecture docs + docker-compose!",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// cli-generator.ts\nimport { generateCLIFromOntology } from '@unjs/unjucks/cli'\n\nconst ontology = `\n@prefix : <http://example.org/> .\n:cli a :CLI ;\n  :name \"mytools\" ;\n  :description \"My development tools\" ;\n  :hasCommand :build, :test, :deploy .\n\n:build a :Command ;\n  :name \"build\" ;\n  :description \"Build the project\" ;\n  :hasOption :watch, :minify .\n\n:watch a :Option ;\n  :name \"watch\" ;\n  :type \"boolean\" ;\n  :description \"Watch for changes\" .\n`\n\nconst { files } = await generateCLIFromOntology(ontology)\n// Generates: package.json, cli.ts, commands/, tests/, README.md",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// api-docs-generator.ts\nimport { generateAPIDocsFromOntology } from '@unjs/unjucks/openapi'\n\nconst ontology = `\n@prefix : <http://api.example.org/> .\n:api a :RestAPI ;\n  :name \"User Management API\" ;\n  :version \"1.0.0\" ;\n  :hasEndpoint :getUsers, :createUser .\n\n:getUsers a :Endpoint ;\n  :path \"/users\" ;\n  :method \"GET\" ;\n  :returns :UserList .\n\n:createUser a :Endpoint ;\n  :path \"/users\" ;\n  :method \"POST\" ;\n  :accepts :UserInput ;\n  :returns :User .\n`\n\nconst { openapi, postman, docs } = await generateAPIDocsFromOntology(ontology)\n// Generates OpenAPI spec, Postman collection, and HTML docs",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// component-generator.ts\nimport { generateComponentsFromOntology } from '@unjs/unjucks/components'\n\nconst ontology = `\n@prefix : <http://components.example.org/> .\n:button a :Component ;\n  :framework \"react\" ;\n  :hasVariant :primary, :secondary ;\n  :hasSize :small, :medium, :large ;\n  :hasProps (:onClick :disabled :loading) .\n`\n\nconst { components, stories, tests } = await generateComponentsFromOntology(ontology)\n// Generates React components + Storybook stories + Jest tests",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// unjucks.config.ts\nimport { defineUnJucksConfig } from '@unjs/unjucks/config'\n\nexport default defineUnJucksConfig({\n  // Template resolution\n  templates: {\n    directories: ['./templates', './node_modules/@unjs/unjucks/templates'],\n    extensions: ['.njk', '.unjucks', '.template'],\n    cache: {\n      enabled: true,\n      ttl: 10 * 60 * 1000 // 10 minutes\n    }\n  },\n\n  // Ontology configuration\n  ontology: {\n    namespaces: {\n      app: 'http://myapp.com/',\n      schema: 'http://schema.org/',\n      rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'\n    },\n    reasoning: {\n      enabled: true,\n      level: 'basic' // basic | advanced | full\n    }\n  },\n\n  // Output configuration\n  output: {\n    directory: './generated',\n    clean: true,\n    format: {\n      typescript: { prettier: true },\n      markdown: { frontmatter: true }\n    }\n  },\n\n  // Performance optimization\n  performance: {\n    parallel: true,\n    maxWorkers: 4,\n    memoryLimit: '512MB'\n  },\n\n  // Plugin system\n  plugins: [\n    '@unjs/unjucks-plugin-typescript',\n    '@unjs/unjucks-plugin-vue',\n    ['@unjs/unjucks-plugin-custom', { /* options */ }]\n  ],\n\n  // Development features\n  dev: {\n    watch: true,\n    hotReload: true,\n    debug: true\n  }\n})",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "bash",
+          "code": "# .env\nUNJUCKS_CACHE_ENABLED=true\nUNJUCKS_CACHE_TTL=600000\nUNJUCKS_DEBUG=true\nUNJUCKS_PARALLEL=true\nUNJUCKS_MAX_WORKERS=4\nUNJUCKS_MEMORY_LIMIT=536870912",
+          "valid": true
+        }
+      ],
+      "totalExamples": 14,
+      "validExamples": 4
+    },
+    {
+      "file": "/Users/sac/dev/citty/docs/ecosystem/integrations/nuxt.md",
+      "examples": [
+        {
+          "language": "bash",
+          "code": "# Install UnJucks and optional Nuxt module\npnpm add @unjs/unjucks\npnpm add -D @unjs/unjucks-nuxt  # Optional: Nuxt module for enhanced integration",
+          "valid": true
+        },
+        {
+          "language": "typescript",
+          "code": "// plugins/unjucks.client.ts\nimport { createUnJucks } from '@unjs/unjucks'\nimport type { UnJucksInstance } from '@unjs/unjucks'\n\ndeclare module '#app' {\n  interface NuxtApp {\n    $unjucks: UnJucksInstance\n  }\n}\n\nexport default defineNuxtPlugin(() => {\n  const unjucks = createUnJucks({\n    // Configuration\n    cache: {\n      enabled: !process.dev,\n      ttl: 5 * 60 * 1000 // 5 minutes\n    },\n    \n    // Global context available in all templates\n    context: {\n      app: {\n        name: 'My Nuxt App',\n        version: '1.0.0',\n        environment: process.env.NODE_ENV\n      },\n      build: {\n        timestamp: new Date().toISOString()\n      }\n    },\n\n    // Template directories\n    templateDirs: [\n      '~/templates',\n      '~/node_modules/@unjs/unjucks/templates'\n    ]\n  })\n\n  return {\n    provide: {\n      unjucks\n    }\n  }\n})",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// nuxt.config.ts\nexport default defineNuxtConfig({\n  // Enable UnJucks module (optional)\n  modules: [\n    '@unjs/unjucks-nuxt'\n  ],\n\n  // UnJucks configuration\n  unjucks: {\n    // Build-time generation\n    buildTime: {\n      enabled: true,\n      patterns: ['content/**/*.ontology'],\n      outputDir: 'generated'\n    },\n\n    // Runtime configuration\n    runtime: {\n      cache: true,\n      debug: process.dev\n    },\n\n    // Template configuration\n    templates: {\n      directories: ['templates', 'content/templates'],\n      extensions: ['.njk', '.unjucks']\n    }\n  },\n\n  // CSS for generated content (optional)\n  css: [\n    '~/assets/css/unjucks-components.css'\n  ]\n})",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// server/api/generate/component.post.ts\nimport { generateFromOntology } from '@unjs/unjucks'\n\nexport default defineEventHandler(async (event) => {\n  const { ontology, template, options = {} } = await readBody(event)\n  \n  // Validate input\n  if (!ontology) {\n    throw createError({\n      statusCode: 400,\n      statusMessage: 'Ontology is required'\n    })\n  }\n\n  try {\n    const result = await generateFromOntology(ontology, template || 'vue-component', {\n      context: {\n        // Server context\n        serverUrl: getServerURL(event),\n        userAgent: getHeader(event, 'user-agent'),\n        timestamp: new Date().toISOString()\n      },\n      ...options\n    })\n\n    // Log generation for analytics\n    console.log(`Generated ${template || 'vue-component'} for ${getClientIP(event)}`)\n\n    return {\n      success: true,\n      ...result,\n      metadata: {\n        ...result.metadata,\n        generatedAt: new Date().toISOString(),\n        server: true\n      }\n    }\n  } catch (error) {\n    console.error('Generation error:', error)\n    \n    throw createError({\n      statusCode: 500,\n      statusMessage: 'Generation failed',\n      data: {\n        error: error.message,\n        type: error.constructor.name\n      }\n    })\n  }\n})",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// scripts/generate-components.ts (runs at build time)\nimport { generateFromOntology } from '@unjs/unjucks'\nimport { readdir, readFile, writeFile, mkdir } from 'fs/promises'\nimport { join } from 'path'\n\nasync function generateComponentsAtBuild() {\n  const contentDir = 'content/components'\n  const outputDir = 'generated/components'\n  \n  // Ensure output directory exists\n  await mkdir(outputDir, { recursive: true })\n  \n  // Read all ontology files\n  const files = await readdir(contentDir)\n  const ontologyFiles = files.filter(f => f.endsWith('.ontology'))\n  \n  for (const file of ontologyFiles) {\n    const ontologyPath = join(contentDir, file)\n    const ontology = await readFile(ontologyPath, 'utf-8')\n    \n    // Generate Vue component\n    const result = await generateFromOntology(ontology, 'vue-component', {\n      context: {\n        build: true,\n        timestamp: new Date().toISOString()\n      }\n    })\n    \n    // Write generated file\n    const outputPath = join(outputDir, file.replace('.ontology', '.vue'))\n    await writeFile(outputPath, result.content)\n    \n    console.log(`✅ Generated ${outputPath}`)\n  }\n}\n\n// Run during build\nif (process.env.NODE_ENV === 'production') {\n  generateComponentsAtBuild().catch(console.error)\n}",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// nuxt.config.ts\nexport default defineNuxtConfig({\n  hooks: {\n    // Generate components before building\n    'build:before': async (nuxt) => {\n      console.log('🔄 Generating components from ontologies...')\n      \n      const { generateFromOntology } = await import('@unjs/unjucks')\n      const glob = await import('fast-glob')\n      \n      // Find all ontology files\n      const ontologyFiles = await glob.glob('content/**/*.ontology', {\n        cwd: nuxt.options.rootDir\n      })\n      \n      for (const file of ontologyFiles) {\n        const ontology = await readFile(join(nuxt.options.rootDir, file), 'utf-8')\n        const result = await generateFromOntology(ontology, 'vue-component')\n        \n        // Save to components directory\n        const componentPath = file\n          .replace('content/', 'components/generated/')\n          .replace('.ontology', '.vue')\n          \n        await ensureFile(join(nuxt.options.rootDir, componentPath))\n        await writeFile(join(nuxt.options.rootDir, componentPath), result.content)\n      }\n      \n      console.log(`✅ Generated ${ontologyFiles.length} components`)\n    }\n  }\n})",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// composables/useApiClient.ts\nexport const useApiClient = async (apiOntology: string) => {\n  const { $unjucks } = useNuxtApp()\n  \n  // Generate TypeScript API client\n  const result = await $unjucks.generate(apiOntology, 'typescript-api-client', {\n    context: {\n      baseURL: useRuntimeConfig().public.apiBase,\n      version: 'v1'\n    }\n  })\n  \n  // Dynamically import generated client\n  const clientModule = await import(`data:text/javascript;base64,${btoa(result.content)}`)\n  \n  return {\n    client: clientModule.default,\n    types: result.metadata.types,\n    endpoints: result.metadata.endpoints\n  }\n}",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// plugins/unjucks-optimized.client.ts\nexport default defineNuxtPlugin(() => {\n  const unjucks = createUnJucks({\n    // Aggressive caching in production\n    cache: {\n      enabled: !process.dev,\n      ttl: process.dev ? 1000 : 30 * 60 * 1000, // 30 minutes in production\n      maxSize: 100 // Maximum 100 cached templates\n    },\n    \n    // Preload common templates\n    preload: [\n      'vue-component',\n      'typescript-interface',\n      'css-module'\n    ]\n  })\n  \n  return { provide: { unjucks } }\n})",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// nuxt.config.ts\nexport default defineNuxtConfig({\n  build: {\n    transpile: ['@unjs/unjucks']\n  },\n  \n  vite: {\n    define: {\n      // Tree-shake unused templates in production\n      __UNJUCKS_TEMPLATES__: process.env.NODE_ENV === 'production' \n        ? '[\"vue-component\", \"typescript-interface\"]'\n        : 'null'\n    }\n  }\n})",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// test/unjucks-integration.test.ts\nimport { createUnJucks } from '@unjs/unjucks'\nimport { describe, it, expect } from 'vitest'\n\ndescribe('UnJucks Nuxt Integration', () => {\n  const unjucks = createUnJucks()\n  \n  it('generates Vue components correctly', async () => {\n    const ontology = `\n    @prefix : <http://test.org/> .\n    :testComponent a :VueComponent ;\n      :name \"TestButton\" ;\n      :hasProps (:label) .\n    `\n    \n    const result = await unjucks.generate(ontology, 'vue-component')\n    \n    expect(result.content).toContain('<template>')\n    expect(result.content).toContain('TestButton')\n    expect(result.content).toContain('defineProps')\n  })\n})",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        }
+      ],
+      "totalExamples": 10,
+      "validExamples": 1
+    },
+    {
+      "file": "/Users/sac/dev/citty/docs/ecosystem/migration/nunjucks.md",
+      "examples": [
+        {
+          "language": "bash",
+          "code": "# Remove old Nunjucks\nnpm uninstall nunjucks @types/nunjucks\n\n# Install UnJucks\nnpm install @unjs/unjucks",
+          "valid": true
+        },
+        {
+          "language": "typescript",
+          "code": "import nunjucks from 'nunjucks'\n\nconst env = nunjucks.configure('templates', {\n  autoescape: true,\n  watch: true\n})\n\nconst result = env.render('template.njk', { data })",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "import { createUnJucks } from '@unjs/unjucks'\n\nconst unjucks = createUnJucks({\n  templateDirs: ['templates'],\n  autoEscape: true,\n  watch: true\n})\n\n// Direct migration - same result\nconst result = await unjucks.render('template.njk', { data })\n\n// Or use semantic features\nconst result = await unjucks.generate(ontology, 'template.njk')",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// Manual context building\nconst context = {\n  user: {\n    id: 1,\n    name: 'John Doe',\n    email: 'john@example.com',\n    role: 'admin',\n    details: {\n      department: 'Engineering',\n      joined: '2023-01-01'\n    }\n  },\n  currentTime: new Date().toISOString(),\n  permissions: ['read', 'write', 'delete']\n}\n\nconst result = env.render('user-profile.njk', context)",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// Semantic ontology (automatic context generation)\nconst ontology = `\n@prefix : <http://example.org/> .\n@prefix foaf: <http://xmlns.com/foaf/0.1/> .\n\n:user1 a foaf:Person ;\n  foaf:name \"John Doe\" ;\n  foaf:mbox \"john@example.com\" ;\n  :role \"admin\" ;\n  :department \"Engineering\" ;\n  :joinDate \"2023-01-01\"^^xsd:date ;\n  :hasPermission \"read\", \"write\", \"delete\" .\n`\n\n// Context generated automatically from ontology\nconst result = await unjucks.generate(ontology, 'user-profile.njk')\n\n// Or mix manual + semantic\nconst result = await unjucks.render('user-profile.njk', {\n  // Manual context\n  currentTime: new Date().toISOString(),\n  \n  // Semantic context auto-injected\n  ...await unjucks.getSemanticContext(ontology)\n})",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "env.addFilter('currency', (value, symbol = '$') => {\n  return `${symbol}${parseFloat(value).toFixed(2)}`\n})\n\nenv.addFilter('timeAgo', (date) => {\n  const now = new Date()\n  const diff = now - new Date(date)\n  const minutes = Math.floor(diff / 60000)\n  \n  if (minutes < 60) return `${minutes}m ago`\n  const hours = Math.floor(minutes / 60)\n  if (hours < 24) return `${hours}h ago`\n  const days = Math.floor(hours / 24)\n  return `${days}d ago`\n})",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// Migrate existing filters\nunjucks.addFilter('currency', (value, symbol = '$') => {\n  return `${symbol}${parseFloat(value).toFixed(2)}`\n})\n\n// Enhanced with semantic context\nunjucks.addFilter('timeAgo', (date, context) => {\n  const now = new Date()\n  const diff = now - new Date(date)\n  const minutes = Math.floor(diff / 60000)\n  \n  // Access semantic context\n  const userTimezone = context.user?.timezone || 'UTC'\n  const localized = new Date(date).toLocaleString('en-US', {\n    timeZone: userTimezone\n  })\n  \n  if (minutes < 60) return `${minutes}m ago`\n  const hours = Math.floor(minutes / 60)\n  if (hours < 24) return `${hours}h ago`\n  const days = Math.floor(hours / 24)\n  return `${days}d ago (${localized})`\n})\n\n// AI-powered semantic filter\nunjucks.addSemanticFilter('smartFormat', async (value, context) => {\n  const ontology = context.$ontology\n  const entityType = await unjucks.askGraph(`what type is ${value}?`)\n  \n  switch (entityType) {\n    case 'Currency':\n      return formatAsCurrency(value, context.user?.currency)\n    case 'Date':\n      return formatAsDate(value, context.user?.locale)\n    case 'Person':\n      return formatAsPersonName(value, context.user?.nameFormat)\n    default:\n      return value\n  }\n})",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "json",
+          "code": "{\n  \"products\": [\n    {\n      \"id\": 1,\n      \"name\": \"MacBook Pro\",\n      \"price\": 1999,\n      \"category\": \"Laptops\",\n      \"brand\": \"Apple\",\n      \"specs\": {\n        \"cpu\": \"M2 Pro\",\n        \"ram\": \"16GB\",\n        \"storage\": \"512GB SSD\"\n      }\n    }\n  ]\n}",
+          "valid": true
+        },
+        {
+          "language": "typescript",
+          "code": "// Migration benchmark script\nimport { performance } from 'perf_hooks'\nimport nunjucks from 'nunjucks'\nimport { createUnJucks } from '@unjs/unjucks'\n\nconst template = `\n{% for item in items %}\n  <div class=\"item\">\n    <h3>{{ item.name | title }}</h3>\n    <p>{{ item.description | truncate(100) }}</p>\n    <span class=\"price\">{{ item.price | currency }}</span>\n  </div>\n{% endfor %}\n`\n\nconst data = {\n  items: Array.from({ length: 1000 }, (_, i) => ({\n    name: `Item ${i}`,\n    description: `Description for item ${i}`.repeat(5),\n    price: Math.random() * 100\n  }))\n}\n\n// Nunjucks benchmark\nconst nunjucksEnv = nunjucks.configure({ autoescape: true })\nconst nunjucksStart = performance.now()\nconst nunjucksResult = nunjucksEnv.renderString(template, data)\nconst nunjucksTime = performance.now() - nunjucksStart\n\n// UnJucks benchmark\nconst unjucks = createUnJucks({ cache: true })\nconst unjucksStart = performance.now()\nconst unjucksResult = await unjucks.renderString(template, data)\nconst unjucksTime = performance.now() - unjucksStart\n\nconsole.log(`Nunjucks: ${nunjucksTime.toFixed(2)}ms`)\nconsole.log(`UnJucks: ${unjucksTime.toFixed(2)}ms`)\nconsole.log(`Improvement: ${((nunjucksTime - unjucksTime) / nunjucksTime * 100).toFixed(1)}%`)",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// migration-helper.ts\nimport nunjucks from 'nunjucks'\nimport { createUnJucks } from '@unjs/unjucks'\n\nexport class MigrationHelper {\n  private nunjucksEnv: nunjucks.Environment\n  private unjucks: any\n  \n  constructor() {\n    // Keep Nunjucks as fallback\n    this.nunjucksEnv = nunjucks.configure('templates')\n    \n    // Initialize UnJucks\n    this.unjucks = createUnJucks({\n      templateDirs: ['templates'],\n      fallback: true // Enable fallback mode\n    })\n  }\n  \n  async render(template: string, context: any) {\n    try {\n      // Try UnJucks first\n      return await this.unjucks.render(template, context)\n    } catch (error) {\n      console.warn(`UnJucks failed for ${template}, falling back to Nunjucks`)\n      // Fallback to Nunjucks\n      return this.nunjucksEnv.render(template, context)\n    }\n  }\n  \n  // Gradual semantic migration\n  async enhanceWithSemantics(template: string, data: any) {\n    // Convert data to ontology format\n    const ontology = this.dataToOntology(data)\n    \n    try {\n      // Use semantic features\n      return await this.unjucks.generate(ontology, template)\n    } catch (error) {\n      // Fallback to regular rendering\n      return await this.render(template, data)\n    }\n  }\n  \n  private dataToOntology(data: any): string {\n    // Simple conversion - expand based on your needs\n    const triples = []\n    \n    for (const [key, value] of Object.entries(data)) {\n      if (typeof value === 'object') {\n        triples.push(`:${key} a :Entity .`)\n        for (const [prop, val] of Object.entries(value)) {\n          triples.push(`:${key} :${prop} \"${val}\" .`)\n        }\n      } else {\n        triples.push(`:root :${key} \"${value}\" .`)\n      }\n    }\n    \n    return `@prefix : <http://example.org/> .\\n${triples.join('\\n')}`\n  }\n}",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// migration-analyzer.ts\nimport { readdir, readFile } from 'fs/promises'\nimport { join } from 'path'\n\nexport class MigrationAnalyzer {\n  async analyzeTemplates(templateDir: string) {\n    const templates = await this.findTemplates(templateDir)\n    const analysis = {\n      totalTemplates: templates.length,\n      migrationOpportunities: [],\n      semanticPotential: [],\n      performanceGains: []\n    }\n    \n    for (const template of templates) {\n      const content = await readFile(template, 'utf-8')\n      const opportunities = await this.analyzeTemplate(content, template)\n      \n      analysis.migrationOpportunities.push({\n        file: template,\n        ...opportunities\n      })\n    }\n    \n    return analysis\n  }\n  \n  private async analyzeTemplate(content: string, filename: string) {\n    const analysis = {\n      complexity: this.calculateComplexity(content),\n      loops: this.countLoops(content),\n      filters: this.extractFilters(content),\n      semanticPotential: this.assessSemanticPotential(content),\n      migrationEffort: 'low' // low | medium | high\n    }\n    \n    // Assess migration effort\n    if (analysis.complexity > 10 || analysis.loops > 5) {\n      analysis.migrationEffort = 'high'\n    } else if (analysis.complexity > 5 || analysis.loops > 2) {\n      analysis.migrationEffort = 'medium'\n    }\n    \n    return analysis\n  }\n  \n  private calculateComplexity(content: string): number {\n    // Simple complexity calculation\n    const patterns = [\n      /\\{\\%\\s*if/g,\n      /\\{\\%\\s*for/g,\n      /\\{\\%\\s*macro/g,\n      /\\{\\%\\s*extends/g,\n      /\\{\\%\\s*include/g\n    ]\n    \n    return patterns.reduce((total, pattern) => {\n      const matches = content.match(pattern)\n      return total + (matches ? matches.length : 0)\n    }, 0)\n  }\n  \n  private assessSemanticPotential(content: string): string[] {\n    const opportunities = []\n    \n    if (content.includes('for') && content.includes('if')) {\n      opportunities.push('query-replacement')\n    }\n    \n    if (content.match(/\\{\\{\\s*\\w+\\.\\w+/)) {\n      opportunities.push('relationship-inference')\n    }\n    \n    if (content.includes('| title') || content.includes('| upper')) {\n      opportunities.push('smart-formatting')\n    }\n    \n    return opportunities\n  }\n}",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// Register all existing filters\nconst existingFilters = {\n  currency: (value, symbol = '$') => `${symbol}${value}`,\n  timeAgo: (date) => formatTimeAgo(date)\n  // ... other filters\n}\n\n// Batch register in UnJucks\nfor (const [name, fn] of Object.entries(existingFilters)) {\n  unjucks.addFilter(name, fn)\n}",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// Context adapter\nclass ContextAdapter {\n  static adapt(unjucksContext: any) {\n    // Transform UnJucks semantic context to match Nunjucks expectations\n    return {\n      // Flatten semantic entities\n      ...this.flattenEntities(unjucksContext),\n      // Keep semantic features available\n      $semantic: unjucksContext\n    }\n  }\n}",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// Async wrapper for gradual migration\nexport class AsyncRenderWrapper {\n  static async renderSync(template: string, context: any) {\n    return await unjucks.render(template, context)\n  }\n  \n  // For legacy code that expects sync\n  static renderSyncLegacy(template: string, context: any) {\n    let result: string\n    this.renderSync(template, context).then(r => result = r)\n    \n    // Wait for result (not recommended for production)\n    while (result === undefined) {\n      // Busy wait - replace with proper async handling\n    }\n    return result\n  }\n}",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// migration-metrics.ts\nexport class MigrationMetrics {\n  static trackRenderTime(templateName: string, startTime: number) {\n    const duration = performance.now() - startTime\n    console.log(`${templateName}: ${duration.toFixed(2)}ms`)\n  }\n  \n  static trackSemanticUsage(queryType: string) {\n    // Track which semantic features are being used\n    console.log(`Semantic query: ${queryType}`)\n  }\n  \n  static generateMigrationReport() {\n    return {\n      templatesProcessed: 150,\n      performanceImprovement: '45%',\n      semanticQueriesAdded: 23,\n      bundleSizeReduction: '25%'\n    }\n  }\n}",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        }
+      ],
+      "totalExamples": 15,
+      "validExamples": 2
+    },
+    {
+      "file": "/Users/sac/dev/citty/docs/ecosystem/performance/benchmarks.md",
+      "examples": [
+        {
+          "language": "typescript",
+          "code": "// Benchmark setup\nconst templates = {\n  simple: '{{ name }} - {{ description }}',\n  complex: `\n    {% for item in items %}\n      <div class=\"card\">\n        <h3>{{ item.name | title }}</h3>\n        <p>{{ item.description | truncate(100) }}</p>\n        {% if item.tags %}\n          {% for tag in item.tags %}\n            <span class=\"tag\">{{ tag }}</span>\n          {% endfor %}\n        {% endif %}\n      </div>\n    {% endfor %}\n  `,\n  semantic: 'Natural language query: \"list all products with price > $100\"'\n}\n\nconst data = {\n  items: generateTestData(1000) // 1000 mock items\n}",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// Memory benchmark results (MB)\nconst memoryUsage = {\n  templateCaching: {\n    unjucks: 12.3,\n    nunjucks: 18.7,\n    handlebars: 22.1\n  },\n  largeDataset: {\n    unjucks: 45.2,\n    nunjucks: 68.9,\n    handlebars: 82.4\n  },\n  concurrentRendering: {\n    unjucks: 38.1,\n    nunjucks: 59.3,\n    handlebars: 71.8\n  }\n}",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// Advanced caching configuration\nimport { createUnJucks } from '@unjs/unjucks'\n\nconst unjucks = createUnJucks({\n  cache: {\n    enabled: true,\n    \n    // Multi-tier caching\n    memory: {\n      maxSize: 200, // Maximum cached templates\n      ttl: 30 * 60 * 1000, // 30 minutes\n      algorithm: 'lfu' // Least Frequently Used\n    },\n    \n    // Persistent cache for repeated deployments\n    disk: {\n      enabled: process.env.NODE_ENV === 'production',\n      directory: '.cache/unjucks',\n      compression: 'gzip'\n    },\n    \n    // Distributed cache for multiple instances\n    redis: {\n      enabled: !!process.env.REDIS_URL,\n      url: process.env.REDIS_URL,\n      prefix: 'unjucks:cache:'\n    }\n  }\n})",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// Optimize semantic queries with indexing\nconst unjucks = createUnJucks({\n  semantic: {\n    // Pre-build indexes for faster queries\n    indexes: {\n      enabled: true,\n      types: ['rdf:type', 'rdfs:label', 'schema:name'],\n      relationships: true,\n      fulltext: true\n    },\n    \n    // Query optimization\n    queries: {\n      cache: true,\n      timeout: 5000, // 5 second timeout\n      parallelism: 4, // Parallel query execution\n      \n      // Query planning optimization\n      planner: {\n        enabled: true,\n        statistics: true,\n        costModel: 'adaptive'\n      }\n    }\n  }\n})",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// Dynamic template loading\nconst unjucks = createUnJucks({\n  templates: {\n    // Load templates on-demand\n    lazy: true,\n    \n    // Code splitting for large template sets\n    chunks: {\n      'common': ['header', 'footer', 'navigation'],\n      'forms': ['contact-form', 'signup-form'],\n      'components': ['card', 'button', 'modal']\n    },\n    \n    // Preload critical templates\n    preload: ['base', 'error-404']\n  }\n})\n\n// Usage with dynamic imports\nconst renderUserProfile = async (userData) => {\n  // Template loaded only when needed\n  const template = await unjucks.loadTemplate('user-profile')\n  return template.render(userData)\n}",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// Parallel template rendering\nimport { createUnJucks } from '@unjs/unjucks'\nimport { Worker, isMainThread, parentPort, workerData } from 'worker_threads'\n\nif (isMainThread) {\n  // Main thread - distribute work\n  const renderInParallel = async (templates, data) => {\n    const workers = []\n    const chunkSize = Math.ceil(templates.length / 4) // 4 workers\n    \n    for (let i = 0; i < templates.length; i += chunkSize) {\n      const chunk = templates.slice(i, i + chunkSize)\n      \n      const worker = new Worker(__filename, {\n        workerData: { templates: chunk, data }\n      })\n      \n      workers.push(worker)\n    }\n    \n    const results = await Promise.all(\n      workers.map(worker => new Promise((resolve) => {\n        worker.on('message', resolve)\n      }))\n    )\n    \n    return results.flat()\n  }\n} else {\n  // Worker thread - process templates\n  const unjucks = createUnJucks()\n  const { templates, data } = workerData\n  \n  Promise.all(\n    templates.map(template => unjucks.render(template, data))\n  ).then(results => {\n    parentPort.postMessage(results)\n  })\n}",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// Performance test setup\nconst benchmark = async () => {\n  const unjucks = createUnJucks({\n    cache: { enabled: true },\n    semantic: { indexes: { enabled: true } }\n  })\n  \n  const ontology = `\n    @prefix : <http://shop.example.org/> .\n    @prefix schema: <http://schema.org/> .\n    \n    # 10,000 products with relationships\n    ${generateProductOntology(10000)}\n  `\n  \n  const template = `\n    <div class=\"product-page\">\n      <h1>{{ product.name }}</h1>\n      <p class=\"price\">\\${{ product.price }}</p>\n      \n      <!-- Semantic query for recommendations -->\n      {% set recommendations = askGraph(\"products similar to \" + product.name + \" with price between \" + (product.price * 0.8) + \" and \" + (product.price * 1.2)) %}\n      \n      <div class=\"recommendations\">\n        {% for rec in recommendations %}\n          <div class=\"rec-item\">{{ rec.name }}</div>\n        {% endfor %}\n      </div>\n    </div>\n  `\n  \n  const startTime = performance.now()\n  \n  // Generate all pages\n  const results = await Promise.all(\n    products.map(product => unjucks.generate(ontology, template, {\n      context: { product }\n    }))\n  )\n  \n  const endTime = performance.now()\n  \n  return {\n    totalTime: endTime - startTime,\n    averageTime: (endTime - startTime) / products.length,\n    throughput: products.length / ((endTime - startTime) / 1000),\n    memoryUsage: process.memoryUsage()\n  }\n}\n\n// Results:\n// Total time: 45.2 seconds\n// Average per page: 4.52ms\n// Throughput: 221 pages/second\n// Memory usage: 89MB peak",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "const apiDocsBenchmark = async () => {\n  const ontology = generateAPIontology(500) // 500 endpoints\n  \n  const results = await Promise.all([\n    // Traditional approach\n    benchmarkTraditional(endpoints),\n    \n    // UnJucks with semantic features\n    unjucks.generate(ontology, 'openapi-spec', {\n      validation: true,\n      examples: true,\n      relationships: true\n    })\n  ])\n  \n  return {\n    traditional: { time: 12.3, quality: 'basic' },\n    unjucks: { time: 3.7, quality: 'enhanced+validated' },\n    improvement: '70% faster with better quality'\n  }\n}",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// Enable performance monitoring\nconst unjucks = createUnJucks({\n  monitoring: {\n    enabled: true,\n    \n    // Metrics to collect\n    metrics: [\n      'render.time',\n      'render.memory',\n      'cache.hits',\n      'cache.misses',\n      'semantic.query.time',\n      'template.compilation.time'\n    ],\n    \n    // Export to monitoring systems\n    exporters: [\n      {\n        type: 'prometheus',\n        endpoint: '/metrics'\n      },\n      {\n        type: 'datadog',\n        apiKey: process.env.DATADOG_API_KEY\n      }\n    ]\n  }\n})\n\n// Access metrics\nconst metrics = unjucks.getMetrics()\nconsole.log('Cache hit ratio:', metrics.cache.hitRatio)\nconsole.log('Average render time:', metrics.render.averageTime)",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// Performance decorator\nconst performanceTracker = (target: any, propertyName: string, descriptor: PropertyDescriptor) => {\n  const method = descriptor.value\n  \n  descriptor.value = async function (...args: any[]) {\n    const start = performance.now()\n    const startMemory = process.memoryUsage().heapUsed\n    \n    try {\n      const result = await method.apply(this, args)\n      \n      const duration = performance.now() - start\n      const memoryDelta = process.memoryUsage().heapUsed - startMemory\n      \n      console.log(`${propertyName}: ${duration.toFixed(2)}ms, Memory: +${formatBytes(memoryDelta)}`)\n      \n      return result\n    } catch (error) {\n      const duration = performance.now() - start\n      console.log(`${propertyName} FAILED: ${duration.toFixed(2)}ms`)\n      throw error\n    }\n  }\n}\n\n// Usage\nclass TemplateRenderer {\n  @performanceTracker\n  async renderComplexTemplate(template: string, context: any) {\n    return unjucks.render(template, context)\n  }\n}",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// ❌ Inefficient: Multiple semantic queries\nconst inefficientTemplate = `\n{% for product in products %}\n  {% set similar = askGraph(\"products similar to \" + product.name) %}\n  {% set reviews = askGraph(\"reviews for \" + product.name) %}\n  {% set category = askGraph(\"category of \" + product.name) %}\n  \n  <div class=\"product\">\n    <!-- Product content -->\n  </div>\n{% endfor %}\n`\n\n// ✅ Efficient: Batch queries and caching\nconst efficientTemplate = `\n{% set productData = askGraph(\"for each product get similar, reviews, category\") %}\n\n{% for product in products %}\n  {% set productInfo = productData[product.id] %}\n  \n  <div class=\"product\">\n    <!-- Use cached data -->\n  </div>\n{% endfor %}\n`",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// ❌ Heavy context object\nconst heavyContext = {\n  allProducts: products, // 10,000 items\n  allCategories: categories,\n  allUsers: users,\n  // ... massive objects\n}\n\n// ✅ Lazy context with getters\nconst optimizedContext = {\n  // Only load when accessed\n  get products() { return loadProducts() },\n  get categories() { return loadCategories() },\n  \n  // Pre-computed frequently used data\n  featuredProducts: getFeaturedProducts(),\n  popularCategories: getPopularCategories()\n}",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// Memory-efficient rendering\nconst renderWithMemoryLimit = async (templates: string[], data: any[]) => {\n  const maxMemory = 100 * 1024 * 1024 // 100MB limit\n  const batchSize = 50\n  const results = []\n  \n  for (let i = 0; i < templates.length; i += batchSize) {\n    const batch = templates.slice(i, i + batchSize)\n    \n    // Render batch\n    const batchResults = await Promise.all(\n      batch.map(template => unjucks.render(template, data))\n    )\n    \n    results.push(...batchResults)\n    \n    // Check memory usage\n    const memUsage = process.memoryUsage()\n    if (memUsage.heapUsed > maxMemory) {\n      // Force garbage collection\n      if (global.gc) global.gc()\n      \n      // Optional: Clear template cache\n      unjucks.clearCache()\n    }\n  }\n  \n  return results\n}",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// Template profiler\nclass TemplateProfiler {\n  private profiles = new Map<string, PerformanceProfile>()\n  \n  async profile<T>(templateName: string, fn: () => Promise<T>): Promise<T> {\n    const start = performance.now()\n    const startMemory = process.memoryUsage()\n    \n    const result = await fn()\n    \n    const duration = performance.now() - start\n    const memoryDelta = process.memoryUsage().heapUsed - startMemory.heapUsed\n    \n    this.profiles.set(templateName, {\n      renderTime: duration,\n      memoryUsage: memoryDelta,\n      timestamp: Date.now()\n    })\n    \n    return result\n  }\n  \n  getSlowTemplates(threshold = 100): string[] {\n    return Array.from(this.profiles.entries())\n      .filter(([_, profile]) => profile.renderTime > threshold)\n      .map(([name]) => name)\n  }\n  \n  generateReport(): string {\n    const sorted = Array.from(this.profiles.entries())\n      .sort(([,a], [,b]) => b.renderTime - a.renderTime)\n    \n    return sorted.map(([name, profile]) => \n      `${name}: ${profile.renderTime.toFixed(2)}ms, ${formatBytes(profile.memoryUsage)}`\n    ).join('\\n')\n  }\n}",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        },
+        {
+          "language": "typescript",
+          "code": "// Query performance analyzer\nconst analyzeSemanticQueries = async () => {\n  const queries = [\n    \"products with high ratings\",\n    \"users who bought similar items\",\n    \"categories trending this month\"\n  ]\n  \n  for (const query of queries) {\n    const start = performance.now()\n    \n    const result = await unjucks.askGraph(query)\n    \n    const duration = performance.now() - start\n    \n    console.log(`Query: \"${query}\"`)\n    console.log(`Time: ${duration.toFixed(2)}ms`)\n    console.log(`Results: ${result.length} items`)\n    console.log(`Throughput: ${(result.length / duration * 1000).toFixed(0)} items/sec`)\n    console.log('---')\n  }\n}",
+          "valid": false,
+          "error": "Command failed: npx tsc --noEmit --skipLibCheck /Users/sac/dev/citty/temp-validation.ts"
+        }
+      ],
+      "totalExamples": 15,
+      "validExamples": 0
+    }
+  ]
+}

@@ -1,15 +1,15 @@
 {
-  "totalDuration": 1349.740209,
+  "totalDuration": 8.05275000000006,
   "templateRenders": 0,
   "averageRenderTime": 0,
-  "cacheHitRate": 0,
+  "cacheHitRate": 0.09090909090909091,
   "fileWrites": 0,
   "memoryUsage": {
-    "rss": 394821632,
-    "heapTotal": 35110912,
-    "heapUsed": 19935192,
-    "external": 4732750,
-    "arrayBuffers": 109124
+    "rss": 397197312,
+    "heapTotal": 57917440,
+    "heapUsed": 30329672,
+    "external": 4855419,
+    "arrayBuffers": 250466
   },
   "errors": [],
   "templatesDiscovered": 0,
@@ -19,6 +19,62 @@
   "contextSanitizations": 0,
   "pathResolutions": 0,
   "extensionCalls": 0,
-  "throughputPerSecond": 0,
-  "metrics": []
+  "throughputPerSecond": 1365.9929837633006,
+  "metrics": [
+    {
+      "type": "cache_miss",
+      "duration": 10,
+      "timestamp": 1757086230854
+    },
+    {
+      "type": "cache_miss",
+      "duration": 10,
+      "timestamp": 1757086230854
+    },
+    {
+      "type": "cache_miss",
+      "duration": 10,
+      "timestamp": 1757086230854
+    },
+    {
+      "type": "cache_miss",
+      "duration": 10,
+      "timestamp": 1757086230854
+    },
+    {
+      "type": "cache_miss",
+      "duration": 10,
+      "timestamp": 1757086230854
+    },
+    {
+      "type": "cache_miss",
+      "duration": 10,
+      "timestamp": 1757086230854
+    },
+    {
+      "type": "cache_miss",
+      "duration": 10,
+      "timestamp": 1757086230854
+    },
+    {
+      "type": "cache_miss",
+      "duration": 10,
+      "timestamp": 1757086230854
+    },
+    {
+      "type": "cache_miss",
+      "duration": 10,
+      "timestamp": 1757086230854
+    },
+    {
+      "type": "cache_miss",
+      "duration": 10,
+      "timestamp": 1757086230854
+    },
+    {
+      "type": "cache_hit",
+      "duration": 1,
+      "timestamp": 1757086230854
+    }
+  ]
 }

@@ -398,16 +398,82 @@ export function createSampleOntology(): OntologyContext {
 }
 
 /**
+ * Convert CommandDef to Simple Ontology (minimal format)
+ */
+export async function toSimpleOntology(commandDef: any): Promise<string> {
+  const prefixes = `@prefix citty: <http://example.org/citty#> .
+
+`;
+
+  let ontology = prefixes;
+  
+  const commandName = commandDef.meta?.name || 'unknown-command';
+  const commandUri = `citty:${commandName}`;
+  
+  // Command metadata
+  ontology += `${commandUri} a citty:Command ;\n`;
+  ontology += `  citty:hasName "${commandName}" ;\n`;
+  
+  if (commandDef.meta?.description) {
+    const escapedDesc = commandDef.meta.description
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, '\\n')
+      .replace(/\t/g, '\\t');
+    ontology += `  citty:hasDescription "${escapedDesc}" ;\n`;
+  }
+  
+  // Arguments
+  if (commandDef.args) {
+    const argNames = Object.keys(commandDef.args);
+    for (let i = 0; i < argNames.length; i++) {
+      const argName = argNames[i];
+      const argDef = commandDef.args[argName];
+      const argUri = `citty:${argName}`;
+      
+      ontology += `  citty:hasArgument ${argUri}`;
+      if (i < argNames.length - 1) ontology += ' ;\n';
+      else ontology += ' .\n\n';
+      
+      ontology += `${argUri} a citty:Argument ;\n`;
+      ontology += `  citty:hasName "${argName}" ;\n`;
+      ontology += `  citty:hasType citty:${argDef.type || 'string'}`;
+      
+      if (argDef.description) {
+        const escapedDesc = argDef.description
+          .replace(/\\/g, '\\\\')
+          .replace(/"/g, '\\"')
+          .replace(/\n/g, '\\n')
+          .replace(/\t/g, '\\t');
+        ontology += ` ;\n  citty:hasDescription "${escapedDesc}"`;
+      }
+      
+      ontology += ' .\n\n';
+    }
+  } else {
+    ontology += ' .\n\n';
+  }
+  
+  return ontology;
+}
+
+/**
  * Convert CommandDef to Ontology (Turtle format)
  */
 export async function toOntology(commandDef: any): Promise<string> {
   const prefixes = `@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix citty: <http://example.org/citty#> .
 @prefix type: <http://example.org/citty/type#> .
 
 `;
 
   let ontology = prefixes;
+  
+  // Define OWL classes
+  ontology += `citty:Command a owl:Class .\n`;
+  ontology += `citty:Argument a owl:Class .\n\n`;
   
   const commandName = commandDef.meta?.name || 'unknown-command';
   const commandUri = `http://example.org/citty/command/${commandName}`;
@@ -448,7 +514,7 @@ export async function toOntology(commandDef: any): Promise<string> {
       }
       
       if (argDef.required !== undefined) {
-        ontology += `${argUri} citty:isRequired "${argDef.required}" .\n`;
+        ontology += `${argUri} citty:isRequired "${argDef.required}"^^xsd:boolean .\n`;
       }
       
       if (argDef.default !== undefined) {
@@ -466,6 +532,10 @@ export async function toOntology(commandDef: any): Promise<string> {
         for (const option of argDef.options) {
           ontology += `${argUri} citty:hasOption "${option}" .\n`;
         }
+      }
+      
+      if (argDef.valueHint) {
+        ontology += `${argUri} citty:hasValueHint "${argDef.valueHint}" .\n`;
       }
     }
   }
@@ -485,6 +555,26 @@ export async function toOntology(commandDef: any): Promise<string> {
           .replace(/\n/g, '\\n')
           .replace(/\t/g, '\\t');
         ontology += `${subUri} citty:hasDescription "${escapedDesc}" .\n`;
+      }
+      
+      // Subcommand arguments
+      if (subCmd.args) {
+        for (const [argName, argDef] of Object.entries(subCmd.args as Record<string, any>)) {
+          const argUri = `${subUri}/arg/${argName}`;
+          ontology += `${subUri} citty:hasArgument ${argUri} .\n`;
+          ontology += `${argUri} a citty:Argument .\n`;
+          ontology += `${argUri} citty:hasName "${argName}" .\n`;
+          ontology += `${argUri} citty:hasType type:${argDef.type || 'string'} .\n`;
+          
+          if (argDef.description) {
+            const escapedDesc = argDef.description
+              .replace(/\\/g, '\\\\')
+              .replace(/"/g, '\\"')
+              .replace(/\n/g, '\\n')
+              .replace(/\t/g, '\\t');
+            ontology += `${argUri} citty:hasDescription "${escapedDesc}" .\n`;
+          }
+        }
       }
     }
   }

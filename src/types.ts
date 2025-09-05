@@ -104,3 +104,63 @@ export class ContextError extends UnjucksError {
     super(message, 'CONTEXT_ERROR', { missingKeys });
   }
 }
+
+// Core CLI Types
+export type Resolvable<T> = T | (() => T | Promise<T>);
+
+// Argument Types
+export type ArgType = "string" | "boolean" | "number" | "enum" | "positional";
+
+export interface Arg {
+  name: string;
+  type: ArgType;
+  description?: string;
+  required?: boolean;
+  default?: string | number | boolean;
+  alias?: string | string[];
+  valueHint?: string;
+  options?: (string | number)[];
+  negativeDescription?: string;
+}
+
+export interface ArgsDef {
+  [key: string]: Omit<Arg, "name"> | undefined;
+}
+
+export type ParsedArgs<T extends ArgsDef = ArgsDef> = {
+  _: string[];
+} & {
+  [K in keyof T]: T[K] extends { type: "string" }
+    ? string
+    : T[K] extends { type: "number" }
+    ? number
+    : T[K] extends { type: "boolean" }
+    ? boolean
+    : T[K] extends { type: "enum" }
+    ? string | number
+    : any;
+} & Record<string, any>;
+
+// Command Types
+export interface CommandMeta {
+  name?: string;
+  version?: string;
+  description?: string;
+  hidden?: boolean;
+}
+
+export interface CommandContext<T extends ArgsDef = ArgsDef> {
+  rawArgs: string[];
+  args: ParsedArgs<T>;
+  data?: any;
+  cmd: CommandDef<T>;
+}
+
+export interface CommandDef<T extends ArgsDef = ArgsDef> {
+  meta?: Resolvable<CommandMeta>;
+  args?: Resolvable<T>;
+  run?: (context: CommandContext<T>) => any | Promise<any>;
+  setup?: (context: CommandContext<T>) => any | Promise<any>;
+  cleanup?: (context: CommandContext<T>) => any | Promise<any>;
+  subCommands?: Resolvable<Record<string, Resolvable<CommandDef<any>>>>;
+}

@@ -1,0 +1,30 @@
+{
+  "name": "nuxt-unjucks-blog",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Nuxt blog with semantic templates using UnJucks",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "dependencies": {
+    "@nuxt/content": "^2.12.1",
+    "@nuxtjs/tailwindcss": "^6.11.4",
+    "nuxt": "^3.11.2",
+    "vue": "^3.4.21",
+    "@unjs/unjucks": "workspace:*",
+    "defu": "^6.1.4",
+    "ofetch": "^1.3.3",
+    "scule": "^1.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "typescript": "^5.3.3"
+  }
+}

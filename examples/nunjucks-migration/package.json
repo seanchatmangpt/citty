@@ -1,0 +1,42 @@
+{
+  "name": "nunjucks-to-unjucks-migration",
+  "private": true,
+  "type": "module", 
+  "version": "1.0.0",
+  "description": "Migration guide and tools from Nunjucks to UnJucks",
+  "scripts": {
+    "migrate": "node ./scripts/migrate.mjs",
+    "analyze": "node ./scripts/analyze.mjs", 
+    "validate": "node ./scripts/validate.mjs",
+    "benchmark": "node ./scripts/benchmark.mjs",
+    "demo:before": "node ./demo/nunjucks-demo.mjs",
+    "demo:after": "node ./demo/unjucks-demo.mjs",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "dependencies": {
+    "@unjs/unjucks": "workspace:*",
+    "nunjucks": "^3.2.4",
+    "defu": "^6.1.4",
+    "fast-glob": "^3.3.2",
+    "pathe": "^1.1.2",
+    "consola": "^3.2.3",
+    "chalk": "^5.3.0",
+    "ora": "^8.0.1",
+    "prompts": "^2.4.2",
+    "jest-diff": "^29.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "@types/nunjucks": "^3.2.6",
+    "@types/prompts": "^2.4.9",
+    "typescript": "^5.3.3"
+  },
+  "keywords": [
+    "migration",
+    "nunjucks",
+    "unjucks",
+    "template",
+    "modernization"
+  ]
+}

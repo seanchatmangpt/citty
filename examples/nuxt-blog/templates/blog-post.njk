@@ -1,0 +1,120 @@
+<!-- Semantic Blog Post Template -->
+<article class="blog-post" itemscope itemtype="http://schema.org/BlogPosting">
+  <header class="post-header">
+    <h1 class="post-title" itemprop="headline">{{ title }}</h1>
+    
+    <div class="post-meta">
+      <div class="author" itemscope itemtype="http://schema.org/Person">
+        {% if author.avatar %}
+        <img src="{{ author.avatar }}" alt="{{ author.name }}" class="author-avatar" itemprop="image">
+        {% endif %}
+        <span class="author-name" itemprop="name">{{ author.name }}</span>
+      </div>
+      
+      <time class="post-date" datetime="{{ publishedAt | date('c') }}" itemprop="datePublished">
+        {{ publishedAt | date('F j, Y') }}
+      </time>
+      
+      {% if readTime %}
+      <span class="read-time">{{ readTime }} min read</span>
+      {% endif %}
+    </div>
+
+    {% if tags and tags.length > 0 %}
+    <div class="post-tags">
+      {% for tag in tags %}
+      <span class="tag" itemprop="keywords">{{ tag }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    {{ content | safe }}
+  </div>
+
+  {% if category %}
+  <div class="post-category" itemprop="about">
+    <span class="category">{{ category }}</span>
+  </div>
+  {% endif %}
+
+  <footer class="post-footer">
+    <div class="author-bio" itemscope itemtype="http://schema.org/Person">
+      <h4>About {{ author.name }}</h4>
+      {% if author.bio %}
+      <p itemprop="description">{{ author.bio }}</p>
+      {% endif %}
+      
+      {% if author.social %}
+      <div class="social-links">
+        {% for platform, url in author.social %}
+        <a href="{{ url }}" target="_blank" rel="noopener noreferrer">{{ platform }}</a>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </footer>
+</article>
+
+<style>
+.blog-post {
+  @apply max-w-4xl mx-auto px-6 py-8;
+}
+
+.post-header {
+  @apply mb-8 border-b border-gray-200 pb-6;
+}
+
+.post-title {
+  @apply text-4xl font-bold text-gray-900 mb-4;
+}
+
+.post-meta {
+  @apply flex items-center gap-4 text-gray-600 mb-4;
+}
+
+.author {
+  @apply flex items-center gap-2;
+}
+
+.author-avatar {
+  @apply w-8 h-8 rounded-full;
+}
+
+.post-tags {
+  @apply flex gap-2;
+}
+
+.tag {
+  @apply px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full;
+}
+
+.post-content {
+  @apply prose prose-lg max-w-none mb-8;
+}
+
+.post-category {
+  @apply mb-6;
+}
+
+.category {
+  @apply px-4 py-2 bg-green-100 text-green-800 rounded-md;
+}
+
+.post-footer {
+  @apply border-t border-gray-200 pt-6;
+}
+
+.author-bio h4 {
+  @apply text-xl font-semibold mb-2;
+}
+
+.social-links {
+  @apply flex gap-4 mt-3;
+}
+
+.social-links a {
+  @apply text-blue-600 hover:text-blue-800;
+}
+</style>

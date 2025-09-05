@@ -31,5 +31,10 @@ export {
   loadOntologyContext, 
   queryEntities, 
   expandContext,
-  OntologyManager 
+  OntologyManager,
+  toOntology,
+  toSimpleOntology 
 } from './ontology.js';
+
+// Export command utilities
+export { defineCommand } from './command.js';

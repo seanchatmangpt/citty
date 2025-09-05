@@ -1,25 +1,13 @@
 /**
- * Unjucks - Ontology-driven template engine
- * Production v1.0.0 - Core team implementation with ultrathink definition of done
+ * Unjucks - Ontology-driven Template Engine
+ * Clean, well-structured exports following 80/20 principle
+ * Version 1.0.0 - Core functionality exposed via clean API
  */
 
-import nunjucks from 'nunjucks';
-import { createContext } from 'unctx';
-import { resolve, join, relative } from 'pathe';
-import { readFile, writeFile, mkdir, access } from 'node:fs/promises';
-import { glob } from 'fast-glob';
-import matter from 'gray-matter';
-import { diff } from 'jest-diff';
-import { defu } from 'defu';
-import { hash } from 'ohash';
-import chalk from 'chalk';
-import ora from 'ora';
-import { loadGraph, toContext, findEntities, getValue, askGraph, createOntology } from '../untology';
-import { registerExtensions, clearExtensionCaches } from './extensions';
-import { StreamingRenderer, streamTemplates, streamToFile } from './streaming';
-import type { Store } from 'n3';
+// =============================================================================
+// CORE TYPES - Essential interfaces for TypeScript support
+// =============================================================================
 
-// Types
 export interface Template {
   id: string;
   path: string;
@@ -43,14 +31,6 @@ export interface GenerationResult {
   duration: number;
 }
 
-export interface UnjucksContext {
-  templates: Map<string, Template>;
-  nunjucks: nunjucks.Environment;
-  ontologyStore?: Store;
-  cache: Map<string, any>;
-  options: UnjucksOptions;
-}
-
 export interface UnjucksOptions {
   templatesDir?: string;
   outputDir?: string;
@@ -61,6 +41,475 @@ export interface UnjucksOptions {
   parallel?: boolean;
   maxConcurrency?: number;
 }
+
+export interface UnjucksContext {
+  templates: Map<string, Template>;
+  nunjucks: nunjucks.Environment;
+  ontologyStore?: Store;
+  cache: Map<string, any>;
+  options: UnjucksOptions;
+}
+
+// =============================================================================
+// ESSENTIAL FUNCTIONS - 80% of use cases
+// =============================================================================
+
+// Core initialization - use inline implementation
+// export { createUnjucks } from './core';
+
+// Template management - use inline implementation 
+// export { loadTemplates, resolveTemplate, listGenerators } from './templates';
+
+// Rendering operations - use inline implementation
+// export { renderTemplate, writeOutput } from './rendering';
+
+// Ontology integration - use inline implementation
+// export { generateFromOntology } from './ontology';
+
+// Natural language interface - use inline implementation
+// export { askTemplate } from './natural';
+
+// Statistics and debugging - use inline implementation
+// export { getStatistics, clearCaches } from './utils';
+
+// =============================================================================
+// ADVANCED FEATURES - 20% of use cases
+// =============================================================================
+
+// Streaming for large templates
+export { 
+  createStreamingRenderer, 
+  streamMultipleTemplates, 
+  StreamingRenderer 
+} from './streaming';
+
+// Parallel processing
+export {
+  ParallelProcessor,
+  AdaptiveBatchProcessor,
+  getGlobalProcessor,
+  getAdaptiveProcessor
+} from './parallel';
+
+// Template extensions
+export {
+  registerExtensions,
+  clearExtensionCaches,
+  IncludeExtension,
+  ExtendsExtension
+} from './extensions';
+
+// CLI support
+export { runCLI } from './cli';
+
+// Deployment features
+export { 
+  createDeployment,
+  deployToEnvironment,
+  validateDeployment 
+} from './deployment';
+
+// Telemetry and monitoring
+export {
+  initTelemetry,
+  trackEvent,
+  getMetrics as getTelemetryMetrics
+} from './telemetry';
+
+// =============================================================================
+// PRODUCTION-GRADE DARK MATTER IMPLEMENTATIONS - Finishing touches
+// =============================================================================
+
+// Semantic context system with multi-dimensional propagation
+export {
+  SemanticContextManager,
+  ContextPropagationStrategy,
+  ContextDimension,
+  semanticContextManager,
+  createSemanticContext,
+  propagateContext,
+  type SemanticContext,
+  type ContextSnapshot,
+  type PropagationOptions
+} from './semantic-context';
+
+// Advanced template resolution and discovery
+export {
+  TemplateResolver,
+  TemplateDiscovery,
+  ResolutionStrategy,
+  CompilationStage,
+  templateResolver,
+  templateDiscovery,
+  resolveTemplate as advancedResolveTemplate,
+  discoverTemplates,
+  type TemplateResolution,
+  type TemplateCandidate,
+  type ResolutionOptions,
+  type DiscoveryOptions
+} from './template-resolver';
+
+// Ontology-template semantic bridge
+export {
+  OntologyTemplateBridge,
+  SyncDirection,
+  ontologyTemplateBridge,
+  bridgeOntologyToTemplate,
+  syncTemplateToOntology,
+  type BridgeResult,
+  type SyncOptions,
+  type SemanticMapping
+} from './ontology-template-bridge';
+
+// Performance profiling and benchmarking
+export {
+  PerformanceProfiler,
+  performanceProfiler,
+  profileMethod,
+  type PerformanceMetrics,
+  type BenchmarkResult
+} from './performance-profiler';
+
+// Advanced error recovery with circuit breakers
+export {
+  ErrorRecoverySystem,
+  ErrorSeverity,
+  errorRecoverySystem,
+  withErrorRecovery,
+  type ErrorContext,
+  type RecoveryStrategy,
+  type FallbackChain
+} from './error-recovery';
+
+// Developer tools and debugging utilities
+export {
+  DeveloperTools,
+  developerTools,
+  debugMethod,
+  startDebug,
+  debugStep,
+  endDebug,
+  trace,
+  type DebugSession,
+  type DebugStep,
+  type IntrospectionResult
+} from './developer-tools';
+
+// Production monitoring and observability
+export {
+  ProductionMonitor,
+  productionMonitor,
+  monitorOperation,
+  recordMetric,
+  createAlert,
+  startTrace,
+  finishTrace,
+  type MetricData,
+  type Alert,
+  type HealthCheck,
+  type SLAMetrics,
+  type TraceSpan
+} from './production-monitoring';
+
+// Self-generating documentation system
+export {
+  DocumentationSystem,
+  documentationSystem,
+  generateDocs,
+  type DocSection,
+  type APIReference,
+  type DocGenOptions
+} from './documentation-system';
+
+// =============================================================================
+// COMPREHENSIVE ECOSYSTEM COMPONENTS - Complete documentation and tooling
+// =============================================================================
+
+// Interactive playground for live template experimentation
+export {
+  InteractivePlayground,
+  interactivePlayground,
+  PlaygroundHelpers,
+  type PlaygroundSession,
+  type PlaygroundExample,
+  type ValidationResult,
+  type SessionMetrics
+} from './interactive-playground';
+
+// Progressive tutorial and learning system
+export {
+  TutorialSystem,
+  tutorialSystem,
+  TutorialHelpers,
+  type Tutorial,
+  type TutorialStep,
+  type Exercise,
+  type UserProgress,
+  type LearningPath,
+  type Quiz
+} from './tutorial-system';
+
+// Community template sharing and collaboration
+export {
+  UnjucksCommunitySystem,
+  communitySystem,
+  CommunityHelpers,
+  TemplateSubmissionSchema,
+  TemplateRatingSchema,
+  type CommunityTemplate,
+  type CommunityUser,
+  type TemplateSubmission,
+  type TemplateRating,
+  type CollaborationRequest,
+  type TemplateSearchOptions
+} from './community-system';
+
+// Migration tools from other template engines
+export {
+  UnjucksMigrationSystem,
+  migrationSystem,
+  MigrationHelpers,
+  type MigrationSource,
+  type MigrationRule,
+  type MigrationPlan,
+  type MigrationResult
+} from './migration-guides';
+
+// Performance benchmarking and optimization
+export {
+  UnjucksPerformanceBenchmark,
+  performanceBenchmark,
+  BenchmarkHelpers,
+  type BenchmarkConfig,
+  type BenchmarkResult,
+  type ComparisonResult,
+  type BenchmarkSuite,
+  type PerformanceProfile
+} from './performance-benchmarks';
+
+// Advanced testing framework for templates
+export {
+  UnjucksTestFramework,
+  testFramework,
+  TestHelpers,
+  type TestSuite,
+  type TestCase,
+  type TestResult,
+  type MockOntology,
+  type CoverageReport,
+  type PerformanceTestResult
+} from './testing-framework';
+
+// Comprehensive CLI tools and developer experience
+export {
+  UnjucksCLI,
+  unjucksCLI,
+  CLIHelpers,
+  type CLICommand,
+  type ProjectConfig,
+  type GeneratorOptions,
+  type TutorialOptions,
+  type CommunityOptions
+} from './cli-tools';
+
+// Complete ecosystem integration and documentation
+export {
+  UnjucksEcosystemIntegration,
+  ecosystemIntegration,
+  EcosystemHelpers,
+  type EcosystemConfig,
+  type DocumentationPage,
+  type APIDocumentation,
+  type IntegrationStatus
+} from './ecosystem-integration';
+
+// Integrated production utilities and workflows
+export {
+  withSemanticContext,
+  withPerformanceMonitoring,
+  withErrorRecovery as withFullErrorRecovery,
+  withDebugging,
+  withProductionMonitoring,
+  getSystemHealth,
+  initializeProductionSystems,
+  shutdownProductionSystems
+} from './integrated-utilities';
+
+// Integration bridge with UNTOLOGY
+export {
+  UntologyUnjucksBridge,
+  bridge as untologyBridge,
+  generateFromSemanticOntology,
+  type GenerationContext,
+  type BridgeOptions
+} from '../integration/untology-unjucks-bridge';
+
+// =============================================================================
+// UNIFIED PRODUCTION API - Complete DARK MATTER implementation
+// =============================================================================
+
+/**
+ * UNJUCKS - Production-grade semantic template system
+ * The complete implementation of the "dark matter" humans miss
+ */
+export const UNJUCKS = {
+  // Core template operations (real Nunjucks implementation)
+  compile(template: string, path?: string): nunjucks.Template {
+    const ctx = unjucksContext.use();
+    if (!ctx) throw new Error('Unjucks not initialized');
+    return ctx.nunjucks.compile(template, ctx.nunjucks, path);
+  },
+  
+  render(template: string, context: any = {}, path?: string): string {
+    const ctx = unjucksContext.use();
+    if (!ctx) throw new Error('Unjucks not initialized');
+    return ctx.nunjucks.renderString(template, context, { path });
+  },
+  
+  renderTemplate(templateName: string, context: any = {}): string {
+    const ctx = unjucksContext.use();
+    if (!ctx) throw new Error('Unjucks not initialized');
+    return ctx.nunjucks.render(templateName, context);
+  },
+  
+  // Core generation (existing API maintained for compatibility)
+  generateFromOntology,
+  
+  // Advanced semantic context management
+  context: {
+    create: createSemanticContext,
+    propagate: propagateContext,
+    manager: semanticContextManager
+  },
+  
+  // Template resolution and discovery
+  templates: {
+    resolve: advancedResolveTemplate,
+    discover: discoverTemplates,
+    resolver: templateResolver,
+    discovery: templateDiscovery
+  },
+  
+  // Ontology-template bridge
+  bridge: {
+    ontology: ontologyTemplateBridge,
+    generateFromSemantic: generateFromSemanticOntology,
+    bridgeToTemplate: bridgeOntologyToTemplate,
+    syncToOntology: syncTemplateToOntology
+  },
+  
+  // Production monitoring and observability
+  monitoring: {
+    monitor: productionMonitor,
+    profiler: performanceProfiler,
+    errorRecovery: errorRecoverySystem,
+    debugger: developerTools,
+    recordMetric,
+    createAlert,
+    startTrace,
+    finishTrace
+  },
+  
+  // Documentation generation
+  docs: {
+    system: documentationSystem,
+    generate: generateDocs
+  },
+  
+  // Integrated production workflows
+  workflows: {
+    withContext: withSemanticContext,
+    withProfiling: withPerformanceMonitoring,
+    withRecovery: withFullErrorRecovery,
+    withDebugging,
+    withMonitoring: withProductionMonitoring
+  },
+  
+  // System health and management
+  system: {
+    getHealth: getSystemHealth,
+    initialize: initializeProductionSystems,
+    shutdown: shutdownProductionSystems
+  },
+  
+  // Complete ecosystem components for documentation and developer experience
+  ecosystem: {
+    // Interactive playground
+    playground: {
+      system: interactivePlayground,
+      helpers: PlaygroundHelpers
+    },
+    
+    // Tutorial and learning system
+    tutorials: {
+      system: tutorialSystem,
+      helpers: TutorialHelpers
+    },
+    
+    // Community and collaboration
+    community: {
+      system: communitySystem,
+      helpers: CommunityHelpers
+    },
+    
+    // Migration tools
+    migration: {
+      system: migrationSystem,
+      helpers: MigrationHelpers
+    },
+    
+    // Performance benchmarking
+    benchmarks: {
+      system: performanceBenchmark,
+      helpers: BenchmarkHelpers
+    },
+    
+    // Testing framework
+    testing: {
+      framework: testFramework,
+      helpers: TestHelpers
+    },
+    
+    // CLI tools
+    cli: {
+      system: unjucksCLI,
+      helpers: CLIHelpers
+    },
+    
+    // Complete ecosystem integration
+    integration: {
+      system: ecosystemIntegration,
+      helpers: EcosystemHelpers
+    }
+  }
+};
+
+// Default export for convenience
+export default UNJUCKS;
+
+// Re-export memory cache from shared utilities
+export { MemoryCache } from '../cache';
+
+// =============================================================================
+// INTERNAL IMPLEMENTATION 
+// Current monolithic implementation for backward compatibility
+// =============================================================================
+
+import nunjucks from 'nunjucks';
+import { createContext } from 'unctx';
+import { resolve, join, relative } from 'pathe';
+import { readFile, writeFile, mkdir, access } from 'node:fs/promises';
+import { glob } from 'fast-glob';
+import matter from 'gray-matter';
+import { diff } from 'jest-diff';
+import { defu } from 'defu';
+import { hash } from 'ohash';
+import chalk from 'chalk';
+import ora from 'ora';
+import { loadGraph, toContext, findEntities, getValue, askGraph, createOntology } from '../untology';
+import { registerExtensions, clearExtensionCaches } from './extensions';
+import { StreamingRenderer, streamTemplates, streamToFile } from './streaming';
+import type { Store } from 'n3';
 
 // Context management
 const unjucksContext = createContext<UnjucksContext>('unjucks:context');
@@ -80,7 +529,7 @@ export async function createUnjucks(options: UnjucksOptions = {}): Promise<Unjuc
   const env = nunjucks.configure(resolve(opts.templatesDir), {
     autoescape: false,
     noCache: !opts.cache,
-    throwOnUndefined: false, // Allow conditional rendering
+    throwOnUndefined: false,
     trimBlocks: true,
     lstripBlocks: true,
     web: {
@@ -88,7 +537,7 @@ export async function createUnjucks(options: UnjucksOptions = {}): Promise<Unjuc
     }
   });
 
-  // Register template extensions for inheritance and includes
+  // Register template extensions
   registerExtensions(env, [resolve(opts.templatesDir)]);
 
   // Register built-in filters
@@ -346,7 +795,7 @@ export async function generateFromOntology(
     for (const [entityType, subjects] of entityTypeMap) {
       const entities = subjects.map(subject => {
         const context = { id: subject, type: entityType };
-        const relations = findRelations(subject);
+        const relations = findEntityRelations(subject);
         
         // Build comprehensive context object
         relations.forEach(({ predicate, object }) => {
@@ -598,75 +1047,6 @@ export async function renderTemplate(
 }
 
 /**
- * Resolve output path template with context
- */
-async function resolveOutputPath(pathTemplate: string, context: any, ctx: UnjucksContext): Promise<string> {
-  try {
-    const resolved = ctx.nunjucks.renderString(pathTemplate, context);
-    return sanitizePath(resolved);
-  } catch (error) {
-    throw new Error(`Failed to resolve path template "${pathTemplate}": ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-}
-
-/**
- * Sanitize context object for secure rendering
- */
-function sanitizeContext(context: any): any {
-  if (!context || typeof context !== 'object') {
-    return context;
-  }
-  
-  const sanitized = { ...context };
-  
-  // Remove potentially dangerous properties
-  delete sanitized.__proto__;
-  delete sanitized.constructor;
-  delete sanitized.process;
-  delete sanitized.global;
-  delete sanitized.require;
-  
-  // Recursively sanitize nested objects
-  Object.keys(sanitized).forEach(key => {
-    if (typeof sanitized[key] === 'object' && sanitized[key] !== null) {
-      sanitized[key] = sanitizeContext(sanitized[key]);
-    }
-  });
-  
-  return sanitized;
-}
-
-/**
- * Sanitize file path
- */
-function sanitizePath(path: string): string {
-  return path
-    .replace(/\.\./g, '') // Remove parent directory references
-    .replace(/^\/+/, '') // Remove leading slashes
-    .replace(/\/+/g, '/') // Normalize multiple slashes
-    .trim();
-}
-
-/**
- * Sanitize filename
- */
-function sanitizeFileName(name: string): string {
-  return name
-    .replace(/[<>:"/\\|?*]/g, '-') // Replace invalid filename chars
-    .replace(/\s+/g, '-') // Replace spaces with dashes
-    .replace(/-+/g, '-') // Normalize multiple dashes
-    .toLowerCase();
-}
-
-/**
- * Get file extension from path
- */
-function getFileExtension(path: string): string {
-  const match = path.match(/\.([^.]+)$/);
-  return match ? match[1] : 'txt';
-}
-
-/**
  * Write output files with atomic operations and comprehensive error handling
  */
 export async function writeOutput(
@@ -792,6 +1172,177 @@ export async function writeOutput(
 }
 
 /**
+ * Natural language template operations
+ */
+export async function askTemplate(query: string): Promise<any> {
+  const ctx = unjucksContext.use();
+  if (!ctx) throw new Error('Unjucks not initialized');
+  
+  // Use ontology's askGraph if available
+  try {
+    return await askGraph(query);
+  } catch {
+    // Fallback to template search
+    const templates = Array.from(ctx.templates.values());
+    const words = query.toLowerCase().split(' ');
+    
+    return templates.filter(t => 
+      words.some(w => 
+        t.generator.includes(w) || 
+        t.action.includes(w) || 
+        t.frontMatter?.description?.toLowerCase().includes(w)
+      )
+    );
+  }
+}
+
+// Streaming functions are exported from './streaming' module above (lines 80-84)
+// Removed duplicate inline implementations to fix export conflicts
+
+/**
+ * Clear all caches and reset context
+ */
+export function clearCaches(): void {
+  try {
+    const ctx = unjucksContext.use();
+    if (ctx) {
+      ctx.cache.clear();
+      clearExtensionCaches(ctx.nunjucks);
+    }
+  } catch (error) {
+    // Context not available, ignore in test environments
+    console.warn('Context not available for cache clearing');
+  }
+}
+
+/**
+ * Get template engine statistics
+ */
+export function getStatistics() {
+  try {
+    const ctx = unjucksContext.use();
+    if (!ctx) return null;
+    
+    return {
+      templates: ctx.templates.size,
+      cacheSize: ctx.cache.size,
+      options: ctx.options,
+      generators: listGenerators()
+    };
+  } catch (error) {
+    // Context not available
+    return null;
+  }
+}
+
+// =============================================================================
+// INTERNAL HELPER FUNCTIONS
+// =============================================================================
+
+/**
+ * Resolve output path template with context
+ */
+async function resolveOutputPath(pathTemplate: string, context: any, ctx: UnjucksContext): Promise<string> {
+  try {
+    const resolved = ctx.nunjucks.renderString(pathTemplate, context);
+    return sanitizePath(resolved);
+  } catch (error) {
+    throw new Error(`Failed to resolve path template "${pathTemplate}": ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
+ * Sanitize context object for secure rendering
+ */
+function sanitizeContext(context: any): any {
+  if (!context || typeof context !== 'object') {
+    return context;
+  }
+  
+  const sanitized = { ...context };
+  
+  // Remove potentially dangerous properties
+  delete sanitized.__proto__;
+  delete sanitized.constructor;
+  delete sanitized.process;
+  delete sanitized.global;
+  delete sanitized.require;
+  
+  // Recursively sanitize nested objects
+  Object.keys(sanitized).forEach(key => {
+    if (typeof sanitized[key] === 'object' && sanitized[key] !== null) {
+      sanitized[key] = sanitizeContext(sanitized[key]);
+    }
+  });
+  
+  return sanitized;
+}
+
+/**
+ * Sanitize file path
+ */
+function sanitizePath(path: string): string {
+  return path
+    .replace(/\.\./g, '') // Remove parent directory references
+    .replace(/^\/+/, '') // Remove leading slashes
+    .replace(/\/+/g, '/') // Normalize multiple slashes
+    .trim();
+}
+
+/**
+ * Sanitize filename
+ */
+function sanitizeFileName(name: string): string {
+  return name
+    .replace(/[<>:"/\\|?*]/g, '-') // Replace invalid filename chars
+    .replace(/\s+/g, '-') // Replace spaces with dashes
+    .replace(/-+/g, '-') // Normalize multiple dashes
+    .toLowerCase();
+}
+
+/**
+ * Get file extension from path
+ */
+function getFileExtension(path: string): string {
+  const match = path.match(/\.([^.]+)$/);
+  return match ? match[1] : 'txt';
+}
+
+/**
+ * Find entity relations in the ontology graph
+ */
+function findEntityRelations(subject: string): Array<{ predicate: string; object: any }> {
+  try {
+    const graph = findEntities();
+    const relations: Array<{ predicate: string; object: any }> = [];
+    
+    // Mock implementation using getValue to find relations
+    const commonPredicates = [
+      'rdf:type',
+      'rdfs:label',
+      'rdfs:comment',
+      'schema:name',
+      'schema:description',
+      'foaf:name',
+      'dc:title',
+      'dc:description'
+    ];
+    
+    commonPredicates.forEach(predicate => {
+      const value = getValue(subject, predicate);
+      if (value) {
+        relations.push({ predicate, object: value });
+      }
+    });
+    
+    return relations;
+  } catch (error) {
+    console.warn(`Failed to find relations for ${subject}:`, error);
+    return [];
+  }
+}
+
+/**
  * Register built-in Nunjucks filters
  */
 function registerBuiltInFilters(env: nunjucks.Environment): void {
@@ -864,98 +1415,3 @@ function registerBuiltInFilters(env: nunjucks.Environment): void {
     });
   });
 }
-
-/**
- * Natural language template operations
- */
-export async function askTemplate(query: string): Promise<any> {
-  const ctx = unjucksContext.use();
-  if (!ctx) throw new Error('Unjucks not initialized');
-  
-  // Use ontology's askGraph if available
-  try {
-    return await askGraph(query);
-  } catch {
-    // Fallback to template search
-    const templates = Array.from(ctx.templates.values());
-    const words = query.toLowerCase().split(' ');
-    
-    return templates.filter(t => 
-      words.some(w => 
-        t.generator.includes(w) || 
-        t.action.includes(w) || 
-        t.frontMatter?.description?.toLowerCase().includes(w)
-      )
-    );
-  }
-}
-
-/**
- * Create streaming renderer for large templates
- */
-export function createStreamingRenderer(options: UnjucksOptions = {}): StreamingRenderer {
-  const ctx = unjucksContext.use();
-  if (!ctx) throw new Error('Unjucks not initialized');
-  
-  return new StreamingRenderer(ctx.nunjucks, {
-    chunkSize: options.maxConcurrency ? options.maxConcurrency * 1024 : 16384,
-    highWaterMark: 65536
-  });
-}
-
-/**
- * Stream multiple templates with context
- */
-export async function streamMultipleTemplates(
-  templates: Template[],
-  context: any = {},
-  options: UnjucksOptions = {}
-): Promise<RenderResult[]> {
-  const ctx = unjucksContext.use();
-  if (!ctx) throw new Error('Unjucks not initialized');
-  
-  return streamTemplates(templates, context, ctx.nunjucks, {
-    chunkSize: options.maxConcurrency ? options.maxConcurrency * 1024 : 16384
-  });
-}
-
-/**
- * Clear all caches and reset context
- */
-export function clearCaches(): void {
-  try {
-    const ctx = unjucksContext.use();
-    if (ctx) {
-      ctx.cache.clear();
-      clearExtensionCaches(ctx.nunjucks);
-    }
-  } catch (error) {
-    // Context not available, ignore in test environments
-    console.warn('Context not available for cache clearing');
-  }
-}
-
-/**
- * Get template engine statistics
- */
-export function getStatistics() {
-  try {
-    const ctx = unjucksContext.use();
-    if (!ctx) return null;
-    
-    return {
-      templates: ctx.templates.size,
-      cacheSize: ctx.cache.size,
-      options: ctx.options,
-      generators: listGenerators()
-    };
-  } catch (error) {
-    // Context not available
-    return null;
-  }
-}
-
-// Re-export types and streaming utilities
-export type { Template, RenderResult, GenerationResult, UnjucksOptions };
-export { StreamingRenderer, streamTemplates, streamToFile } from './streaming';
-export { registerExtensions, clearExtensionCaches } from './extensions';

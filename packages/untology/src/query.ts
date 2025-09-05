@@ -1,11 +1,29 @@
 import { useOntology } from './context'
 import { findEntities, getValue } from './core'
+import { askNaturalLanguage } from './natural-language-engine'
 
 /**
- * Simple natural language query interface for the 80% use case
+ * @deprecated Use askNaturalLanguage() instead for better natural language processing
+ * Legacy simple natural language query interface - kept for backward compatibility
  */
 export async function askGraph(query: string): Promise<any> {
+  console.warn('askGraph is deprecated. Use askNaturalLanguage() from natural-language-engine for better results.')
   
+  try {
+    // Try using the new natural language engine first
+    const response = await askNaturalLanguage(query)
+    return response.results || response.answer
+  } catch (error) {
+    // Fallback to legacy pattern matching if NL engine fails
+    console.warn('Natural language engine failed, falling back to legacy pattern matching:', error.message)
+    return legacyAskGraph(query)
+  }
+}
+
+/**
+ * Legacy pattern-based query matching (internal fallback)
+ */
+function legacyAskGraph(query: string): any {
   const { store, prefixes } = useOntology()
   
   // Pattern matching for common natural language queries
@@ -161,7 +179,7 @@ export async function askGraph(query: string): Promise<any> {
     }
   }
   
-  throw new Error(`Unable to parse query: "${query}". Try using a pattern like "list all Person" or "what is alice's name"`)
+  throw new Error(`Unable to parse query: "${query}". Try using askNaturalLanguage() for better natural language processing, or use patterns like "list all Person" or "what is alice's name"`)
 }
 
 /**

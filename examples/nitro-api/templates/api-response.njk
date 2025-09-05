@@ -1,0 +1,32 @@
+{
+  "success": {{ success | default(false) | json }},
+  {% if data %}
+  "data": {{ data | json }},
+  {% endif %}
+  {% if error %}
+  "error": {{ error | json }},
+  {% endif %}
+  "meta": {
+    "timestamp": {{ meta.timestamp | json }},
+    "version": {{ meta.version | json }},
+    "requestId": {{ meta.requestId | json }}
+    {% if meta.pagination %},
+    "pagination": {
+      "page": {{ meta.pagination.page }},
+      "limit": {{ meta.pagination.limit }},
+      "total": {{ meta.pagination.total }},
+      "totalPages": {{ meta.pagination.totalPages }}
+    }
+    {% endif %}
+  }
+  {% if _context.ontology %},
+  "_schema": {
+    "entity": {{ _context.entity | json }},
+    "operation": {{ _context.operation | json }},
+    "ontology": {
+      "properties": {{ _context.ontology.properties | json }},
+      "required": {{ _context.ontology.required | default([]) | json }}
+    }
+  }
+  {% endif %}
+}

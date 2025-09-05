@@ -1,0 +1,42 @@
+{
+  "name": "fullstack-h3-unjucks",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Full-stack application with H3 + UnJucks templates",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "api:dev": "nitro dev --dir ./server",
+    "api:build": "nitro build --dir ./server",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test": "vitest",
+    "test:ui": "vitest --ui"
+  },
+  "dependencies": {
+    "@nuxt/content": "^2.12.1",
+    "@nuxtjs/tailwindcss": "^6.11.4",
+    "nuxt": "^3.11.2",
+    "vue": "^3.4.21",
+    "h3": "^1.11.1",
+    "nitropack": "^2.9.6",
+    "@unjs/unjucks": "workspace:*",
+    "defu": "^6.1.4",
+    "ofetch": "^1.3.3",
+    "scule": "^1.3.0",
+    "zod": "^3.22.4",
+    "drizzle-orm": "^0.30.9",
+    "better-sqlite3": "^9.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "@types/better-sqlite3": "^7.6.9",
+    "drizzle-kit": "^0.20.14",
+    "typescript": "^5.3.3",
+    "vitest": "^1.1.3",
+    "@vitest/ui": "^1.1.3"
+  }
+}

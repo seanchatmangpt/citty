@@ -1,9 +1,13 @@
 /**
  * Untology - Production N3 Semantic Graph Operations
- * Enhanced implementation with robust error handling, caching, and advanced query capabilities
- * Version 2.0.0 - FAANG-level production quality
+ * Clean, well-structured exports following 80/20 principle
+ * Version 2.0.0 - Core functionality exposed via clean API
  */
 
+// Core N3 types for convenience
+export type { Store, Quad, Term, NamedNode, Literal, BlankNode } from 'n3';
+
+// Re-export implementation with clean structure
 import { Parser, Store, DataFactory, Writer, Quad, Term, NamedNode, Literal, BlankNode } from 'n3';
 import { createContext } from 'unctx';
 import { readFile } from 'node:fs/promises';
@@ -1337,5 +1341,82 @@ function parseTriplePatterns(patterns: string): string[][] {
   return triples;
 }
 
-// Re-export N3 types for convenience
-export type { Store, Quad, Term, NamedNode, Literal, BlankNode } from 'n3';
+// =============================================================================
+// CLEAN PUBLIC API EXPORTS - 80/20 PRINCIPLE
+// Essential functions and types that users will need most often
+// =============================================================================
+
+// Core types and interfaces (for TypeScript support)
+export type {
+  OntologyContext,
+  OntologyConfig,
+  PerformanceMetrics,
+  Store,
+  Quad,
+  Term,
+  NamedNode,
+  Literal,
+  BlankNode
+};
+
+// Error classes for proper error handling
+export {
+  OntologyError,
+  ValidationError,
+  QueryError
+};
+
+// ESSENTIAL OPERATIONS (80% of use cases)
+// These are the functions most users will interact with
+
+// 1. Core initialization and configuration
+export {
+  createOntology,
+};
+
+// 2. Graph loading and management
+export {
+  loadGraph,
+  clearGraph
+};
+
+// 3. Querying and data retrieval
+export {
+  findEntities,
+  findRelations,
+  getValue
+};
+
+// 4. Natural language interface (most user-friendly)
+export {
+  askGraph
+};
+
+// 5. Data manipulation
+export {
+  addTriple,
+  exportGraph
+};
+
+// 6. Context and templating (for integration with unjucks)
+export {
+  toContext
+};
+
+// 7. Utilities and vocabulary management
+export {
+  defineVocabulary,
+  mergeGraphs,
+  getMetrics
+};
+
+// ADVANCED FEATURES (20% of use cases)
+// For power users who need advanced functionality
+export {
+  querySparql
+};
+
+// =============================================================================
+// INTERNAL IMPLEMENTATION 
+// The complete implementation is maintained below for backward compatibility
+// =============================================================================
