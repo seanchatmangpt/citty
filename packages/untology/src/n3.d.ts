@@ -61,6 +61,11 @@ declare module 'n3' {
     static isLiteral(term: Term): term is Literal
     static isVariable(term: Term): term is Variable
     static isDefaultGraph(term: Term): term is DefaultGraph
+    static isomorphic: any
+    static blankNode: typeof DataFactory.blankNode
+    static namedNode: typeof DataFactory.namedNode
+    static literal: typeof DataFactory.literal
+    static equals(a: Term, b: Term): boolean
   }
 
   export class Parser {

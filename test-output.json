@@ -8,3 +8,4 @@ Breaking changes might not follow SemVer, please pin Vitest's version when using
 (Use `node --trace-deprecation ...` to show where the warning was created)
 JSON report written to /Users/sac/dev/citty/test-results.json
 JSON report written to /Users/sac/dev/citty/test-results.json
+JSON report written to /Users/sac/dev/citty/test-results.json

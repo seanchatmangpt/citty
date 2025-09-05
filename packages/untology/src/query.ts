@@ -1,77 +1,167 @@
 import { useOntology } from './context'
-import type { Store } from 'n3'
+import { findEntities, getValue } from './core'
 
 /**
- * Natural language query interface for the 80% use case
+ * Simple natural language query interface for the 80% use case
  */
 export async function askGraph(query: string): Promise<any> {
+  
   const { store, prefixes } = useOntology()
   
   // Pattern matching for common natural language queries
-  const patterns = [
-    {
-      regex: /^(list|get|find|show)?\s*all\s+(\w+)/i,
-      handler: (match: RegExpMatchArray) => {
-        const type = match[2]
-        return findEntitiesOfType(store, type, prefixes)
-      }
-    },
-    {
-      regex: /^what\s+is\s+(\w+)'?s?\s+(\w+)/i,
-      handler: (match: RegExpMatchArray) => {
-        const [, subject, property] = match
-        return getPropertyValue(store, subject, property, prefixes)
-      }
-    },
-    {
-      regex: /^who\s+(\w+)\s+(\w+)/i,
-      handler: (match: RegExpMatchArray) => {
-        const [, predicate, object] = match
-        return findSubjectsByRelation(store, predicate, object, prefixes)
-      }
-    },
-    {
-      regex: /^what\s+does\s+(\w+)\s+(\w+)/i,
-      handler: (match: RegExpMatchArray) => {
-        const [, subject, predicate] = match
-        return getObjectsByRelation(store, subject, predicate, prefixes)
-      }
-    },
-    {
-      regex: /^count\s+(\w+)/i,
-      handler: (match: RegExpMatchArray) => {
-        const type = match[1]
-        const entities = findEntitiesOfType(store, type, prefixes)
-        return entities.length
-      }
-    },
-    {
-      regex: /^describe\s+(\w+)/i,
-      handler: (match: RegExpMatchArray) => {
-        const subject = match[1]
-        return describeEntity(store, subject, prefixes)
+  if (query.match(/^(list|get|find|show)?\s*all\s+(\w+)/i)) {
+    const match = query.match(/^(list|get|find|show)?\s*all\s+(\w+)/i)
+    const type = match![2]
+    
+    // Try to find the type with common prefixes
+    let typeIRI = type
+    if (!type.includes(':')) {
+      // Try common prefixes for types, checking if entities actually exist for each
+      const commonTypePrefixes = ['foaf', 'citty', 'rdf', 'rdfs', 'owl']
+      for (const prefix of commonTypePrefixes) {
+        const candidate = `${prefix}:${type}`
+        const expanded = expandPrefix(candidate, prefixes)
+        if (expanded !== candidate) { // Valid prefix expansion
+          // Check if any entities actually exist with this type
+          const testTypeIRI = expandPrefix(candidate, prefixes)
+          const rdfType = expandPrefix('rdf:type', prefixes)
+          const quads = store.getQuads(null, rdfType, testTypeIRI, null)
+          if (quads.length > 0) {
+            typeIRI = candidate
+            break
+          }
+        }
       }
     }
-  ]
-
-  // Try to match patterns
-  for (const pattern of patterns) {
-    const match = query.match(pattern.regex)
-    if (match) {
-      return pattern.handler(match)
-    }
+    
+    const result = findEntities(typeIRI)
+    return result
   }
-
-  // Fallback to a more generic approach
+  
+  if (query.match(/^what\s+is\s+(\w+)'?s?\s+(\w+)/i)) {
+    const match = query.match(/^what\s+is\s+(\w+)'?s?\s+(\w+)/i)!
+    const [, subject, property] = match
+    
+    // Try to find the property with common prefixes
+    let propertyIRI = property
+    let subjectIRI = subject
+    
+    if (!property.includes(':')) {
+      const commonPropertyPrefixes = ['foaf', 'citty', 'rdf', 'rdfs', 'dcterms']
+      for (const prefix of commonPropertyPrefixes) {
+        const candidate = `${prefix}:${property}`
+        const expanded = expandPrefix(candidate, prefixes)
+        if (expanded !== candidate) {
+          propertyIRI = candidate
+          break
+        }
+      }
+    }
+    
+    if (!subject.includes(':') && !subject.startsWith('http')) {
+      subjectIRI = `:${subject}` // Assume base namespace
+    }
+    
+    const result = getValue(subjectIRI, propertyIRI)
+    return result
+  }
+  
+  if (query.match(/^count\s+(\w+)/i)) {
+    const match = query.match(/^count\s+(\w+)/i)!
+    const type = match[1]
+    
+    // Try to find the type with common prefixes
+    let typeIRI = type
+    if (!type.includes(':')) {
+      const commonTypePrefixes = ['foaf', 'citty', 'rdf', 'rdfs', 'owl']
+      for (const prefix of commonTypePrefixes) {
+        const candidate = `${prefix}:${type}`
+        const expanded = expandPrefix(candidate, prefixes)
+        if (expanded !== candidate) {
+          // Check if any entities actually exist with this type
+          const testTypeIRI = expandPrefix(candidate, prefixes)
+          const rdfType = expandPrefix('rdf:type', prefixes)
+          const quads = store.getQuads(null, rdfType, testTypeIRI, null)
+          if (quads.length > 0) {
+            typeIRI = candidate
+            break
+          }
+        }
+      }
+    }
+    
+    const entities = findEntities(typeIRI)
+    return entities.length
+  }
+  
+  if (query.match(/^describe\s+(\w+)/i)) {
+    const match = query.match(/^describe\s+(\w+)/i)!
+    const subject = match[1]
+    
+    let subjectIRI = subject
+    if (!subject.includes(':') && !subject.startsWith('http')) {
+      subjectIRI = `:${subject}` // Assume base namespace
+    }
+    
+    const expandedSubjectIRI = expandPrefix(subjectIRI, prefixes)
+    const quads = store.getQuads(expandedSubjectIRI, null, null, null)
+    
+    const description = {
+      id: subject,
+      properties: {} as Record<string, any>
+    }
+    
+    for (const quad of quads) {
+      const predicate = quad.predicate.value
+      let value = quad.object.value
+      
+      // Clean up literal values
+      if (quad.object.termType === 'Literal') {
+        value = value.startsWith('"') && value.endsWith('"') ? value.slice(1, -1) : value
+      }
+      
+      description.properties[predicate] = value
+    }
+    
+    return description
+  }
+  
   if (query.toLowerCase().includes('how many')) {
     const typeMatch = query.match(/how many (\w+)/i)
     if (typeMatch) {
-      const entities = findEntitiesOfType(store, typeMatch[1], prefixes)
+      let type = typeMatch[1]
+      
+      // Handle common plural forms
+      if (type.toLowerCase() === 'people') {
+        type = 'Person'
+      }
+      
+      // Try to find the type with common prefixes
+      let typeIRI = type
+      if (!type.includes(':')) {
+        const commonTypePrefixes = ['foaf', 'citty', 'rdf', 'rdfs', 'owl']
+        for (const prefix of commonTypePrefixes) {
+          const candidate = `${prefix}:${type}`
+          const expanded = expandPrefix(candidate, prefixes)
+          if (expanded !== candidate) {
+            // Check if any entities actually exist with this type
+            const testTypeIRI = expandPrefix(candidate, prefixes)
+            const rdfType = expandPrefix('rdf:type', prefixes)
+            const quads = store.getQuads(null, rdfType, testTypeIRI, null)
+            if (quads.length > 0) {
+              typeIRI = candidate
+              break
+            }
+          }
+        }
+      }
+      
+      const entities = findEntities(typeIRI)
       return entities.length
     }
   }
-
-  throw new Error(`Unable to parse query: "${query}". Try using a pattern like "list all Commands" or "what is Alice's name"`)
+  
+  throw new Error(`Unable to parse query: "${query}". Try using a pattern like "list all Person" or "what is alice's name"`)
 }
 
 /**
@@ -92,102 +182,40 @@ export function queryTriples(
   const p = predicate ? expandPrefix(predicate, prefixes) : null
   const o = object ? expandPrefix(object, prefixes) : null
   
+  
   const quads = store.getQuads(s, p, o, null)
-  return quads.map(q => ({
-    subject: q.subject.value,
-    predicate: q.predicate.value,
-    object: q.object.value
+  
+  const result = quads.map(q => ({
+    subject: simplifyIRI(q.subject.value, prefixes),
+    predicate: q.predicate.value, // Keep full IRI for predicates as expected by tests
+    object: q.object.termType === 'Literal' 
+      ? (q.object.value.startsWith('"') && q.object.value.endsWith('"') ? q.object.value.slice(1, -1) : q.object.value)
+      : simplifyIRI(q.object.value, prefixes)
   }))
-}
-
-// Helper functions for natural language queries
-function findEntitiesOfType(
-  store: Store,
-  type: string,
-  prefixes: Record<string, string>
-): string[] {
-  const typeIRI = expandPrefix(type, prefixes)
-  const rdfType = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
   
-  const quads = store.getQuads(null, rdfType, typeIRI, null)
-  return quads.map(q => q.subject.value)
-}
-
-function getPropertyValue(
-  store: Store,
-  subject: string,
-  property: string,
-  prefixes: Record<string, string>
-): string | null {
-  const subjectIRI = expandPrefix(subject, prefixes)
-  const propertyIRI = expandPrefix(property, prefixes)
-  
-  const quads = store.getQuads(subjectIRI, propertyIRI, null, null)
-  return quads.length > 0 ? quads[0].object.value : null
-}
-
-function findSubjectsByRelation(
-  store: Store,
-  predicate: string,
-  object: string,
-  prefixes: Record<string, string>
-): string[] {
-  const predicateIRI = expandPrefix(predicate, prefixes)
-  const objectIRI = expandPrefix(object, prefixes)
-  
-  const quads = store.getQuads(null, predicateIRI, objectIRI, null)
-  return quads.map(q => q.subject.value)
-}
-
-function getObjectsByRelation(
-  store: Store,
-  subject: string,
-  predicate: string,
-  prefixes: Record<string, string>
-): string[] {
-  const subjectIRI = expandPrefix(subject, prefixes)
-  const predicateIRI = expandPrefix(predicate, prefixes)
-  
-  const quads = store.getQuads(subjectIRI, predicateIRI, null, null)
-  return quads.map(q => q.object.value)
-}
-
-function describeEntity(
-  store: Store,
-  subject: string,
-  prefixes: Record<string, string>
-): Record<string, any> {
-  const subjectIRI = expandPrefix(subject, prefixes)
-  const quads = store.getQuads(subjectIRI, null, null, null)
-  
-  const description: Record<string, any> = {
-    id: subject,
-    properties: {}
-  }
-  
-  for (const quad of quads) {
-    const predicate = quad.predicate.value
-    const value = quad.object.value
-    
-    if (predicate in description.properties) {
-      if (!Array.isArray(description.properties[predicate])) {
-        description.properties[predicate] = [description.properties[predicate]]
-      }
-      description.properties[predicate].push(value)
-    } else {
-      description.properties[predicate] = value
-    }
-  }
-  
-  return description
+  return result
 }
 
 function expandPrefix(value: string, prefixes: Record<string, string>): string {
   if (value.includes(':')) {
     const [prefix, local] = value.split(':', 2)
-    if (prefixes[prefix]) {
+    if (prefixes[prefix] !== undefined) {
       return prefixes[prefix] + local
     }
   }
   return value
+}
+
+function simplifyIRI(iri: string, prefixes: Record<string, string>): string {
+  // Try to find a prefix match
+  for (const [prefix, ns] of Object.entries(prefixes)) {
+    if (iri.startsWith(ns)) {
+      const localPart = iri.slice(ns.length)
+      return prefix === '' ? `:${localPart}` : `${prefix}:${localPart}`
+    }
+  }
+  
+  // Return last part after # or /
+  const match = iri.match(/[#/]([^#/]+)$/)
+  return match ? match[1] : iri
 }

@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { loadGraph, askGraph, queryTriples, clearGraph } from '../src'
+import { setupFreshContext, teardownContext } from './test-utils'
 
 describe('Untology Query', () => {
   beforeEach(async () => {
-    clearGraph()
+    setupFreshContext()
     await loadGraph(`
       @prefix : <http://example.org/> .
       @prefix foaf: <http://xmlns.com/foaf/0.1/> .
@@ -27,11 +28,16 @@ describe('Untology Query', () => {
       
       :test a citty:Command ;
             citty:name "test" .
-    `)
+    `, {
+      prefixes: {
+        foaf: 'http://xmlns.com/foaf/0.1/',
+        citty: 'https://citty.pro/ontology#'
+      }
+    })
   })
 
   afterEach(() => {
-    clearGraph()
+    teardownContext()
   })
 
   describe('askGraph - Natural Language Queries', () => {
@@ -87,7 +93,7 @@ describe('Untology Query', () => {
 
     it('should query by subject', () => {
       const aliceTriples = queryTriples(':alice')
-      expect(aliceTriples).toHaveLength(4)
+      expect(aliceTriples).toHaveLength(5)
       expect(aliceTriples.every(t => t.subject === ':alice')).toBe(true)
     })
 

@@ -27,6 +27,13 @@ export function useTemplateContext(): TemplateContext {
 }
 
 /**
+ * Safely gets the current template context without throwing
+ */
+export function getTemplateContext(): TemplateContext {
+  return templateContext.tryUse() || {};
+}
+
+/**
  * Updates the current template context with new data
  */
 export function updateTemplateContext(data: Partial<TemplateContext>): void {

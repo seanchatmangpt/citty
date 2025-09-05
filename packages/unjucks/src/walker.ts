@@ -5,7 +5,8 @@
 
 import { glob } from 'fast-glob'
 import { resolve, relative, dirname, basename, extname } from 'pathe'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, statSync } from 'node:fs'
+import { discoveryCache } from './cache'
 import type { 
   Template, 
   TemplateMetadata, 
@@ -19,7 +20,7 @@ import { TemplateNotFoundError } from './types'
 const DEFAULT_EXTENSIONS = ['.njk', '.nunjucks', '.j2', '.jinja2', '.hbs', '.ejs']
 
 /**
- * Walk templates directory and find all templates
+ * Walk templates directory and find all templates with parallel processing and caching
  */
 export async function walkTemplates(
   templateDir: string,
@@ -32,75 +33,129 @@ export async function walkTemplates(
     ...options
   }
 
+  // Create cache key
+  const cacheKey = `walk:${templateDir}:${JSON.stringify(opts)}`
+  
+  // Check cache first
+  const cached = discoveryCache.get(cacheKey)
+  if (cached) {
+    // Verify cached results are still valid by checking directory mtime
+    try {
+      const dirStats = statSync(templateDir)
+      const cachedEntry = discoveryCache['cache'].get(cacheKey)
+      if (cachedEntry && cachedEntry.timestamp > dirStats.mtimeMs) {
+        return cached
+      }
+    } catch {
+      // Directory might not exist, proceed with fresh discovery
+    }
+  }
+
   const patterns = opts.extensions.map(ext => `**/*${ext}`)
   const ignorePaths = opts.ignore.map(dir => `**/${dir}/**`)
 
+  // Use concurrent file system operations
   const files = await glob(patterns, {
     cwd: resolve(templateDir),
     ignore: ignorePaths,
     followSymbolicLinks: opts.followSymlinks,
-    absolute: true
+    absolute: true,
+    stats: false // Disable stat collection for better performance
   })
 
+  // Process files in parallel batches
   const templates: Template[] = []
-
-  for (const file of files) {
-    const relativePath = relative(templateDir, file)
-    const parts = relativePath.split('/')
-    
-    // Must have at least generator/action/file structure
-    if (parts.length < 3) continue
-    
-    const generator = parts[0]
-    const action = parts[1]
-    
-    // Parse metadata from file
-    const metadata = await parseTemplateMetadata(file)
-    
-    templates.push({
-      path: file,
-      relativePath,
-      generator,
-      action,
-      metadata
-    })
+  const batchSize = 10
+  const batches = []
+  
+  for (let i = 0; i < files.length; i += batchSize) {
+    batches.push(files.slice(i, i + batchSize))
   }
+
+  // Process each batch in parallel
+  const batchResults = await Promise.all(
+    batches.map(batch => processTemplateBatch(batch, templateDir))
+  )
+
+  // Flatten results
+  for (const batchResult of batchResults) {
+    templates.push(...batchResult)
+  }
+
+  // Cache results
+  discoveryCache.set(cacheKey, templates)
 
   return templates
 }
 
 /**
- * Resolve a specific template
+ * Process a batch of template files in parallel
+ */
+async function processTemplateBatch(
+  files: string[],
+  templateDir: string
+): Promise<Template[]> {
+  const templates = await Promise.all(
+    files.map(async (file) => {
+      try {
+        const relativePath = relative(templateDir, file)
+        const parts = relativePath.split('/')
+        
+        // Must have at least generator/action/file structure
+        if (parts.length < 3) return null
+        
+        const generator = parts[0]
+        const action = parts[1]
+        
+        // Parse metadata from file (can be parallelized)
+        const metadata = await parseTemplateMetadata(file)
+        
+        return {
+          path: file,
+          relativePath,
+          generator,
+          action,
+          metadata
+        }
+      } catch (error) {
+        // Skip files that can't be processed
+        return null
+      }
+    })
+  )
+
+  // Filter out null results
+  return templates.filter((template): template is Template => template !== null)
+}
+
+/**
+ * Resolve a specific template with caching
  */
 export async function resolveTemplate(
   generator: string,
   action: string,
   paths: string[] = ['templates']
 ): Promise<Template> {
-  for (const basePath of paths) {
-    const templatePath = resolve(basePath, generator, action)
-    
-    // Check for various template files
-    for (const ext of DEFAULT_EXTENSIONS) {
-      const candidates = [
-        `${templatePath}/index${ext}`,
-        `${templatePath}/template${ext}`,
-        `${templatePath}${ext}`
-      ]
-      
-      for (const candidate of candidates) {
-        if (existsSync(candidate)) {
-          const metadata = await parseTemplateMetadata(candidate)
-          
-          return {
-            path: candidate,
-            relativePath: relative(basePath, candidate),
-            generator,
-            action,
-            metadata
-          }
-        }
-      }
+  // Create cache key
+  const cacheKey = `resolve:${generator}:${action}:${paths.join(',')}`
+  
+  // Check cache first
+  const cached = discoveryCache.get(cacheKey)
+  if (cached) {
+    return cached
+  }
+
+  // Use parallel processing to check all paths concurrently
+  const searchResults = await Promise.allSettled(
+    paths.map(basePath => searchTemplateInPath(basePath, generator, action))
+  )
+
+  // Find the first successful result
+  for (const result of searchResults) {
+    if (result.status === 'fulfilled' && result.value) {
+      // Cache the successful result
+      discoveryCache.set(cacheKey, result.value)
+      return result.value
     }
   }
 
@@ -108,21 +163,80 @@ export async function resolveTemplate(
 }
 
 /**
- * List available generators
+ * Search for template in a specific path
+ */
+async function searchTemplateInPath(
+  basePath: string, 
+  generator: string, 
+  action: string
+): Promise<Template | null> {
+  const templatePath = resolve(basePath, generator, action)
+  
+  // Check for various template files in parallel
+  const candidateChecks = DEFAULT_EXTENSIONS.flatMap(ext => [
+    `${templatePath}/index${ext}`,
+    `${templatePath}/template${ext}`,
+    `${templatePath}${ext}`
+  ]).map(async (candidate) => {
+    if (existsSync(candidate)) {
+      try {
+        const metadata = await parseTemplateMetadata(candidate)
+        return {
+          path: candidate,
+          relativePath: relative(basePath, candidate),
+          generator,
+          action,
+          metadata
+        }
+      } catch {
+        return null
+      }
+    }
+    return null
+  })
+
+  const results = await Promise.all(candidateChecks)
+  return results.find(result => result !== null) || null
+}
+
+/**
+ * List available generators with parallel processing and caching
  */
 export async function listGenerators(paths: string[] = ['templates']): Promise<string[]> {
+  const cacheKey = `generators:${paths.join(',')}`
+  
+  // Check cache first
+  const cached = discoveryCache.get(cacheKey)
+  if (cached) {
+    return cached
+  }
+
   const generators = new Set<string>()
   
-  for (const path of paths) {
-    if (!existsSync(path)) continue
-    
-    const templates = await walkTemplates(path)
-    for (const template of templates) {
-      generators.add(template.generator)
+  // Process paths in parallel
+  const pathResults = await Promise.allSettled(
+    paths.map(async (path) => {
+      if (!existsSync(path)) return []
+      const templates = await walkTemplates(path)
+      return templates.map(t => t.generator)
+    })
+  )
+  
+  // Collect all generators from successful results
+  for (const result of pathResults) {
+    if (result.status === 'fulfilled') {
+      for (const generator of result.value) {
+        generators.add(generator)
+      }
     }
   }
   
-  return Array.from(generators).sort()
+  const sortedGenerators = Array.from(generators).sort()
+  
+  // Cache results
+  discoveryCache.set(cacheKey, sortedGenerators)
+  
+  return sortedGenerators
 }
 
 /**
@@ -207,36 +321,41 @@ export async function getGeneratorInfo(
  */
 export async function parseTemplateMetadata(filePath: string): Promise<TemplateMetadata | undefined> {
   try {
-    const content = readFileSync(filePath, 'utf-8')
+    // Validate file path first
+    const validatedPath = validatePath(filePath)
+    const content = readFileSync(validatedPath, 'utf-8')
+    
+    // Sanitize content for security
+    const sanitizedContent = sanitizeTemplateContent(content, validatedPath)
     
     // Check for YAML frontmatter
-    if (content.startsWith('---\n')) {
-      const endIndex = content.indexOf('\n---\n', 4)
+    if (sanitizedContent.startsWith('---\n')) {
+      const endIndex = sanitizedContent.indexOf('\n---\n', 4)
       if (endIndex > 0) {
-        const frontmatter = content.substring(4, endIndex)
+        const frontmatter = sanitizedContent.substring(4, endIndex)
         return parseFrontmatter(frontmatter)
       }
     }
     
     // Check for JS frontmatter (Hygen style)
-    if (content.startsWith('//---\n')) {
-      const endIndex = content.indexOf('\n//---\n', 6)
+    if (sanitizedContent.startsWith('//---\n')) {
+      const endIndex = sanitizedContent.indexOf('\n//---\n', 6)
       if (endIndex > 0) {
-        const frontmatter = content.substring(6, endIndex)
+        const frontmatter = sanitizedContent.substring(6, endIndex)
         return parseFrontmatter(frontmatter)
       }
     }
     
     // Check for HTML comment frontmatter
-    if (content.startsWith('<!--\n')) {
-      const endIndex = content.indexOf('\n-->\n', 5)
+    if (sanitizedContent.startsWith('<!--\n')) {
+      const endIndex = sanitizedContent.indexOf('\n-->\n', 5)
       if (endIndex > 0) {
-        const frontmatter = content.substring(5, endIndex)
+        const frontmatter = sanitizedContent.substring(5, endIndex)
         return parseFrontmatter(frontmatter)
       }
     }
   } catch {
-    // Ignore read errors
+    // Ignore read errors and security validation errors
   }
   
   return undefined
@@ -365,7 +484,10 @@ export async function getTemplateContent(
   paths: string[] = ['templates']
 ): Promise<string> {
   const template = await resolveTemplate(generator, action, paths)
-  return readFileSync(template.path, 'utf-8')
+  const content = readFileSync(template.path, 'utf-8')
+  
+  // Apply security sanitization to template content
+  return sanitizeTemplateContent(content, template.path)
 }
 
 /**

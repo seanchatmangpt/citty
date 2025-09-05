@@ -71,6 +71,9 @@ export interface RenderOptions {
   globals?: Record<string, any>
   autoescape?: boolean
   throwOnUndefined?: boolean
+  maxCacheSize?: number
+  cacheTTL?: number
+  enablePerformanceMonitoring?: boolean
 }
 
 export interface RenderResult {
@@ -83,6 +86,7 @@ export interface RenderMetadata {
   duration: number
   variables: string[]
   filters: string[]
+  cached?: boolean
 }
 
 // Walker Types
@@ -149,6 +153,56 @@ export class RenderError extends UnjucksError {
   }
 }
 
+export class SecurityError extends UnjucksError {
+  constructor(message: string, securityType?: string, details?: any) {
+    super(message, 'SECURITY_ERROR', { ...details, securityType })
+  }
+}
+
+export class PathTraversalError extends SecurityError {
+  constructor(path: string, details?: any) {
+    super(`Path traversal attempt detected: ${path}`, 'PATH_TRAVERSAL', { ...details, path })
+  }
+}
+
+export class UrlValidationError extends SecurityError {
+  constructor(url: string, reason: string, details?: any) {
+    super(`URL validation failed: ${reason}`, 'URL_VALIDATION', { ...details, url, reason })
+  }
+}
+
+export class TemplateSecurityError extends SecurityError {
+  constructor(template: string, violation: string, details?: any) {
+    super(`Template security violation: ${violation}`, 'TEMPLATE_SECURITY', { ...details, template, violation })
+  }
+}
+
+// Security Configuration Types
+export interface SecurityConfig {
+  enabled?: boolean
+  pathTraversalProtection?: boolean
+  fileExtensionValidation?: boolean
+  allowedExtensions?: string[]
+  templateSizeLimit?: number // bytes
+  templateComplexityLimit?: number // recursion depth
+  htmlEscaping?: boolean
+  urlValidation?: boolean
+  urlTimeout?: number // milliseconds
+  urlSizeLimit?: number // bytes
+  allowedProtocols?: string[]
+  allowedDomains?: string[]
+  contentSecurityPolicy?: ContentSecurityPolicy
+}
+
+export interface ContentSecurityPolicy {
+  enabled?: boolean
+  dangerousConstructs?: string[] // blocked template constructs
+  maxLoopIterations?: number
+  maxIncludeDepth?: number
+  allowEval?: boolean
+  allowArbitraryCode?: boolean
+}
+
 // Configuration Types
 export interface UnjucksConfig {
   templateDirs: string[]
@@ -158,6 +212,7 @@ export interface UnjucksConfig {
   filters?: Record<string, Function>
   globals?: Record<string, any>
   nunjucksOptions?: NunjucksOptions
+  security?: SecurityConfig
 }
 
 export interface NunjucksOptions {

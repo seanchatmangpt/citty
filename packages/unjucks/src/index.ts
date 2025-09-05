@@ -67,6 +67,39 @@ export {
   transformEntity
 } from './ontology'
 
+// Performance optimization
+export {
+  LRUCache,
+  TemplateCache,
+  DiscoveryCache,
+  QueryCache,
+  MemoryAwareCache,
+  templateCache,
+  discoveryCache,
+  queryCache,
+  getCacheStats,
+  clearAllCaches
+} from './cache'
+
+export {
+  performanceMonitor,
+  measurePerformance,
+  measureBatch,
+  optimizeFunction,
+  ResourceManager,
+  resourceManager
+} from './performance'
+
+export {
+  LazyModule,
+  optimizedN3,
+  utils,
+  globalBundleAnalyzer,
+  globalStringInterner,
+  globalStreamingRenderer,
+  generateOptimizationReport
+} from './bundler-optimization'
+
 // Version
 export const version = '1.0.0'
 

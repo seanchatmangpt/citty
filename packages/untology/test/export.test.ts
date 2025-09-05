@@ -7,10 +7,11 @@ import {
   toContextObjects,
   clearGraph
 } from '../src'
+import { setupFreshContext, teardownContext } from './test-utils'
 
 describe('Untology Export', () => {
   beforeEach(async () => {
-    clearGraph()
+    setupFreshContext()
     await loadGraph(`
       @prefix : <http://example.org/> .
       @prefix foaf: <http://xmlns.com/foaf/0.1/> .
@@ -28,7 +29,7 @@ describe('Untology Export', () => {
   })
 
   afterEach(() => {
-    clearGraph()
+    teardownContext()
   })
 
   describe('exportTurtle', () => {

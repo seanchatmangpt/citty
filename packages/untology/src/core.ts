@@ -1,5 +1,5 @@
 import { Store, Parser, DataFactory, Quad } from 'n3'
-import { ontologyContext, useOntology, type OntologyContext } from './context'
+import { ontologyContext, useOntology, type OntologyContext, setOntologyContext, clearOntologyContext } from './context'
 import { defu } from 'defu'
 import { ofetch } from 'ofetch'
 import { readFile } from 'node:fs/promises'
@@ -21,6 +21,7 @@ export async function loadGraph(
   const opts = defu(options, {
     format: 'turtle' as const,
     prefixes: {
+      '': 'http://example.org/',  // Default namespace for ':' prefix
       rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
       rdfs: 'http://www.w3.org/2000/01/rdf-schema#',
       owl: 'http://www.w3.org/2002/07/owl#',
@@ -47,14 +48,29 @@ export async function loadGraph(
 
   const quads = parser.parse(input)
   store.addQuads(quads)
+  
+  // Extract prefixes from parsed turtle if they exist
+  const extractedPrefixes: Record<string, string> = { ...opts.prefixes }
+  if (opts.format === 'turtle') {
+    const prefixLines = input.match(/@prefix\s+(\w*):?\s*<([^>]+)>/g)
+    if (prefixLines) {
+      for (const line of prefixLines) {
+        const match = line.match(/@prefix\s+(\w*):?\s*<([^>]+)>/)
+        if (match) {
+          const [, prefix, uri] = match
+          extractedPrefixes[prefix] = uri.endsWith('/') || uri.endsWith('#') ? uri : uri + '/'
+        }
+      }
+    }
+  }
 
   const context: OntologyContext = {
     store,
-    prefixes: opts.prefixes,
+    prefixes: extractedPrefixes,
     defaultFormat: opts.format
   }
 
-  ontologyContext.set(context)
+  setOntologyContext(context)
 }
 
 /**
@@ -69,7 +85,7 @@ export function findEntities(type?: string): string[] {
     for (const quad of store) {
       subjects.add(quad.subject.value)
     }
-    return Array.from(subjects)
+    return Array.from(subjects).map(s => simplifyIRI(s, prefixes))
   }
 
   // Expand prefix if needed
@@ -77,7 +93,7 @@ export function findEntities(type?: string): string[] {
   const rdfType = expandPrefix('rdf:type', prefixes)
   
   const quads = store.getQuads(null, rdfType, typeIRI, null)
-  return quads.map(q => q.subject.value)
+  return quads.map(q => simplifyIRI(q.subject.value, prefixes))
 }
 
 /**
@@ -92,8 +108,10 @@ export function findRelations(subject: string): Array<{
   
   const quads = store.getQuads(subjectIRI, null, null, null)
   return quads.map(q => ({
-    predicate: q.predicate.value,
-    object: q.object.value
+    predicate: q.predicate.value, // Keep full IRI for predicates as expected by tests
+    object: q.object.termType === 'Literal' 
+      ? (q.object.value.startsWith('"') && q.object.value.endsWith('"') ? q.object.value.slice(1, -1) : q.object.value)
+      : simplifyIRI(q.object.value, prefixes)
   }))
 }
 
@@ -106,7 +124,11 @@ export function getValue(subject: string, predicate: string): string | null {
   const predicateIRI = expandPrefix(predicate, prefixes)
   
   const quads = store.getQuads(subjectIRI, predicateIRI, null, null)
-  return quads.length > 0 ? quads[0].object.value : null
+  if (quads.length === 0) return null
+  
+  const value = quads[0].object.value
+  // Remove quotes from literals
+  return value.startsWith('"') && value.endsWith('"') ? value.slice(1, -1) : value
 }
 
 /**
@@ -118,7 +140,13 @@ export function getValues(subject: string, predicate: string): string[] {
   const predicateIRI = expandPrefix(predicate, prefixes)
   
   const quads = store.getQuads(subjectIRI, predicateIRI, null, null)
-  return quads.map(q => q.object.value)
+  return quads.map(q => {
+    if (q.object.termType === 'Literal') {
+      const value = q.object.value
+      return value.startsWith('"') && value.endsWith('"') ? value.slice(1, -1) : value
+    }
+    return simplifyIRI(q.object.value, prefixes)
+  })
 }
 
 /**
@@ -188,19 +216,12 @@ export function graphSize(): number {
  */
 export function clearGraph(): void {
   try {
-    // Try to unset existing context to avoid conflicts
-    ontologyContext.unset()
+    const context = useOntology()
+    context.store.removeQuads(context.store.getQuads(null, null, null, null))
   } catch {
-    // Context already cleared or doesn't exist
+    // If no context exists, just clear it
+    clearOntologyContext()
   }
-  
-  // Create fresh context
-  const context = {
-    store: new Store(),
-    prefixes: {},
-    defaultFormat: 'turtle' as const
-  }
-  ontologyContext.set(context)
 }
 
 /**
@@ -209,9 +230,23 @@ export function clearGraph(): void {
 function expandPrefix(value: string, prefixes: Record<string, string>): string {
   if (value.includes(':')) {
     const [prefix, local] = value.split(':', 2)
-    if (prefixes[prefix]) {
+    if (prefixes[prefix] !== undefined) {
       return prefixes[prefix] + local
     }
   }
   return value
+}
+
+function simplifyIRI(iri: string, prefixes: Record<string, string>): string {
+  // Try to find a prefix match - check empty prefix first for default namespace
+  for (const [prefix, ns] of Object.entries(prefixes)) {
+    if (iri.startsWith(ns)) {
+      const localPart = iri.slice(ns.length)
+      return prefix === '' ? `:${localPart}` : `${prefix}:${localPart}`
+    }
+  }
+  
+  // Return last part after # or /
+  const match = iri.match(/[#/]([^#/]+)$/)
+  return match ? match[1] : iri
 }

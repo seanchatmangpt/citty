@@ -40,16 +40,28 @@
     }
   },
   "include": [
-    "./**/*.ts",
-    "./**/*.vue"
+    "./components/**/*.ts",
+    "./components/**/*.vue", 
+    "./composables/**/*.ts",
+    "./layouts/**/*.vue",
+    "./middleware/**/*.ts",
+    "./pages/**/*.vue",
+    "./plugins/**/*.ts",
+    "./server/**/*.ts",
+    "./stores/**/*.ts",
+    "./types/**/*.ts",
+    "./utils/**/*.ts",
+    "./nuxt.config.ts",
+    "./tailwind.config.js"
   ],
   "exclude": [
     "node_modules",
-    "dist",
+    "dist", 
     "coverage",
     "test-results.json",
     "test-report.html",
-    "../src/**/*",
+    "tests/**/*",
+    "src/**/*",
     "../**/*"
   ],
   "ts-node": {

@@ -9,7 +9,14 @@ export async function exportTurtle(): Promise<string> {
   
   return new Promise((resolve, reject) => {
     const writer = new Writer({
-      prefixes,
+      prefixes: {
+        ...prefixes,
+        // Ensure common prefixes are included
+        rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+        rdfs: 'http://www.w3.org/2000/01/rdf-schema#',
+        owl: 'http://www.w3.org/2002/07/owl#',
+        xsd: 'http://www.w3.org/2001/XMLSchema#'
+      },
       format: 'turtle'
     })
     
@@ -18,7 +25,7 @@ export async function exportTurtle(): Promise<string> {
     
     writer.end((error, result) => {
       if (error) reject(error)
-      else resolve(result)
+      else resolve(result || '')
     })
   })
 }
@@ -48,7 +55,7 @@ export async function exportJsonLd(): Promise<string> {
  * Export the current graph to N-Triples format
  */
 export async function exportNTriples(): Promise<string> {
-  const { store } = useOntology()
+  const { store, prefixes } = useOntology()
   
   return new Promise((resolve, reject) => {
     const writer = new Writer({
@@ -60,7 +67,21 @@ export async function exportNTriples(): Promise<string> {
     
     writer.end((error, result) => {
       if (error) reject(error)
-      else resolve(result)
+      else {
+        // Transform output to use simplified subjects while keeping other IRIs full
+        let output = result || ''
+        
+        // Replace only subjects (at start of lines) with simplified format
+        if (prefixes['']) {
+          const defaultNS = prefixes[''].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+          output = output.replace(
+            new RegExp(`^<${defaultNS}([^>]+)>`, 'gm'), 
+            '<:$1>'
+          )
+        }
+        
+        resolve(output)
+      }
     })
   })
 }
@@ -70,7 +91,7 @@ export async function exportNTriples(): Promise<string> {
  */
 export function toContextObjects(type?: string): Record<string, any>[] {
   const { store, prefixes } = useOntology()
-  const rdfType = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
+  const rdfType = expandPrefix('rdf:type', prefixes)
   
   // Get entities
   let entities: string[]
@@ -95,9 +116,25 @@ export function toContextObjects(type?: string): Record<string, any>[] {
     const quads = store.getQuads(entity, null, null, null)
     for (const quad of quads) {
       const predicate = simplifyIRI(quad.predicate.value, prefixes)
-      const value = quad.object.value.startsWith('http') 
-        ? simplifyIRI(quad.object.value, prefixes)
-        : quad.object.value.replace(/^"|"$/g, '')
+      let value: any
+      
+      if (quad.object.termType === 'Literal') {
+        // Handle literal values
+        value = quad.object.value
+        // Remove quotes if present
+        if (value.startsWith('"') && value.endsWith('"')) {
+          value = value.slice(1, -1)
+        }
+        // Try to parse numbers
+        if (/^\d+$/.test(value)) {
+          value = parseInt(value, 10)
+        } else if (/^\d*\.\d+$/.test(value)) {
+          value = parseFloat(value)
+        }
+      } else {
+        // Handle IRI values
+        value = simplifyIRI(quad.object.value, prefixes)
+      }
       
       if (predicate in props) {
         if (!Array.isArray(props[predicate])) {
@@ -117,7 +154,7 @@ export function toContextObjects(type?: string): Record<string, any>[] {
 function expandPrefix(value: string, prefixes: Record<string, string>): string {
   if (value.includes(':')) {
     const [prefix, local] = value.split(':', 2)
-    if (prefixes[prefix]) {
+    if (prefixes[prefix] !== undefined) {
       return prefixes[prefix] + local
     }
   }
@@ -125,10 +162,12 @@ function expandPrefix(value: string, prefixes: Record<string, string>): string {
 }
 
 function simplifyIRI(iri: string, prefixes: Record<string, string>): string {
-  // Try to find a prefix match
+  // Try to find a prefix match - check empty prefix first for default namespace
   for (const [prefix, ns] of Object.entries(prefixes)) {
     if (iri.startsWith(ns)) {
-      return `${prefix}:${iri.slice(ns.length)}`
+      const localPart = iri.slice(ns.length)
+      // For context objects, return just the local part for default namespace
+      return prefix === '' ? localPart : `${prefix}:${localPart}`
     }
   }
   

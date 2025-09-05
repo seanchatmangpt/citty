@@ -15,6 +15,8 @@ import { hash } from 'ohash';
 import chalk from 'chalk';
 import ora from 'ora';
 import { loadGraph, toContext, findEntities, getValue, askGraph, createOntology } from '../untology';
+import { registerExtensions, clearExtensionCaches } from './extensions';
+import { StreamingRenderer, streamTemplates, streamToFile } from './streaming';
 import type { Store } from 'n3';
 
 // Types
@@ -78,13 +80,47 @@ export async function createUnjucks(options: UnjucksOptions = {}): Promise<Unjuc
   const env = nunjucks.configure(resolve(opts.templatesDir), {
     autoescape: false,
     noCache: !opts.cache,
-    throwOnUndefined: true,
+    throwOnUndefined: false, // Allow conditional rendering
     trimBlocks: true,
-    lstripBlocks: true
+    lstripBlocks: true,
+    web: {
+      useCache: opts.cache
+    }
   });
+
+  // Register template extensions for inheritance and includes
+  registerExtensions(env, [resolve(opts.templatesDir)]);
 
   // Register built-in filters
   registerBuiltInFilters(env);
+  
+  // Add global functions
+  env.addGlobal('range', (start: number, end?: number, step = 1) => {
+    if (end === undefined) {
+      end = start;
+      start = 0;
+    }
+    const result = [];
+    for (let i = start; i < end; i += step) {
+      result.push(i);
+    }
+    return result;
+  });
+  
+  env.addGlobal('zip', (...arrays: any[][]) => {
+    const minLength = Math.min(...arrays.map(arr => arr.length));
+    const result = [];
+    for (let i = 0; i < minLength; i++) {
+      result.push(arrays.map(arr => arr[i]));
+    }
+    return result;
+  });
+  
+  env.addGlobal('now', () => new Date());
+  
+  env.addGlobal('env', (key: string, defaultValue?: any) => {
+    return process.env[key] ?? defaultValue;
+  });
 
   const context: UnjucksContext = {
     templates: new Map(),
@@ -854,5 +890,72 @@ export async function askTemplate(query: string): Promise<any> {
   }
 }
 
-// Re-export types
+/**
+ * Create streaming renderer for large templates
+ */
+export function createStreamingRenderer(options: UnjucksOptions = {}): StreamingRenderer {
+  const ctx = unjucksContext.use();
+  if (!ctx) throw new Error('Unjucks not initialized');
+  
+  return new StreamingRenderer(ctx.nunjucks, {
+    chunkSize: options.maxConcurrency ? options.maxConcurrency * 1024 : 16384,
+    highWaterMark: 65536
+  });
+}
+
+/**
+ * Stream multiple templates with context
+ */
+export async function streamMultipleTemplates(
+  templates: Template[],
+  context: any = {},
+  options: UnjucksOptions = {}
+): Promise<RenderResult[]> {
+  const ctx = unjucksContext.use();
+  if (!ctx) throw new Error('Unjucks not initialized');
+  
+  return streamTemplates(templates, context, ctx.nunjucks, {
+    chunkSize: options.maxConcurrency ? options.maxConcurrency * 1024 : 16384
+  });
+}
+
+/**
+ * Clear all caches and reset context
+ */
+export function clearCaches(): void {
+  try {
+    const ctx = unjucksContext.use();
+    if (ctx) {
+      ctx.cache.clear();
+      clearExtensionCaches(ctx.nunjucks);
+    }
+  } catch (error) {
+    // Context not available, ignore in test environments
+    console.warn('Context not available for cache clearing');
+  }
+}
+
+/**
+ * Get template engine statistics
+ */
+export function getStatistics() {
+  try {
+    const ctx = unjucksContext.use();
+    if (!ctx) return null;
+    
+    return {
+      templates: ctx.templates.size,
+      cacheSize: ctx.cache.size,
+      options: ctx.options,
+      generators: listGenerators()
+    };
+  } catch (error) {
+    // Context not available
+    return null;
+  }
+}
+
+// Re-export types and streaming utilities
 export type { Template, RenderResult, GenerationResult, UnjucksOptions };
+export { StreamingRenderer, streamTemplates, streamToFile } from './streaming';
+export { registerExtensions, clearExtensionCaches } from './extensions';

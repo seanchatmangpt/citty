@@ -54,6 +54,7 @@
     "chalk": "^5.3.0",
     "citty": "^0.1.6",
     "cli-table3": "^0.6.3",
+    "colorette": "^2.0.20",
     "consola": "^3.2.3",
     "defu": "^6.1.4",
     "fast-glob": "^3.3.2",

@@ -845,8 +845,176 @@ function generateAnalysisSummary(analysis: any, insights: string[]): string { re
 function calculatePerformanceChange(current: any, baseline: any): number { return 5.2; }
 function calculateReliabilityChange(current: any, baseline: any): number { return 0.1; }
 function calculateResourceChange(current: any, baseline: any): number { return -2.3; }
-function identifyRegressions(current: any, baseline: any): any[] { return []; }
-function identifyImprovements(current: any, baseline: any): any[] { return []; }
+function identifyRegressions(current: any, baseline: any): any[] {
+  const regressions: any[] = [];
+  
+  if (!current || !baseline || typeof current !== 'object' || typeof baseline !== 'object') {
+    return regressions;
+  }
+  
+  // Check performance metrics for regressions
+  const checkMetric = (metric: string, currentValue: number, baselineValue: number, threshold: number = 5) => {
+    const percentChange = ((currentValue - baselineValue) / baselineValue) * 100;
+    if (percentChange > threshold) {
+      regressions.push({
+        metric,
+        current: currentValue,
+        baseline: baselineValue,
+        change: percentChange,
+        severity: percentChange > 20 ? 'high' : percentChange > 10 ? 'medium' : 'low',
+        impact: getImpactDescription(metric, percentChange)
+      });
+    }
+  };
+  
+  // Check response time regression
+  if (current.responseTime && baseline.responseTime) {
+    checkMetric('responseTime', current.responseTime, baseline.responseTime, 10);
+  }
+  
+  // Check throughput regression (lower is worse for throughput)
+  if (current.throughput && baseline.throughput) {
+    const percentChange = ((baseline.throughput - current.throughput) / baseline.throughput) * 100;
+    if (percentChange > 5) {
+      regressions.push({
+        metric: 'throughput',
+        current: current.throughput,
+        baseline: baseline.throughput,
+        change: -percentChange,
+        severity: percentChange > 20 ? 'high' : percentChange > 10 ? 'medium' : 'low',
+        impact: `Throughput decreased by ${percentChange.toFixed(1)}%`
+      });
+    }
+  }
+  
+  // Check error rate regression
+  if (current.errorRate !== undefined && baseline.errorRate !== undefined) {
+    checkMetric('errorRate', current.errorRate, baseline.errorRate, 1);
+  }
+  
+  // Check memory usage regression
+  if (current.memoryUsage && baseline.memoryUsage) {
+    checkMetric('memoryUsage', current.memoryUsage, baseline.memoryUsage, 15);
+  }
+  
+  // Check CPU usage regression
+  if (current.cpuUsage && baseline.cpuUsage) {
+    checkMetric('cpuUsage', current.cpuUsage, baseline.cpuUsage, 10);
+  }
+  
+  return regressions.sort((a, b) => {
+    const severityOrder = { high: 3, medium: 2, low: 1 };
+    return (severityOrder[b.severity as keyof typeof severityOrder] || 0) - 
+           (severityOrder[a.severity as keyof typeof severityOrder] || 0);
+  });
+}
+
+function getImpactDescription(metric: string, percentChange: number): string {
+  const change = Math.abs(percentChange);
+  const severity = change > 20 ? 'significant' : change > 10 ? 'moderate' : 'minor';
+  
+  const impactMap: Record<string, string> = {
+    responseTime: `${severity} increase in response time (${percentChange.toFixed(1)}%)`,
+    errorRate: `${severity} increase in error rate (${percentChange.toFixed(1)}%)`,
+    memoryUsage: `${severity} increase in memory consumption (${percentChange.toFixed(1)}%)`,
+    cpuUsage: `${severity} increase in CPU utilization (${percentChange.toFixed(1)}%)`,
+    throughput: `${severity} decrease in throughput (${percentChange.toFixed(1)}%)`
+  };
+  
+  return impactMap[metric] || `${severity} degradation in ${metric} (${percentChange.toFixed(1)}%)`;
+}
+function identifyImprovements(current: any, baseline: any): any[] {
+  const improvements: any[] = [];
+  
+  if (!current || !baseline || typeof current !== 'object' || typeof baseline !== 'object') {
+    return improvements;
+  }
+  
+  // Check performance metrics for improvements
+  const checkImprovement = (metric: string, currentValue: number, baselineValue: number, threshold: number = 5) => {
+    const percentChange = ((baselineValue - currentValue) / baselineValue) * 100;
+    if (percentChange > threshold) {
+      improvements.push({
+        metric,
+        current: currentValue,
+        baseline: baselineValue,
+        improvement: percentChange,
+        impact: getImprovementDescription(metric, percentChange),
+        significance: percentChange > 20 ? 'major' : percentChange > 10 ? 'moderate' : 'minor'
+      });
+    }
+  };
+  
+  // Check response time improvement (lower is better)
+  if (current.responseTime && baseline.responseTime) {
+    checkImprovement('responseTime', current.responseTime, baseline.responseTime, 5);
+  }
+  
+  // Check throughput improvement (higher is better for throughput)
+  if (current.throughput && baseline.throughput) {
+    const percentChange = ((current.throughput - baseline.throughput) / baseline.throughput) * 100;
+    if (percentChange > 5) {
+      improvements.push({
+        metric: 'throughput',
+        current: current.throughput,
+        baseline: baseline.throughput,
+        improvement: percentChange,
+        impact: `Throughput increased by ${percentChange.toFixed(1)}%`,
+        significance: percentChange > 20 ? 'major' : percentChange > 10 ? 'moderate' : 'minor'
+      });
+    }
+  }
+  
+  // Check error rate improvement (lower is better)
+  if (current.errorRate !== undefined && baseline.errorRate !== undefined) {
+    checkImprovement('errorRate', current.errorRate, baseline.errorRate, 1);
+  }
+  
+  // Check memory usage improvement (lower is better)
+  if (current.memoryUsage && baseline.memoryUsage) {
+    checkImprovement('memoryUsage', current.memoryUsage, baseline.memoryUsage, 10);
+  }
+  
+  // Check CPU usage improvement (lower is better)
+  if (current.cpuUsage && baseline.cpuUsage) {
+    checkImprovement('cpuUsage', current.cpuUsage, baseline.cpuUsage, 5);
+  }
+  
+  // Check stability improvements
+  if (current.stability && baseline.stability) {
+    const stabilityImprovement = current.stability - baseline.stability;
+    if (stabilityImprovement > 0.05) {
+      improvements.push({
+        metric: 'stability',
+        current: current.stability,
+        baseline: baseline.stability,
+        improvement: (stabilityImprovement * 100),
+        impact: `System stability improved by ${(stabilityImprovement * 100).toFixed(1)}%`,
+        significance: stabilityImprovement > 0.2 ? 'major' : stabilityImprovement > 0.1 ? 'moderate' : 'minor'
+      });
+    }
+  }
+  
+  return improvements.sort((a, b) => {
+    const significanceOrder = { major: 3, moderate: 2, minor: 1 };
+    return (significanceOrder[b.significance as keyof typeof significanceOrder] || 0) - 
+           (significanceOrder[a.significance as keyof typeof significanceOrder] || 0);
+  });
+}
+
+function getImprovementDescription(metric: string, percentChange: number): string {
+  const change = Math.abs(percentChange);
+  const significance = change > 20 ? 'significant' : change > 10 ? 'moderate' : 'minor';
+  
+  const impactMap: Record<string, string> = {
+    responseTime: `${significance} reduction in response time (${percentChange.toFixed(1)}% faster)`,
+    errorRate: `${significance} reduction in error rate (${percentChange.toFixed(1)}% fewer errors)`,
+    memoryUsage: `${significance} reduction in memory consumption (${percentChange.toFixed(1)}% less memory)`,
+    cpuUsage: `${significance} reduction in CPU utilization (${percentChange.toFixed(1)}% less CPU)`
+  };
+  
+  return impactMap[metric] || `${significance} improvement in ${metric} (${percentChange.toFixed(1)}% better)`;
+}
 function calculateOverallChange(comparison: any): number { return 3.5; }
 function generateComparisonSummary(comparison: any): string { return 'Performance improved by 3.5%'; }
 

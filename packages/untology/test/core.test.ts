@@ -11,6 +11,7 @@ import {
   graphSize,
   clearGraph
 } from '../src'
+import { setupFreshContext, teardownContext, withCleanContext } from './test-utils'
 
 describe('Untology Core', () => {
   const sampleTurtle = `
@@ -32,7 +33,7 @@ describe('Untology Core', () => {
   `
 
   beforeEach(async () => {
-    clearGraph()
+    setupFreshContext()
     await loadGraph(sampleTurtle, {
       prefixes: {
         foaf: 'http://xmlns.com/foaf/0.1/',
@@ -42,7 +43,7 @@ describe('Untology Core', () => {
   })
 
   afterEach(() => {
-    clearGraph()
+    teardownContext()
   })
 
   describe('loadGraph', () => {

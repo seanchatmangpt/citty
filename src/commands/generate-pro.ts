@@ -327,12 +327,14 @@ Generate a complete command structure that would be suitable for a professional 
 
   const ollamaProvider = ollama(model);
 
-  const result = await generateObject({
-    model: ollamaProvider,
-    temperature,
-    schema: CommandGenerationSchema,
-    system: systemPrompt,
-    prompt: `Create a professional CLI command for: ${prompt}
+  let result;
+  try {
+    result = await generateObject({
+      model: ollamaProvider,
+      temperature,
+      schema: CommandGenerationSchema,
+      system: systemPrompt,
+      prompt: `Create a professional CLI command for: ${prompt}
 
 Please generate a complete command structure that includes:
 - A clear, descriptive command name
@@ -340,13 +342,57 @@ Please generate a complete command structure that includes:
 - Proper typing and validation
 - Helpful descriptions and examples
 - Professional-grade error handling considerations`,
-  });
+    });
 
-  if (verbose) {
-    console.log("✅ AI analysis complete");
+    if (verbose) {
+      console.log("✅ AI analysis complete");
+    }
+
+    if (!result || (!result.object && !result.response)) {
+      throw new Error('AI generation failed: No structured output received');
+    }
+
+    // Try result.object first, then fall back to result.response or result itself
+    const commandData = result.object || result.response || result;
+    return commandData as CommandGeneration;
+  } catch (error) {
+    if (verbose) {
+      console.log("⚠️ AI generation failed, using fallback generation");
+      console.error("Error details:", error);
+    }
+
+    // Fallback: Generate a basic command structure
+    const fallbackCommand: CommandGeneration = {
+      name: prompt.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+      description: `Generated command for: ${prompt}`,
+      version: "1.0.0",
+      args: [
+        {
+          name: "help",
+          type: "boolean",
+          description: "Show help information",
+          required: false,
+          default: false,
+          alias: ["h"]
+        },
+        {
+          name: "verbose",
+          type: "boolean", 
+          description: "Enable verbose output",
+          required: false,
+          default: false,
+          alias: ["v"]
+        }
+      ],
+      subCommands: []
+    };
+
+    if (verbose) {
+      console.log("✅ Fallback command generated");
+    }
+
+    return fallbackCommand;
   }
-
-  return result.object as CommandGeneration;
 }
 
 /**
@@ -367,7 +413,7 @@ async function convertToOntology(
       description: command.description,
       version: command.version || "1.0.0",
     },
-    args: command.args?.reduce((acc: any, arg: any) => {
+    args: (Array.isArray(command.args) ? command.args : []).reduce((acc: any, arg: any) => {
       acc[arg.name] = {
         type: arg.type,
         description: arg.description,
@@ -378,7 +424,7 @@ async function convertToOntology(
         options: arg.options,
       };
       return acc;
-    }, {} as any) || {},
+    }, {} as any),
   };
 
   const ontology = await toOntology(cittyCommand);

@@ -218,14 +218,14 @@ export const {{ command.name | camelCase }}Command = defineCommand({
     {% endfor %}
   },
   async run({ args, meta }) {
-    console.log(`Executing ${meta.name} with arguments:`, args);
+    console.log('Executing {{ meta.name }} with arguments:', args);
     
     {% if command.name === 'BuildCommand' %}
     // Build implementation
     if (args.production) {
       console.log('Building for production...');
     } else {
-      console.log(`Building for ${args.target}...`);
+      console.log('Building for {{ args.target }}...');
     }
     
     if (args.watch) {

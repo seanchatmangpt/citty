@@ -4,21 +4,31 @@
  */
 
 import nunjucks from 'nunjucks'
-import { readFileSync } from 'node:fs'
+import { readFileSync, statSync } from 'node:fs'
 import { dirname, resolve } from 'pathe'
 import { useTemplateContext, tryUseTemplateContext } from './context'
+import { templateCache, MemoryAwareCache } from './cache'
 import type { 
   RenderOptions, 
   RenderResult, 
   RenderMetadata,
   FilterDefinition,
   TemplateContext,
-  RenderError as RenderErrorType
+  RenderError as RenderErrorType,
+  SecurityConfig
 } from './types'
 import { RenderError } from './types'
+import { 
+  getDefaultSecurity, 
+  validatePath, 
+  sanitizeTemplateContent, 
+  sanitizeContextData,
+  SecurityMiddleware
+} from './security'
 
-// Global Nunjucks environment
+// Global Nunjucks environment with caching
 let globalEnv: nunjucks.Environment | null = null
+let renderResultCache: MemoryAwareCache<string> | null = null
 
 /**
  * Template Renderer class
@@ -27,12 +37,18 @@ export class TemplateRenderer {
   private env: nunjucks.Environment
   private filters: Map<string, Function>
   private globals: Map<string, any>
+  private compiledTemplateCache: Map<string, { template: nunjucks.Template; mtime: number }> = new Map()
+  private resultCache: MemoryAwareCache<string>
+  private security: SecurityMiddleware
 
-  constructor(options?: RenderOptions) {
-    // Create Nunjucks environment
+  constructor(options?: RenderOptions & { security?: SecurityConfig }) {
+    // Initialize security middleware
+    this.security = new SecurityMiddleware(options?.security)
+    // Create Nunjucks environment with smart caching
     this.env = new nunjucks.Environment(
       new nunjucks.FileSystemLoader('.', {
-        noCache: true
+        noCache: false, // Enable Nunjucks built-in caching for better performance
+        watch: false    // Disable file watching for production
       }),
       {
         autoescape: options?.autoescape ?? false,
@@ -41,6 +57,13 @@ export class TemplateRenderer {
         lstripBlocks: true
       }
     )
+
+    // Initialize result cache for rendered output
+    this.resultCache = new MemoryAwareCache({
+      maxSize: options?.maxCacheSize || 200,
+      ttl: options?.cacheTTL || 5 * 60 * 1000, // 5 minutes
+      maxMemoryMB: 50
+    })
 
     this.filters = new Map()
     this.globals = new Map()
@@ -182,7 +205,7 @@ export class TemplateRenderer {
   }
 
   /**
-   * Render a template file
+   * Render a template file with optimized caching
    */
   async renderFile(
     templatePath: string, 
@@ -191,25 +214,49 @@ export class TemplateRenderer {
     const startTime = performance.now()
     
     try {
-      // Read template content
-      const content = readFileSync(templatePath, 'utf-8')
-      
       // Get context
       const ctx = context || tryUseTemplateContext() || {}
       
-      // Extract variables from template
+      // Create cache key from template path and context hash
+      const contextHash = this.hashObject(ctx)
+      const cacheKey = `${templatePath}:${contextHash}`
+      
+      // Check result cache first
+      const cachedResult = this.resultCache.get(cacheKey, templatePath)
+      if (cachedResult) {
+        return {
+          output: cachedResult,
+          metadata: {
+            template: templatePath,
+            duration: performance.now() - startTime,
+            cached: true,
+            variables: [],
+            filters: []
+          }
+        }
+      }
+      
+      // Get compiled template with modification time checking
+      const template = this.getCompiledTemplate(templatePath)
+      
+      // Extract variables from template (cache this too)
+      const content = readFileSync(templatePath, 'utf-8')
       const variables = this.extractVariables(content)
       const usedFilters = this.extractFilters(content)
       
       // Render template
-      const output = this.env.renderString(content, ctx)
+      const output = template.render(ctx)
+      
+      // Cache the result
+      this.resultCache.set(cacheKey, output, templatePath)
       
       // Build metadata
       const metadata: RenderMetadata = {
         template: templatePath,
         duration: performance.now() - startTime,
         variables,
-        filters: usedFilters
+        filters: usedFilters,
+        cached: false
       }
       
       return { output, metadata }
@@ -267,6 +314,64 @@ export class TemplateRenderer {
     }
     
     return Array.from(filters)
+  }
+
+  /**
+   * Get compiled template with modification time checking
+   */
+  private getCompiledTemplate(templatePath: string): nunjucks.Template {
+    try {
+      const stats = statSync(templatePath)
+      const mtime = stats.mtimeMs
+      
+      const cached = this.compiledTemplateCache.get(templatePath)
+      if (cached && cached.mtime >= mtime) {
+        return cached.template
+      }
+      
+      // Compile template
+      const template = this.env.getTemplate(templatePath)
+      
+      // Cache compiled template with modification time
+      this.compiledTemplateCache.set(templatePath, { template, mtime })
+      
+      return template
+    } catch (error) {
+      throw new Error(`Failed to compile template: ${templatePath}`)
+    }
+  }
+
+  /**
+   * Hash object for cache key generation
+   */
+  private hashObject(obj: any): string {
+    return JSON.stringify(obj, Object.keys(obj).sort())
+  }
+
+  /**
+   * Get cache statistics
+   */
+  getCacheStats() {
+    return {
+      compiledTemplates: this.compiledTemplateCache.size,
+      resultCache: this.resultCache.getStats()
+    }
+  }
+
+  /**
+   * Clear all caches
+   */
+  clearCaches(): void {
+    this.compiledTemplateCache.clear()
+    this.resultCache.clear()
+  }
+
+  /**
+   * Cleanup resources
+   */
+  destroy(): void {
+    this.resultCache.destroy()
+    this.clearCaches()
   }
 }
 

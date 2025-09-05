@@ -131,10 +131,15 @@ export function commandToZodSchema(command: ParsedCommand): z.ZodObject<any> {
 }
 
 /**
- * Parse Turtle ontology triples
+ * Parse Turtle ontology triples with enhanced error handling
  */
 function parseTurtleTriples(turtle: string): OntologyTriple[] {
   const triples: OntologyTriple[] = [];
+  
+  if (!turtle || typeof turtle !== "string") {
+    return triples;
+  }
+  
   const lines = turtle.split("\n");
 
   for (const line of lines) {
@@ -143,14 +148,31 @@ function parseTurtleTriples(turtle: string): OntologyTriple[] {
       continue;
     }
 
-    const match = trimmed.match(/^([^\s]+)\s+([^\s]+)\s+(.+?)\s*\.$/);
-    if (match) {
-      const [, subject, predicate, object] = match;
-      triples.push({
-        subject: subject.replace(/^<|>$/g, ""),
-        predicate: predicate.replace(/^<|>$/g, ""),
-        object: object.replace(/^<|>$/g, "").replace(/^"|"$/g, ""),
-      });
+    // Enhanced pattern matching for various turtle formats
+    const patterns = [
+      /^([^\s]+)\s+([^\s]+)\s+(.+?)\s*\.$/,  // Standard triple
+      /^([^\s]+)\s+([^\s]+)\s+"([^"]*)"(\^\^[^\s]+)?\s*\.$/,  // Quoted literal with optional datatype
+      /^([^\s]+)\s+([^\s]+)\s+<([^>]*)>\s*\.$/,  // URI object
+    ];
+    
+    let matched = false;
+    for (const pattern of patterns) {
+      const match = trimmed.match(pattern);
+      if (match) {
+        const [, subject, predicate, object] = match;
+        triples.push({
+          subject: subject.replace(/^<|>$/g, ""),
+          predicate: predicate.replace(/^<|>$/g, ""),
+          object: object.replace(/^<|>$/g, "").replace(/^"|"$/g, ""),
+        });
+        matched = true;
+        break;
+      }
+    }
+    
+    // Log unmatched lines for debugging
+    if (!matched && trimmed.length > 0) {
+      console.debug(`Could not parse ontology line: ${trimmed}`);
     }
   }
 
@@ -300,12 +322,18 @@ function buildCommandFromTriples(
 }
 
 /**
- * Converts an ontology string to a Zod schema
+ * Converts an ontology string to a Zod schema with enhanced error handling
  */
 export function ontologyToZod(ontology: string): z.ZodObject<any> | undefined {
   try {
-    if (!ontology || typeof ontology !== "string") {
+    if (!ontology || typeof ontology !== "string" || ontology.trim().length === 0) {
       throw new Error("Valid ontology string is required");
+    }
+
+    // Check if the ontology contains basic turtle structure
+    const hasValidStructure = ontology.includes('citty:') || ontology.includes('@prefix') || ontology.includes('a ');
+    if (!hasValidStructure) {
+      throw new Error("Ontology does not contain valid Turtle structure");
     }
 
     const triples = parseTurtleTriples(ontology);
@@ -316,6 +344,11 @@ export function ontologyToZod(ontology: string): z.ZodObject<any> | undefined {
     const command = buildCommandFromTriples(triples);
     if (!command) {
       throw new Error("No valid command structure found in ontology");
+    }
+
+    // Validate the command has at least a name
+    if (!command.name || command.name.trim().length === 0) {
+      throw new Error("Command structure missing required name property");
     }
 
     return commandToZodSchema(command);

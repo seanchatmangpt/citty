@@ -352,7 +352,8 @@ export async function initializeProduction(): Promise<void> {
   
   // Set memory limits
   if (config.performance.memoryLimit) {
-    const v8 = await import('v8');
-    v8.setHeapLimit(config.performance.memoryLimit);
+    // Note: Memory limit should be set via Node.js --max-old-space-size flag
+    // v8.setHeapLimit does not exist - this would need process.env or command-line args
+    console.warn(`Memory limit ${config.performance.memoryLimit}MB should be set via --max-old-space-size flag`);
   }
 }

@@ -1,16 +1,24 @@
 {
-  "totalDuration": 25907.39575,
+  "totalDuration": 1349.740209,
   "templateRenders": 0,
   "averageRenderTime": 0,
   "cacheHitRate": 0,
   "fileWrites": 0,
   "memoryUsage": {
-    "rss": 226000896,
-    "heapTotal": 27213824,
-    "heapUsed": 18611256,
-    "external": 4920510,
-    "arrayBuffers": 82791
+    "rss": 394821632,
+    "heapTotal": 35110912,
+    "heapUsed": 19935192,
+    "external": 4732750,
+    "arrayBuffers": 109124
   },
   "errors": [],
+  "templatesDiscovered": 0,
+  "templatesValidated": 0,
+  "streamingRenders": 0,
+  "parallelProcesses": 0,
+  "contextSanitizations": 0,
+  "pathResolutions": 0,
+  "extensionCalls": 0,
+  "throughputPerSecond": 0,
   "metrics": []
 }

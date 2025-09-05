@@ -396,3 +396,190 @@ export function createSampleOntology(): OntologyContext {
     }
   };
 }
+
+/**
+ * Convert CommandDef to Ontology (Turtle format)
+ */
+export async function toOntology(commandDef: any): Promise<string> {
+  const prefixes = `@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix citty: <http://example.org/citty#> .
+@prefix type: <http://example.org/citty/type#> .
+
+`;
+
+  let ontology = prefixes;
+  
+  const commandName = commandDef.meta?.name || 'unknown-command';
+  const commandUri = `http://example.org/citty/command/${commandName}`;
+  
+  // Command metadata
+  ontology += `${commandUri} a citty:Command .\n`;
+  ontology += `${commandUri} citty:hasName "${commandName}" .\n`;
+  
+  if (commandDef.meta?.description) {
+    const escapedDesc = commandDef.meta.description
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, '\\n')
+      .replace(/\t/g, '\\t');
+    ontology += `${commandUri} citty:hasDescription "${escapedDesc}" .\n`;
+  }
+  
+  if (commandDef.meta?.version) {
+    ontology += `${commandUri} citty:hasVersion "${commandDef.meta.version}" .\n`;
+  }
+  
+  // Arguments
+  if (commandDef.args) {
+    for (const [argName, argDef] of Object.entries(commandDef.args as Record<string, any>)) {
+      const argUri = `${commandUri}/arg/${argName}`;
+      ontology += `${commandUri} citty:hasArgument ${argUri} .\n`;
+      ontology += `${argUri} a citty:Argument .\n`;
+      ontology += `${argUri} citty:hasName "${argName}" .\n`;
+      ontology += `${argUri} citty:hasType type:${argDef.type || 'string'} .\n`;
+      
+      if (argDef.description) {
+        const escapedDesc = argDef.description
+          .replace(/\\/g, '\\\\')
+          .replace(/"/g, '\\"')
+          .replace(/\n/g, '\\n')
+          .replace(/\t/g, '\\t');
+        ontology += `${argUri} citty:hasDescription "${escapedDesc}" .\n`;
+      }
+      
+      if (argDef.required !== undefined) {
+        ontology += `${argUri} citty:isRequired "${argDef.required}" .\n`;
+      }
+      
+      if (argDef.default !== undefined) {
+        ontology += `${argUri} citty:hasDefaultValue "${argDef.default}" .\n`;
+      }
+      
+      if (argDef.alias) {
+        const aliases = Array.isArray(argDef.alias) ? argDef.alias : [argDef.alias];
+        for (const alias of aliases) {
+          ontology += `${argUri} citty:hasAlias "${alias}" .\n`;
+        }
+      }
+      
+      if (argDef.options) {
+        for (const option of argDef.options) {
+          ontology += `${argUri} citty:hasOption "${option}" .\n`;
+        }
+      }
+    }
+  }
+  
+  // Subcommands
+  if (commandDef.subCommands) {
+    for (const [subName, subCmd] of Object.entries(commandDef.subCommands as Record<string, any>)) {
+      const subUri = `${commandUri}/sub/${subName}`;
+      ontology += `${commandUri} citty:hasSubCommand ${subUri} .\n`;
+      ontology += `${subUri} a citty:Command .\n`;
+      ontology += `${subUri} citty:hasName "${subName}" .\n`;
+      
+      if (subCmd.meta?.description) {
+        const escapedDesc = subCmd.meta.description
+          .replace(/\\/g, '\\\\')
+          .replace(/"/g, '\\"')
+          .replace(/\n/g, '\\n')
+          .replace(/\t/g, '\\t');
+        ontology += `${subUri} citty:hasDescription "${escapedDesc}" .\n`;
+      }
+    }
+  }
+  
+  return ontology;
+}
+
+/**
+ * Convert Ontology to TypeScript code
+ */
+export async function fromOntology(ontology: string): Promise<string> {
+  // Parse ontology to extract command information
+  const lines = ontology.split('\n');
+  let commandName = 'unknown-command';
+  let commandDescription = '';
+  let commandUri = '';
+  
+  // Find the main command (not subcommands) - prioritize root command
+  const commandLines = lines.filter(line => 
+    line.includes(' a citty:Command') && line.trim().length > 0
+  );
+  
+  // Prefer the command URI that doesn't contain /sub/
+  for (const line of commandLines) {
+    if (!line.includes('/sub/')) {
+      const match = line.match(/^([^\s]+)\s+a\s+citty:Command/);
+      if (match) {
+        commandUri = match[1];
+        break;
+      }
+    }
+  }
+  
+  // If no root command found, take the first command
+  if (!commandUri && commandLines.length > 0) {
+    const match = commandLines[0].match(/^([^\s]+)\s+a\s+citty:Command/);
+    if (match) {
+      commandUri = match[1];
+    }
+  }
+  
+  // Extract name and description for the main command
+  for (const line of lines) {
+    if (line.startsWith(commandUri) && line.includes('citty:hasName')) {
+      const match = line.match(/citty:hasName "([^"]+)"/);
+      if (match) {
+        commandName = match[1];
+      }
+    }
+    if (line.startsWith(commandUri) && line.includes('citty:hasDescription')) {
+      const match = line.match(/citty:hasDescription "([^"]+)"/);
+      if (match) {
+        commandDescription = match[1];
+      }
+    }
+  }
+  
+  // Generate TypeScript code
+  const tsCode = `import { defineCommand } from 'citty';
+
+/**
+ * ${commandDescription || 'Generated command from ontology'}
+ */
+export const ${commandName.replace(/-/g, '')}Command = defineCommand({
+  meta: {
+    name: '${commandName}',
+    description: '${commandDescription || 'Generated command from ontology'}'
+  },
+  args: {
+    // TODO: Add arguments based on ontology
+  },
+  async run({ args }) {
+    console.log('Executing ${commandName} command with:', args);
+    // TODO: Implement ${commandDescription}
+  }
+});
+
+export default ${commandName.replace(/-/g, '')}Command;
+`;
+
+  return tsCode;
+}
+
+/**
+ * Validate ontology format
+ */
+export function validateOntology(ontology: string): boolean {
+  if (!ontology || typeof ontology !== 'string') {
+    return false;
+  }
+  
+  // Basic validation - check for required prefixes and structure
+  const hasPrefix = ontology.includes('@prefix');
+  const hasCittyPrefix = ontology.includes('citty:');
+  const hasTriples = ontology.includes(' a ') || ontology.includes(' citty:');
+  
+  return hasPrefix && hasCittyPrefix && hasTriples;
+}

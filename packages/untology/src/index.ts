@@ -3,6 +3,9 @@ export {
   useOntology,
   hasOntology,
   withOntology,
+  setOntologyContext,
+  clearOntologyContext,
+  createFreshContext,
   type OntologyContext
 } from './context'
 

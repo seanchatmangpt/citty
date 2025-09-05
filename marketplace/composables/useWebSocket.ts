@@ -1,5 +1,26 @@
-import { io, type Socket } from 'socket.io-client'
-import type { MarketplaceUpdate, UserActivity } from '~/server/api/marketplace/websocket'
+/**
+ * Migrated WebSocket composable using Nuxt-native WebSocket implementation
+ * This composable now uses the new useNuxtWebSocket under the hood
+ * while maintaining backward compatibility with the existing API
+ */
+
+import { useAuctionWebSocket, useNotificationWebSocket } from './useNuxtWebSocket'
+
+export interface MarketplaceUpdate {
+  type: 'new_item' | 'item_updated' | 'item_sold' | 'price_change'
+  itemId: string
+  userId?: string
+  data: any
+  timestamp: Date
+}
+
+export interface UserActivity {
+  userId: string
+  action: string
+  itemId?: string
+  metadata?: any
+  timestamp: Date
+}
 
 interface WebSocketState {
   connected: boolean
@@ -15,36 +36,41 @@ interface UseWebSocketOptions {
   reconnectAttempts?: number
   reconnectDelay?: number
   heartbeatInterval?: number
+  authentication?: {
+    userId: string
+    token?: string
+  }
 }
 
 export function useWebSocket(options: UseWebSocketOptions = {}) {
-  const {
-    autoConnect = true,
-    reconnectAttempts = 5,
-    reconnectDelay = 1000,
-    heartbeatInterval = 30000
-  } = options
-
-  // Reactive state
-  const state = reactive<WebSocketState>({
-    connected: false,
-    authenticated: false,
-    reconnecting: false,
-    error: null,
-    userId: null,
-    socketId: null
+  // Initialize both auction and notification WebSocket connections
+  const auctionWs = useAuctionWebSocket({
+    autoConnect: options.autoConnect,
+    reconnectAttempts: options.reconnectAttempts,
+    reconnectDelay: options.reconnectDelay,
+    heartbeatInterval: options.heartbeatInterval,
+    authentication: options.authentication
   })
 
-  // Socket instance
-  let socket: Socket | null = null
-  let reconnectCount = 0
-  let heartbeatTimer: NodeJS.Timeout | null = null
+  const notificationWs = useNotificationWebSocket({
+    autoConnect: options.autoConnect,
+    reconnectAttempts: options.reconnectAttempts,
+    reconnectDelay: options.reconnectDelay,
+    heartbeatInterval: options.heartbeatInterval,
+    authentication: options.authentication
+  })
 
-  // Event emitters
-  const marketplaceUpdates = ref<MarketplaceUpdate[]>([])
-  const userActivities = ref<UserActivity[]>([])
+  // Combined state - prioritize auction connection for primary state
+  const state = computed<WebSocketState>(() => ({
+    connected: auctionWs.state.connected || notificationWs.state.connected,
+    authenticated: auctionWs.state.authenticated || notificationWs.state.authenticated,
+    reconnecting: auctionWs.state.reconnecting || notificationWs.state.reconnecting,
+    error: auctionWs.state.error || notificationWs.state.error,
+    userId: auctionWs.state.userId || notificationWs.state.userId,
+    socketId: auctionWs.state.socketId || notificationWs.state.socketId
+  }))
 
-  // Event handlers
+  // Combined event handlers
   const eventHandlers = new Map<string, Function[]>()
 
   const on = (event: string, handler: Function) => {
@@ -52,6 +78,10 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       eventHandlers.set(event, [])
     }
     eventHandlers.get(event)!.push(handler)
+
+    // Register with both WebSocket instances
+    auctionWs.on(event, handler)
+    notificationWs.on(event, handler)
   }
 
   const off = (event: string, handler?: Function) => {
@@ -66,99 +96,98 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     } else {
       eventHandlers.delete(event)
     }
+
+    // Unregister from both WebSocket instances
+    auctionWs.off(event, handler)
+    notificationWs.off(event, handler)
   }
 
   const emit = (event: string, ...args: any[]) => {
     const handlers = eventHandlers.get(event)
     if (handlers) {
-      handlers.forEach(handler => handler(...args))
+      handlers.forEach(handler => {
+        try {
+          handler(...args)
+        } catch (error) {
+          console.error(`Error in event handler for ${event}:`, error)
+        }
+      })
     }
   }
 
-  // Connection management
+  // Connection management - manage both connections
   const connect = (serverUrl?: string) => {
-    if (socket?.connected) return
-
-    const url = serverUrl || (process.client ? window.location.origin : 'http://localhost:3000')
-    
-    socket = io(url, {
-      transports: ['websocket', 'polling'],
-      upgrade: true,
-      rememberUpgrade: true,
-      timeout: 20000,
-      forceNew: false
-    })
-
-    setupEventHandlers()
+    auctionWs.connect()
+    notificationWs.connect()
   }
 
   const disconnect = () => {
-    if (socket) {
-      socket.disconnect()
-    }
-    stopHeartbeat()
-    state.connected = false
-    state.authenticated = false
+    auctionWs.disconnect()
+    notificationWs.disconnect()
   }
 
-  // Authentication
+  // Authentication - authenticate both connections
   const authenticate = (userId: string, token?: string) => {
-    if (!socket?.connected) {
-      state.error = 'Socket not connected'
-      return false
-    }
-
-    socket.emit('authenticate', { userId, token })
-    state.userId = userId
-    return true
+    const auctionResult = auctionWs.authenticate(userId, token)
+    const notificationResult = notificationWs.authenticate(userId, token)
+    return auctionResult && notificationResult
   }
 
-  // Subscriptions
+  // Legacy API compatibility methods
   const subscribeToCategory = (category: string) => {
-    socket?.emit('subscribe_to_category', category)
+    return notificationWs.subscribe([], [category])
   }
 
   const unsubscribeFromCategory = (category: string) => {
-    socket?.emit('unsubscribe_from_category', category)
+    return notificationWs.unsubscribe([], [category])
   }
 
   const subscribeToItem = (itemId: string) => {
-    socket?.emit('subscribe_to_item', itemId)
+    return auctionWs.joinAuction(itemId)
   }
 
   const unsubscribeFromItem = (itemId: string) => {
-    socket?.emit('unsubscribe_from_item', itemId)
+    return auctionWs.leaveAuction(itemId)
   }
 
-  // User activity tracking
+  // Activity tracking methods
   const trackActivity = (activity: Omit<UserActivity, 'timestamp'>) => {
-    if (!socket?.connected || !state.authenticated) return
+    if (!state.value.authenticated) return
 
-    socket.emit('user_activity', activity)
+    const fullActivity = {
+      ...activity,
+      timestamp: new Date()
+    } as UserActivity
+
+    notificationWs.send({
+      type: 'track_activity',
+      payload: fullActivity
+    }, true)
   }
 
   const trackSearchQuery = (query: string, filters?: any) => {
-    if (!socket?.connected || !state.authenticated) return
+    if (!state.value.authenticated) return
 
-    socket.emit('search_query', {
-      query,
-      filters,
-      userId: state.userId
-    })
+    notificationWs.send({
+      type: 'track_search',
+      payload: {
+        query,
+        filters,
+        userId: state.value.userId
+      }
+    }, true)
   }
 
   const trackItemView = (itemId: string) => {
-    if (!socket?.connected) return
+    if (!state.value.connected) return
 
-    socket.emit('item_view', {
-      itemId,
-      userId: state.userId
-    })
+    // Track view in auction WebSocket
+    auctionWs.watchAuction(itemId)
 
-    // Also track as general activity
-    if (state.authenticated && state.userId) {
+    // Also track as general activity if authenticated
+    if (state.value.authenticated && state.value.userId) {
       trackActivity({
-        userId: state.userId,
+        userId: state.value.userId,
         action: 'view',
         itemId,
         metadata: { timestamp: new Date().toISOString() }
@@ -167,163 +196,62 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   }
 
   const toggleFavorite = (itemId: string, isFavorite: boolean) => {
-    if (!socket?.connected || !state.userId) return
+    if (!state.value.connected || !state.value.userId) return
 
-    socket.emit('toggle_favorite', {
-      itemId,
-      userId: state.userId,
-      isFavorite
-    })
+    notificationWs.send({
+      type: 'toggle_favorite',
+      payload: {
+        itemId,
+        userId: state.value.userId,
+        isFavorite
+      }
+    }, true)
 
     // Track as activity
     trackActivity({
-      userId: state.userId,
+      userId: state.value.userId,
       action: 'favorite',
       itemId,
       metadata: { favorited: isFavorite }
     })
   }
 
-  // Event setup
-  const setupEventHandlers = () => {
-    if (!socket) return
-
-    socket.on('connect', () => {
-      state.connected = true
-      state.reconnecting = false
-      state.error = null
-      reconnectCount = 0
-      startHeartbeat()
-      emit('connected')
-    })
-
-    socket.on('disconnect', (reason) => {
-      state.connected = false
-      state.authenticated = false
-      stopHeartbeat()
-      emit('disconnected', reason)
-
-      // Auto-reconnect logic
-      if (reason === 'io server disconnect') {
-        // Server initiated disconnect, don't reconnect automatically
-        return
-      }
-
-      if (reconnectCount < reconnectAttempts) {
-        state.reconnecting = true
-        reconnectCount++
-        setTimeout(() => {
-          socket?.connect()
-        }, reconnectDelay * reconnectCount)
-      } else {
-        state.error = 'Failed to reconnect after maximum attempts'
-        emit('reconnect_failed')
-      }
-    })
-
-    socket.on('authenticated', (data) => {
-      state.authenticated = true
-      state.socketId = data.socketId
-      emit('authenticated', data)
-    })
-
-    socket.on('authentication_error', (error) => {
-      state.error = error.error
-      emit('authentication_error', error)
-    })
-
-    socket.on('marketplace_update', (update: MarketplaceUpdate) => {
-      marketplaceUpdates.value.unshift(update)
-      // Keep only last 100 updates
-      if (marketplaceUpdates.value.length > 100) {
-        marketplaceUpdates.value = marketplaceUpdates.value.slice(0, 100)
-      }
-      emit('marketplace_update', update)
-    })
-
-    socket.on('marketplace_activity', (activity) => {
-      if (activity.type === 'user_activity') {
-        userActivities.value.unshift(activity.data)
-        // Keep only last 50 activities
-        if (userActivities.value.length > 50) {
-          userActivities.value = userActivities.value.slice(0, 50)
-        }
-      }
-      emit('marketplace_activity', activity)
-    })
-
-    socket.on('subscribed', (data) => {
-      emit('subscribed', data)
-    })
-
-    socket.on('unsubscribed', (data) => {
-      emit('unsubscribed', data)
-    })
-
-    socket.on('pong', (data) => {
-      // Handle heartbeat response
-      emit('pong', data)
-    })
-
-    socket.on('connect_error', (error) => {
-      state.error = error.message
-      emit('connect_error', error)
-    })
-  }
-
-  // Heartbeat
-  const startHeartbeat = () => {
-    if (heartbeatTimer) return
-
-    heartbeatTimer = setInterval(() => {
-      if (socket?.connected) {
-        socket.emit('ping')
-      }
-    }, heartbeatInterval)
-  }
-
-  const stopHeartbeat = () => {
-    if (heartbeatTimer) {
-      clearInterval(heartbeatTimer)
-      heartbeatTimer = null
-    }
-  }
-
   // Computed properties
   const connectionStatus = computed(() => {
-    if (state.reconnecting) return 'reconnecting'
-    if (state.connected && state.authenticated) return 'authenticated'
-    if (state.connected) return 'connected'
+    if (state.value.reconnecting) return 'reconnecting'
+    if (state.value.connected && state.value.authenticated) return 'authenticated'
+    if (state.value.connected) return 'connected'
     return 'disconnected'
   })
 
-  const hasError = computed(() => !!state.error)
+  const hasError = computed(() => !!state.value.error)
 
-  // Lifecycle
-  onMounted(() => {
-    if (autoConnect && process.client) {
-      connect()
-    }
+  // Combined data sources
+  const marketplaceUpdates = computed(() => {
+    return [...notificationWs.marketplaceUpdates]
   })
 
-  onUnmounted(() => {
-    disconnect()
+  const userActivities = computed(() => {
+    return [...notificationWs.userActivities]
   })
 
   return {
-    // State
+    // State (backward compatibility)
     state: readonly(state),
     connectionStatus,
     hasError,
     marketplaceUpdates: readonly(marketplaceUpdates),
     userActivities: readonly(userActivities),
 
+    // Additional data from new implementation
+    notifications: readonly(notificationWs.notifications),
+
     // Connection management
     connect,
     disconnect,
     authenticate,
 
-    // Subscriptions
+    // Legacy subscription methods
     subscribeToCategory,
     unsubscribeFromCategory,
     subscribeToItem,
@@ -338,6 +266,10 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     // Event handling
     on,
     off,
-    emit
+    emit,
+
+    // Direct access to underlying WebSocket instances for advanced usage
+    auction: auctionWs,
+    notifications: notificationWs
   }
 }

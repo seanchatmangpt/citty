@@ -768,9 +768,255 @@ function calculateSystemHealthScore(issues: any[]): number {
 }
 
 // Additional helper functions (abbreviated)...
-async function analyzeResourceUtilization(resources: any[]): Promise<any[]> { return []; }
-async function analyzeNetworkIssues(network: any[]): Promise<any[]> { return []; }
-async function analyzeApplicationIssues(app: any[], issue?: string): Promise<any[]> { return []; }
+async function analyzeResourceUtilization(resources: any[]): Promise<any[]> {
+  if (!Array.isArray(resources) || resources.length === 0) {
+    return [];
+  }
+  
+  const analysis: any[] = [];
+  
+  for (const resource of resources) {
+    if (!resource || typeof resource !== 'object') continue;
+    
+    const resourceAnalysis: any = {
+      resourceId: resource.id || resource.name || 'unknown',
+      type: resource.type || 'generic',
+      issues: [],
+      metrics: resource.metrics || {},
+      recommendations: []
+    };
+    
+    // Analyze CPU utilization
+    if (resource.cpu !== undefined) {
+      const cpuUsage = typeof resource.cpu === 'number' ? resource.cpu : parseFloat(resource.cpu) || 0;
+      if (cpuUsage > 90) {
+        resourceAnalysis.issues.push({ type: 'critical', category: 'cpu', message: 'CPU usage critically high', value: cpuUsage });
+        resourceAnalysis.recommendations.push('Scale up resources or optimize CPU-intensive processes');
+      } else if (cpuUsage > 75) {
+        resourceAnalysis.issues.push({ type: 'warning', category: 'cpu', message: 'CPU usage high', value: cpuUsage });
+        resourceAnalysis.recommendations.push('Monitor CPU trends and consider optimization');
+      }
+    }
+    
+    // Analyze Memory utilization
+    if (resource.memory !== undefined) {
+      const memUsage = typeof resource.memory === 'number' ? resource.memory : parseFloat(resource.memory) || 0;
+      if (memUsage > 95) {
+        resourceAnalysis.issues.push({ type: 'critical', category: 'memory', message: 'Memory usage critically high', value: memUsage });
+        resourceAnalysis.recommendations.push('Increase memory allocation or check for memory leaks');
+      } else if (memUsage > 80) {
+        resourceAnalysis.issues.push({ type: 'warning', category: 'memory', message: 'Memory usage high', value: memUsage });
+        resourceAnalysis.recommendations.push('Monitor memory consumption patterns');
+      }
+    }
+    
+    // Analyze Disk utilization
+    if (resource.disk !== undefined) {
+      const diskUsage = typeof resource.disk === 'number' ? resource.disk : parseFloat(resource.disk) || 0;
+      if (diskUsage > 90) {
+        resourceAnalysis.issues.push({ type: 'critical', category: 'disk', message: 'Disk space critically low', value: diskUsage });
+        resourceAnalysis.recommendations.push('Free up disk space or increase storage capacity');
+      } else if (diskUsage > 75) {
+        resourceAnalysis.issues.push({ type: 'warning', category: 'disk', message: 'Disk space running low', value: diskUsage });
+        resourceAnalysis.recommendations.push('Plan for storage cleanup or expansion');
+      }
+    }
+    
+    // Analyze Network I/O
+    if (resource.network) {
+      const network = resource.network;
+      if (network.errors && network.errors > 0) {
+        resourceAnalysis.issues.push({ type: 'warning', category: 'network', message: 'Network errors detected', value: network.errors });
+        resourceAnalysis.recommendations.push('Investigate network configuration and connectivity');
+      }
+      
+      if (network.latency && network.latency > 1000) {
+        resourceAnalysis.issues.push({ type: 'warning', category: 'network', message: 'High network latency', value: network.latency });
+        resourceAnalysis.recommendations.push('Check network infrastructure and optimize routing');
+      }
+    }
+    
+    analysis.push(resourceAnalysis);
+  }
+  
+  return analysis;
+}
+async function analyzeNetworkIssues(network: any[]): Promise<any[]> {
+  if (!Array.isArray(network) || network.length === 0) {
+    return [];
+  }
+  
+  const issues: any[] = [];
+  
+  for (const netItem of network) {
+    if (!netItem || typeof netItem !== 'object') continue;
+    
+    const issue: any = {
+      component: netItem.name || netItem.interface || 'unknown',
+      type: 'network',
+      timestamp: new Date().toISOString(),
+      details: []
+    };
+    
+    // Check connection status
+    if (netItem.status === 'down' || netItem.connected === false) {
+      issue.severity = 'critical';
+      issue.details.push('Network interface is down');
+      issue.impact = 'Service unavailable';
+      issue.recommendations = ['Check network cable/wireless connection', 'Restart network interface', 'Verify network configuration'];
+    }
+    
+    // Check packet loss
+    if (netItem.packetLoss !== undefined) {
+      const packetLoss = parseFloat(netItem.packetLoss) || 0;
+      if (packetLoss > 5) {
+        issue.severity = packetLoss > 10 ? 'critical' : 'high';
+        issue.details.push(`High packet loss: ${packetLoss}%`);
+        issue.impact = 'Poor connection quality';
+        issue.recommendations = ['Check network infrastructure', 'Investigate routing issues', 'Monitor network quality'];
+      }
+    }
+    
+    // Check bandwidth utilization
+    if (netItem.bandwidth) {
+      const utilization = (netItem.bandwidth.used / netItem.bandwidth.total) * 100;
+      if (utilization > 90) {
+        issue.severity = 'high';
+        issue.details.push(`Bandwidth utilization high: ${utilization.toFixed(1)}%`);
+        issue.impact = 'Network congestion';
+        issue.recommendations = ['Upgrade bandwidth capacity', 'Implement QoS policies', 'Optimize traffic patterns'];
+      }
+    }
+    
+    // Check DNS resolution
+    if (netItem.dns && netItem.dns.failures > 0) {
+      issue.severity = 'medium';
+      issue.details.push(`DNS resolution failures: ${netItem.dns.failures}`);
+      issue.impact = 'Service discovery issues';
+      issue.recommendations = ['Check DNS server configuration', 'Verify DNS resolution', 'Consider backup DNS servers'];
+    }
+    
+    // Check latency
+    if (netItem.latency !== undefined) {
+      const latency = parseFloat(netItem.latency) || 0;
+      if (latency > 500) {
+        issue.severity = latency > 1000 ? 'high' : 'medium';
+        issue.details.push(`High latency: ${latency}ms`);
+        issue.impact = 'Poor user experience';
+        issue.recommendations = ['Optimize network routing', 'Check for network congestion', 'Consider CDN or edge caching'];
+      }
+    }
+    
+    if (issue.details.length > 0) {
+      issues.push(issue);
+    }
+  }
+  
+  return issues;
+}
+async function analyzeApplicationIssues(app: any[], issue?: string): Promise<any[]> {
+  if (!Array.isArray(app) || app.length === 0) {
+    return [];
+  }
+  
+  const issues: any[] = [];
+  
+  for (const application of app) {
+    if (!application || typeof application !== 'object') continue;
+    
+    const appIssues: any = {
+      application: application.name || application.id || 'unknown',
+      version: application.version,
+      issues: [],
+      performance: {},
+      recommendations: []
+    };
+    
+    // Check application health/status
+    if (application.status === 'down' || application.health === 'unhealthy') {
+      appIssues.issues.push({
+        severity: 'critical',
+        type: 'availability',
+        message: 'Application is not running or unhealthy',
+        impact: 'Service unavailable'
+      });
+      appIssues.recommendations.push('Restart application service', 'Check application logs', 'Verify dependencies');
+    }
+    
+    // Check error rates
+    if (application.errorRate !== undefined) {
+      const errorRate = parseFloat(application.errorRate) || 0;
+      if (errorRate > 5) {
+        appIssues.issues.push({
+          severity: errorRate > 10 ? 'critical' : 'high',
+          type: 'errors',
+          message: `High error rate: ${errorRate}%`,
+          impact: 'User experience degradation'
+        });
+        appIssues.recommendations.push('Investigate error logs', 'Check recent deployments', 'Review application metrics');
+      }
+    }
+    
+    // Check response times
+    if (application.responseTime !== undefined) {
+      const responseTime = parseFloat(application.responseTime) || 0;
+      if (responseTime > 5000) {
+        appIssues.issues.push({
+          severity: responseTime > 10000 ? 'critical' : 'high',
+          type: 'performance',
+          message: `High response time: ${responseTime}ms`,
+          impact: 'Poor user experience'
+        });
+        appIssues.recommendations.push('Optimize database queries', 'Check resource utilization', 'Review application performance');
+      }
+    }
+    
+    // Check memory leaks
+    if (application.memory && application.memory.trend === 'increasing') {
+      appIssues.issues.push({
+        severity: 'medium',
+        type: 'memory',
+        message: 'Potential memory leak detected',
+        impact: 'Resource exhaustion over time'
+      });
+      appIssues.recommendations.push('Profile application memory usage', 'Check for memory leaks', 'Review garbage collection');
+    }
+    
+    // Check database connections
+    if (application.database && application.database.connectionErrors > 0) {
+      appIssues.issues.push({
+        severity: 'high',
+        type: 'database',
+        message: `Database connection errors: ${application.database.connectionErrors}`,
+        impact: 'Data access issues'
+      });
+      appIssues.recommendations.push('Check database connectivity', 'Review connection pool settings', 'Verify database health');
+    }
+    
+    // Check for specific issue if provided
+    if (issue && application.logs) {
+      const logMatches = application.logs.filter((log: any) => 
+        log.message && log.message.toLowerCase().includes(issue.toLowerCase())
+      );
+      if (logMatches.length > 0) {
+        appIssues.issues.push({
+          severity: 'medium',
+          type: 'specific',
+          message: `Found ${logMatches.length} log entries matching '${issue}'`,
+          impact: 'Potential application issue'
+        });
+        appIssues.recommendations.push('Review matching log entries', 'Investigate root cause', 'Consider log pattern analysis');
+      }
+    }
+    
+    // Only add if there are actual issues
+    if (appIssues.issues.length > 0) {
+      issues.push(appIssues);
+    }
+  }
+  
+  return issues;
+}
 async function correlateSystemIssues(issues: any[]): Promise<any[]> { return issues; }
 async function prioritizeIssues(issues: any[]): Promise<any[]> { return issues.sort((a, b) => b.severity.localeCompare(a.severity)); }
 async function performRootCauseAnalysis(issues: any[]): Promise<any[]> { return issues.map(i => ({ ...i, rootCause: 'identified' })); }

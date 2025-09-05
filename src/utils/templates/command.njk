@@ -49,18 +49,70 @@ export default defineCommand({
   {%- endif %}
   {%- if command.setup %}
   setup() {
-    // TODO: Implement setup logic
+    // Initialize {{ command.name }} command resources
+    {%- if command.database %}
+    this.initializeDatabase();
+    {%- endif %}
+    {%- if command.config %}
+    this.loadConfiguration();
+    {%- endif %}
+    {%- if command.logging %}
+    this.setupLogging();
+    {%- endif %}
+    consola.info('{{ command.name }} command initialized');
   },
   {%- endif %}
   {%- if command.cleanup %}
   cleanup() {
-    // TODO: Implement cleanup logic
+    // Clean up {{ command.name }} command resources
+    {%- if command.database %}
+    this.closeDatabaseConnections();
+    {%- endif %}
+    {%- if command.tempFiles %}
+    this.removeTempFiles();
+    {%- endif %}
+    {%- if command.logging %}
+    this.flushLogs();
+    {%- endif %}
+    consola.info('{{ command.name }} command cleanup completed');
   },
   {%- endif %}
   {%- if command.run %}
-  run({ args }) {
-    // TODO: Implement run logic
-    console.log("Running {{ command.name }} with args:", args);
+  async run({ args }) {
+    try {
+      consola.start(`Executing {{ command.name }}...`);
+      
+      {%- if command.validation %}
+      // Validate input arguments
+      this.validateArgs(args);
+      {%- endif %}
+      
+      {%- if command.async %}
+      // Perform async {{ command.name }} operation
+      const result = await this.executeCommand(args);
+      {%- else %}
+      // Perform {{ command.name }} operation
+      const result = this.executeCommand(args);
+      {%- endif %}
+      
+      {%- if command.output %}
+      // Handle output formatting
+      this.formatOutput(result, args.format || '{{ command.defaultFormat or "json" }}');
+      {%- endif %}
+      
+      consola.success(`{{ command.name }} completed successfully`);
+      
+      {%- if command.returnResult %}
+      return result;
+      {%- endif %}
+      
+    } catch (error) {
+      consola.error(`{{ command.name }} failed:`, error.message);
+      {%- if command.errorHandling %}
+      this.handleError(error, args);
+      {%- endif %}
+      throw error;
+    }
   },
   {%- endif %}
 });
